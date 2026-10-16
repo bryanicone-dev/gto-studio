@@ -558,7 +558,7 @@ mod tests {
         let quoted: Vec<&str> = html.match_indices("oop: '").chain(html.match_indices("ip: '"))
             .map(|(i, m)| { let s = &html[i + m.len()..]; &s[..s.find('\'').unwrap()] })
             .collect();
-        assert_eq!(quoted.len(), 24, "12 presets x 2 ranges");
+        assert_eq!(quoted.len(), 44, "22 presets x 2 ranges");
         for r in quoted {
             r.parse::<Range>().unwrap_or_else(|e| panic!("{r}: {e}"));
         }

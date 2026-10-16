@@ -2,7 +2,8 @@
 # Em pull requests roda tudo e guarda o site como artefato "site", mas não publica:
 #   1. roda os testes;
 #   2. resolve os spots da biblioteca, um preset por máquina, em paralelo (com cache: só
-#      recalcula o que ainda não existe; para refazer tudo, aumente "version" em spots.json);
+#      recalcula o que ainda não existe; para refazer tudo, aumente "version" em spots.json).
+#      Em pull requests só usa o cache da main: spots novos são calculados uma vez, na publicação;
 #   3. gera a tabela de equity pré-flop do Push/fold (com cache), compila o site (WebAssembly) e publica no Hugging Face Space.
 # Requer o secret HF_TOKEN (token "Write" do Hugging Face) em Settings > Secrets and variables > Actions.
 name: Publicar site
@@ -76,6 +77,7 @@ jobs:
       - name: Resolver ${{ matrix.preset.name }}
         env:
           PRESET: ${{ matrix.preset.name }}
+          LIBRARY_ONLY_CACHED: ${{ github.event_name == 'pull_request' && '1' || '0' }}
         run: cargo run --release --bin library -- deploy/library/spots.json spots "$PRESET"
       - uses: actions/upload-artifact@v4
         with:
