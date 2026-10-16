@@ -236,6 +236,7 @@
   .pf-pos button.on { border-color: var(--primary); color: var(--primary); }
   .pf-setup .seg { margin-top: 2px; }
   .grid.pf .cell { cursor: default; }
+  .code { font-family: ui-monospace, Consolas, monospace; letter-spacing: .04em; }
   .install-btn { margin-left: 8px; font-size: 12px; padding: 4px 10px; border-color: var(--primary); color: var(--primary); white-space: nowrap; }
   .search { margin-bottom: 18px; }
   .search .row-inline select { width: auto; max-width: 100%; }
@@ -317,6 +318,7 @@
     <div class="tile soon"><span class="ico">⌕</span><span class="tag">Em breve</span><h3>Analisar mãos</h3><p>Importe seu hand history e compare suas jogadas com a estratégia GTO.</p></div>
   </div>
   <div id="homeStats"></div>
+  <div id="syncPanel"></div>
   <p class="hint" id="iosHint" hidden>Para usar como app no iPhone: no Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".</p>
   <div class="machine">
     <div class="panel stat"><small id="mTotalLabel">Memória total</small><b id="mTotal">—</b></div>
@@ -1229,7 +1231,7 @@ const STREETS = ['flop', 'turn', 'river'];
 // Preferências, histórico e drills ficam só neste aparelho (localStorage); sem ele tudo funciona, só não lembra.
 const store = {
   get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
-  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} onStoreSet(key); },
 };
 const DEFAULT_PREFS = { hero: 'random', source: 'library', format: 'all', preset: 'all', start: 'flop', depth: 'full', mode: 'normal' };
 const prefs = { ...DEFAULT_PREFS, ...store.get('gto-treino-prefs', {}) };
@@ -1352,6 +1354,7 @@ function saveHand() {
 function clearHistory() {
   if (!confirm('Apagar o histórico de treino deste aparelho?')) return;
   handLog = [];
+  store.set('gto-historico-limpo', Date.now());
   store.set('gto-treino-historico', handLog);
   trainerView();
 }
@@ -1743,6 +1746,7 @@ async function reportsView() {
 
 // ---------- início ----------
 function homeView() {
+  syncPanel();
   const all = summarize(handLog), week = summarize(handLog.filter(x => x.t > Date.now() - 7 * 864e5));
   $('#homeStats').innerHTML = all.hands ? `<h4 style="margin-top:24px">Seu treino (neste aparelho)</h4><div class="machine" style="margin-top:0">${[
     ['Mãos treinadas', all.hands], ['Acerto', all.decisions ? pct(all.good / all.decisions) : '—'],
@@ -1986,6 +1990,104 @@ async function pfTrainView() {
   el.innerHTML = html;
 }
 
+// ---------- sincronização entre aparelhos ----------
+// Um código aleatório liga os aparelhos, sem login. O Supabase guarda os dados pelo hash do código
+// (deploy/supabase/sync.sql). Histórico e resultados se juntam; os drills ficam com a versão mais nova.
+const SYNC = { url: '', key: '' };
+const SYNC_KEYS = ['gto-treino-historico', 'gto-drills', 'gto-drills-resultados', 'gto-historico-limpo'];
+let syncTimer = null, syncing = false, syncState = '';
+const syncCode = () => SYNC.url ? store.get('gto-sync-code', null) : null;
+
+function onStoreSet(key) {
+  if (syncing || !SYNC_KEYS.includes(key)) return;
+  if (key === 'gto-drills') store.set('gto-drills-mod', Date.now());
+  if (!syncCode()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, 4000);
+}
+
+async function syncCall(fn, body) {
+  const headers = { 'Content-Type': 'application/json', apikey: SYNC.key };
+  if (SYNC.key.startsWith('eyJ')) headers.Authorization = 'Bearer ' + SYNC.key;
+  const r = await fetch(`${SYNC.url}/rest/v1/rpc/${fn}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`o servidor respondeu ${r.status}`);
+  const text = await r.text();
+  return text ? JSON.parse(text) : null;
+}
+
+const localData = () => ({
+  v: 1, hands: store.get('gto-treino-historico', []), results: store.get('gto-drills-resultados', []),
+  drills: store.get('gto-drills', []), drillsAt: store.get('gto-drills-mod', 0), cleared: store.get('gto-historico-limpo', 0),
+});
+function mergeData(a, b) {
+  if (!b) return a;
+  const cleared = Math.max(a.cleared || 0, b.cleared || 0);
+  const union = (x, y, n) => {
+    const m = new Map();
+    for (const e of [...(x || []), ...(y || [])]) m.set(`${e.t}|${e.combo ?? e.name}`, e);
+    return [...m.values()].filter(e => e.t > cleared).sort((p, q) => p.t - q.t).slice(-n);
+  };
+  const newer = (b.drillsAt || 0) > (a.drillsAt || 0) ? b : a;
+  return { v: 1, hands: union(a.hands, b.hands, 500), results: union(a.results, b.results, 50), drills: newer.drills || [], drillsAt: newer.drillsAt || 0, cleared };
+}
+
+async function syncNow() {
+  const code = syncCode();
+  if (!code) return;
+  syncState = 'Sincronizando…';
+  syncPanel();
+  try {
+    const merged = mergeData(localData(), await syncCall('sync_get', { code }));
+    syncing = true;
+    store.set('gto-treino-historico', merged.hands);
+    store.set('gto-drills-resultados', merged.results);
+    store.set('gto-drills', merged.drills);
+    store.set('gto-drills-mod', merged.drillsAt);
+    store.set('gto-historico-limpo', merged.cleared);
+    syncing = false;
+    handLog = merged.hands;
+    await syncCall('sync_put', { code, payload: merged });
+    syncState = `Sincronizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`;
+    if (curPage === '') homeView();
+    if (curPage === 'treinar' && !sub && (!trainer || trainer.over)) trainerView();
+  } catch (err) {
+    syncing = false;
+    syncState = `Não deu para sincronizar agora (${err.message}). Tento de novo na próxima mão.`;
+  }
+  syncPanel();
+}
+
+function syncPanel() {
+  const el = $('#syncPanel');
+  if (!el || !SYNC.url) return;
+  const code = syncCode();
+  el.innerHTML = `<div class="panel" style="margin-top:24px"><h4>Sincronizar celular e PC</h4>${code
+    ? `<p style="margin-top:0">Este aparelho está ligado ao código <b class="code">${code}</b>. Digite o mesmo código no outro aparelho.</p>
+      <div class="row-inline"><button onclick="syncNow()">Sincronizar agora</button><button onclick="syncLeave()">Desligar este aparelho</button></div>`
+    : `<p class="hint" style="margin-top:0">Leva o histórico de treino e os seus drills entre os aparelhos, sem login. Crie um código aqui e digite o mesmo no outro aparelho.</p>
+      <div class="row-inline"><button class="btn-primary" onclick="syncCreate()">Criar código</button>
+      <input id="syncInput" placeholder="Ou digite o código do outro aparelho"><button onclick="syncJoin()">Entrar</button></div>`}
+    ${syncState ? `<p class="hint">${syncState}</p>` : ''}</div>`;
+}
+function syncCreate() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const code = [...crypto.getRandomValues(new Uint8Array(20))].map(x => A[x % 32]).join('').match(/.{4}/g).join('-');
+  store.set('gto-sync-code', code);
+  syncNow();
+}
+function syncJoin() {
+  const raw = $('#syncInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (raw.length !== 20) { syncState = 'Código inválido: são 20 letras e números.'; return syncPanel(); }
+  store.set('gto-sync-code', raw.match(/.{4}/g).join('-'));
+  syncNow();
+}
+function syncLeave() {
+  if (!confirm('Desligar a sincronização neste aparelho? O histórico continua salvo aqui.')) return;
+  try { localStorage.removeItem('gto-sync-code'); } catch {}
+  syncState = '';
+  syncPanel();
+}
+
 // ---------- instalar como app ----------
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('#installBtn').hidden = false; });
@@ -1998,6 +2100,7 @@ if (BACKEND === 'wasm') {
   $('#mFreeLabel').textContent = 'Limite no navegador';
 }
 route();
+syncNow();
 poll().then(() => { if (location.hash.startsWith('#/treinar')) trainerView(); });
 </script>
 </body>
