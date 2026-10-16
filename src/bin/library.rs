@@ -41,6 +41,17 @@ fn slug(s: &str) -> String {
     }).collect::<String>().split('-').filter(|p| !p.is_empty()).collect::<Vec<_>>().join("-")
 }
 
+/// Flop summary for the Reports page: OOP's first decision and IP's answer to a check.
+fn report(bytes: &[u8]) -> Result<Value, String> {
+    let (mut g, _) = engine::load(bytes)?;
+    let side = |v: &Value| json!({ "actions": v["actions"], "freqs": v["summary"], "evs": v["summary_evs"] });
+    let root = engine::node_json(&mut g, &[])?;
+    let check = root["actions"].as_array().and_then(|a| a.iter().position(|x| x["kind"] == "Check"))
+        .ok_or("o OOP não tem check na raiz")?;
+    let ip = engine::node_json(&mut g, &[check])?;
+    Ok(json!({ "oop_equity": root["ranges"][0]["equity"], "oop": side(&root), "ip": side(&ip) }))
+}
+
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     let (spec_path, out, only) = match args.as_slice() {
@@ -64,7 +75,12 @@ fn main() -> Result<(), String> {
         for board in &spec.boards {
             let id = slug(&format!("{name} {board}"));
             let file = format!("{id}.bin");
-            if index.iter().any(|s| s["id"] == id.as_str()) && fs::metadata(format!("{out}/{file}")).is_ok() {
+            let existing = index.iter().position(|s| s["id"] == id.as_str());
+            if let (Some(i), Ok(bytes)) = (existing, fs::read(format!("{out}/{file}"))) {
+                if index[i].get("report").is_none() {
+                    index[i]["report"] = report(&bytes)?;
+                    fs::write(&index_path, serde_json::to_string_pretty(&index).unwrap()).map_err(|e| e.to_string())?;
+                }
                 println!("já existe: {id}");
                 continue;
             }
@@ -99,7 +115,7 @@ fn main() -> Result<(), String> {
             index.push(json!({
                 "id": id, "preset": name, "board": board, "file": file, "bytes": bytes.len(),
                 "iterations": iterations, "exploitability_pct": expl, "bet": spec.bet, "raise": spec.raise,
-                "solve_seconds": started.elapsed().as_secs(),
+                "solve_seconds": started.elapsed().as_secs(), "report": report(&bytes)?,
             }));
             fs::write(&index_path, serde_json::to_string_pretty(&index).unwrap()).map_err(|e| e.to_string())?;
             println!("  salvo: {file} ({:.1} MB, {}s)", bytes.len() as f64 / 1e6, started.elapsed().as_secs());

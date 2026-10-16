@@ -200,6 +200,34 @@
   .hist small { flex-basis: 100%; color: var(--muted); }
   .hist .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; margin-right: 2px; }
   .hist .ev { margin-left: auto; color: var(--muted); white-space: nowrap; }
+  nav { overflow-x: auto; scrollbar-width: none; min-width: 0; }
+  .cat.out { opacity: .7; text-decoration: line-through; border-color: var(--line); }
+  .cell.miss { outline: 2px solid var(--primary); outline-offset: -2px; }
+  .grid.builder { touch-action: none; user-select: none; }
+  .grid.builder .cell { cursor: crosshair; }
+  .actions button.on { outline: 2px solid var(--primary); }
+  .mix { display: grid; gap: 10px; max-width: 380px; margin: 16px auto 0; text-align: left; }
+  .mix label { display: grid; grid-template-columns: 1fr 150px 44px; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--ink); }
+  .mix small { color: var(--muted); }
+  .rng { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .rng b { font-size: 24px; color: var(--primary); margin-left: 6px; }
+  .drill { margin-bottom: 14px; font-size: 13px; padding: 12px 16px; }
+  .drill.done { border-color: var(--good); }
+  .drill-item { cursor: default; }
+  .row-inline { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row-inline input { flex: 1; min-width: 160px; width: auto; }
+  .calc textarea { height: 170px; }
+  .eq-result { display: flex; gap: 40px; margin: 18px 0 8px; }
+  .eq-result small { display: block; color: var(--muted); }
+  .eq-result b { font-size: 30px; }
+  .report { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .report th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px; }
+  .report td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+  .report td small { display: block; color: var(--muted); margin-top: 4px; }
+  .report .summary { margin: 0; min-width: 110px; }
+  .report tr[onclick] { cursor: pointer; }
+  .report tr[onclick]:hover { background: var(--empty); }
+  @media (max-width: 640px) { .report th:nth-child(2), .report td:nth-child(2) { display: none; } .row3 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -211,6 +239,7 @@
     <a href="#/estudar" data-route="estudar">Estudar</a>
     <a href="#/treinar" data-route="treinar">Treinar</a>
     <a href="#/biblioteca" data-route="biblioteca">Biblioteca</a>
+    <a href="#/calculadoras" data-route="calculadoras">Calculadoras</a>
   </nav>
   <a class="status" id="statusPill" href="#/resolver">Solver livre</a>
   <button class="keys-btn" onclick="$('#keys').showModal()" title="Atalhos de teclado">?</button>
@@ -246,9 +275,29 @@
       <h3>Biblioteca</h3>
       <p>Spots de torneio já resolvidos: abrem na hora. O turn e o river são calculados quando você escolhe a carta.</p>
     </a>
-    <div class="tile soon"><span class="ico">▤</span><span class="tag">Em breve</span><h3>Relatórios</h3><p>Estratégia agregada por textura de flop: frequência de bet, check e sizing em cada board.</p></div>
+    <a class="tile" href="#/treinar/drills">
+      <span class="ico">☰</span><span class="tag ok">Disponível</span>
+      <h3>Drills</h3>
+      <p>Séries de mãos prontas por formato, posição e street, com resultado no fim. Crie os seus.</p>
+    </a>
+    <a class="tile" href="#/treinar/construtor">
+      <span class="ico">▧</span><span class="tag ok">Disponível</span>
+      <h3>Construtor de ranges</h3>
+      <p>Pinte o range na grade com a ação que você faria e compare com o GTO.</p>
+    </a>
+    <a class="tile" href="#/calculadoras">
+      <span class="ico">∑</span><span class="tag ok">Disponível</span>
+      <h3>Calculadoras</h3>
+      <p>Equity de mão ou range contra range, e ICM para saber quanto valem as fichas no torneio.</p>
+    </a>
+    <a class="tile" href="#/biblioteca/relatorios">
+      <span class="ico">▤</span><span class="tag ok">Disponível</span>
+      <h3>Relatórios</h3>
+      <p>Frequência de bet e check em cada flop da Biblioteca, lado a lado, por spot.</p>
+    </a>
     <div class="tile soon"><span class="ico">⌕</span><span class="tag">Em breve</span><h3>Analisar mãos</h3><p>Importe seu hand history e compare suas jogadas com a estratégia GTO.</p></div>
   </div>
+  <div id="homeStats"></div>
   <div class="machine">
     <div class="panel stat"><small id="mTotalLabel">Memória total</small><b id="mTotal">—</b></div>
     <div class="panel stat"><small id="mFreeLabel">Livre para o solver</small><b id="mFree">—</b></div>
@@ -331,7 +380,16 @@
 <section class="page" data-page="biblioteca" hidden>
   <h2>Biblioteca</h2>
   <p class="sub">Spots já resolvidos no flop. Abra e estude na hora; ao escolher a carta do turn, o app resolve aquela street em alguns segundos.</p>
+  <div id="libTabs"></div>
   <div id="library"></div>
+</section>
+
+<!-- Calculadoras -->
+<section class="page" data-page="calculadoras" hidden>
+  <h2>Calculadoras</h2>
+  <p class="sub">Equity de mão ou range contra range, e ICM para decisões de torneio. Tudo calculado no seu aparelho.</p>
+  <div id="calcTabs"></div>
+  <div id="calc"></div>
 </section>
 
 <div class="toast" id="toast" hidden></div>
@@ -341,7 +399,7 @@
   <tr><td><kbd>←</kbd> <kbd>Backspace</kbd></td><td>Estudar: voltar uma ação</td></tr>
   <tr><td><kbd>R</kbd></td><td>Estudar: alternar Estratégia e Ranges</td></tr>
   <tr><td><kbd>Esc</kbd></td><td>Estudar: limpar filtros e a mão selecionada</td></tr>
-  <tr><td><kbd>Enter</kbd> <kbd>Espaço</kbd></td><td>Treinar: começar / próxima mão</td></tr>
+  <tr><td><kbd>Enter</kbd> <kbd>Espaço</kbd></td><td>Treinar: começar, próxima mão ou confirmar o mix</td></tr>
   <tr><td><kbd>?</kbd></td><td>Mostrar esta lista</td></tr>
 </table><form method="dialog"><button class="btn-primary">Fechar</button></form></dialog>
 
@@ -349,6 +407,7 @@
 <section class="page" data-page="treinar" hidden>
   <h2>Treinar</h2>
   <p class="sub">Mãos sorteadas da Biblioteca ou da solução aberta. O vilão joga a estratégia GTO; cada decisão sua recebe nota.</p>
+  <div id="trainTabs"></div>
   <div id="trainer"></div>
 </section>
 
@@ -443,17 +502,33 @@ const schedule = (ms) => { clearTimeout(pollTimer); pollTimer = setTimeout(poll,
 
 // ---------- rotas: #/estudar/0.1.48 guarda o caminho na árvore ----------
 let history = [];
+let curPage = '', sub = '';
+const subTabs = (base, items) => `<div class="tabs">${items.map(([k, l]) =>
+  `<button class="${sub === k ? 'on' : ''}" onclick="location.hash='${base}${k ? '/' + k : ''}'">${l}</button>`).join('')}</div>`;
 function route() {
   const [page0, hist] = location.hash.replace(/^#\/?/, '').split('/');
-  const page = ['', 'resolver', 'estudar', 'treinar', 'biblioteca'].includes(page0) ? page0 : '';
+  const page = ['', 'resolver', 'estudar', 'treinar', 'biblioteca', 'calculadoras'].includes(page0) ? page0 : '';
+  curPage = page;
+  sub = page === 'estudar' ? '' : hist || '';
   document.querySelectorAll('[data-page]').forEach(s => s.hidden = s.dataset.page !== page);
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.route === page));
   if (page === 'estudar') {
     history = hist ? hist.split('.').map(Number).filter(Number.isInteger) : [];
     load();
   }
-  if (page === 'treinar') trainerView();
-  if (page === 'biblioteca') libraryView();
+  if (page === '') homeView();
+  if (page === 'treinar') {
+    $('#trainTabs').innerHTML = subTabs('#/treinar', [['', 'Jogar mãos'], ['drills', 'Drills'], ['construtor', 'Construtor de ranges']]);
+    if (sub === 'drills') drillsView(); else if (sub === 'construtor') builderView(); else trainerView();
+  }
+  if (page === 'biblioteca') {
+    $('#libTabs').innerHTML = subTabs('#/biblioteca', [['', 'Spots'], ['relatorios', 'Relatórios']]);
+    if (sub === 'relatorios') reportsView(); else libraryView();
+  }
+  if (page === 'calculadoras') {
+    $('#calcTabs').innerHTML = subTabs('#/calculadoras', [['', 'Equity'], ['icm', 'ICM']]);
+    if (sub === 'icm') icmView(); else equityView();
+  }
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
@@ -651,12 +726,14 @@ async function poll() {
 let node = null;
 let selected = null;  // índice na grade
 let tab = 'strategy'; // strategy | ranges
-let filter = null;    // nome da categoria
+let filters = {};     // categoria → 'in' | 'out'
 let shape = 'all';    // all | pair | suited | offsuit
 let openingDefault = false;
 const SHAPES = { all: 'Todas', pair: 'Pares', suited: 'Suited', offsuit: 'Offsuit' };
 const shapeOk = (hand) => shape === 'all' || (shape === 'pair' ? hand.length === 2 : shape === 'suited' ? hand.endsWith('s') : hand.endsWith('o'));
 const comboHas = (k, f) => k.made === f || k.draws.includes(f) || (k.buckets || []).includes(f);
+const filterOn = () => Object.keys(filters).length > 0;
+const comboOk = (k) => Object.entries(filters).every(([f, m]) => comboHas(k, f) === (m === 'in'));
 // EQR: quanto da equity a mão realiza (EV ÷ (equity × pote)). Acima de 1 realiza mais que a equity.
 const eqr = (ev, eq) => eq > 0 && node.pot > 0 ? num(ev / (eq * node.pot)) : '—';
 
@@ -685,7 +762,7 @@ async function load() {
   }
   try {
     node = await api('/api/node', { history });
-    if (filter && !(node.categories || []).some(c => c.name === filter)) filter = null;
+    for (const f in filters) if (!(node.categories || []).some(c => c.name === f)) delete filters[f];
     render();
   } catch (err) {
     if (/Nenhuma solução/.test(err.message)) return BACKEND === 'wasm' && !openingDefault ? openDefaultSpot() : emptyState($('#main'));
@@ -698,9 +775,10 @@ function go(index) { selected = null; location.hash = studyHash([...history, ind
 function jump(n) { selected = null; location.hash = studyHash(history.slice(0, n)); }
 function pick(i) { selected = i; render(); }
 function setTab(t) { tab = t; render(); }
-function setFilter(name) { filter = filter === name ? null : name; render(); }
+// Clique: incluir → excluir → limpar.
+function setFilter(name) { const m = filters[name]; if (!m) filters[name] = 'in'; else if (m === 'in') filters[name] = 'out'; else delete filters[name]; render(); }
 function setShape(s) { shape = s; render(); }
-function clearFilters() { filter = null; shape = 'all'; render(); }
+function clearFilters() { filters = {}; shape = 'all'; render(); }
 function copyLink() { navigator.clipboard?.writeText(location.href); $('#copyBtn').textContent = 'Link copiado'; }
 
 function render() {
@@ -732,7 +810,7 @@ function render() {
 
 function strategyHtml() {
   const colors = actionColors(node.actions);
-  const inFilter = (cell) => shapeOk(cell.hand) && (!filter || cell.combos.some(k => comboHas(k, filter)));
+  const inFilter = (cell) => shapeOk(cell.hand) && (!filterOn() || cell.combos.some(comboOk));
   let html = `<div class="actions">${node.actions.map((a, i) =>
     `<button style="--c:${colors[i]}" onclick="go(${i})">${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}${actionLabel(a)} <small>${pct(node.summary[i])} · EV ${num(node.summary_evs[i])}</small></button>`
   ).join('')}</div>
@@ -749,13 +827,14 @@ function strategyHtml() {
 }
 
 function categoriesHtml(colors) {
-  const row = (c) => `<button class="cat ${filter === c.name ? 'on' : ''}" onclick="setFilter('${c.name}')" title="EV médio ${num(c.ev)} bb">
+  const row = (c) => `<button class="cat ${filters[c.name] === 'in' ? 'on' : filters[c.name] === 'out' ? 'out' : ''}" onclick="setFilter('${c.name}')" title="EV médio ${num(c.ev)} bb · clique: incluir, excluir, limpar">
     <span>${c.name}</span><span class="mix">${mixBar(c.freqs, colors)}</span><span class="n">${num(c.weight, 1)}</span></button>`;
   const group = (kind, label) => {
     const cs = node.categories.filter(c => c.kind === kind);
     return cs.length ? `<div class="cat-group">${label}</div>${cs.map(row).join('')}` : '';
   };
-  return `<h4>Filtrar${filter || shape !== 'all' ? ` · <a href="javascript:clearFilters()">limpar</a>` : ''}</h4>
+  return `<h4>Filtrar${filterOn() || shape !== 'all' ? ` · <a href="javascript:clearFilters()">limpar</a>` : ''}</h4>
+    <p class="hint" style="margin:0 0 8px">Clique numa categoria para incluir; de novo para excluir. Dá para combinar várias.</p>
     <div class="seg shape">${Object.entries(SHAPES).map(([k, l]) => `<button class="${shape === k ? 'on' : ''}" onclick="setShape('${k}')">${l}</button>`).join('')}</div>
     <div class="cats">${group('made', 'Made hands (combos)')}${group('draw', 'Draws (combos)')}${group('eq', 'Equity simples (combos)')}${group('eq_advanced', 'Equity avançado (combos)')}</div>`;
 }
@@ -763,23 +842,63 @@ function categoriesHtml(colors) {
 function detailHtml(colors) {
   const names = node.actions.map(actionLabel);
   if (selected == null || node.grid[selected].weight <= 0) {
-    if (!filter) return `<p class="pill">Clique numa mão da grade para ver frequências, EV por ação e cada combo. Use os filtros abaixo para destacar categorias.</p>`;
-    const c = node.categories.find(x => x.name === filter);
-    return `<h3>${filter}</h3><div class="kv"><span>Combos</span><span>${num(c.weight, 1)}</span><span>EV médio</span><span>${num(c.ev)} bb</span><span>Equity</span><span>${pct(c.equity)}</span><span title="EV ÷ (equity × pote)">EQR</span><span>${eqr(c.ev, c.equity)}</span>
+    if (!filterOn() && shape === 'all') return `<p class="pill">Clique numa mão da grade para ver frequências, EV por ação e cada combo. Use os filtros abaixo para destacar categorias.</p>`;
+    const c = filteredSummary();
+    return `<h3>${filterTitle()}</h3><div class="kv"><span>Combos</span><span>${num(c.weight, 1)}</span><span>EV médio</span><span>${num(c.ev)} bb</span><span>Equity</span><span>${pct(c.equity)}</span><span title="EV ÷ (equity × pote)">EQR</span><span>${eqr(c.ev, c.equity)}</span>
       ${names.map((n, a) => `<span>${n}</span><span>${pct(c.freqs[a])} · EV ${num(c.evs[a])}</span>`).join('')}</div>`;
   }
   const c = node.grid[selected];
-  const combos = filter ? c.combos.filter(k => comboHas(k, filter)) : c.combos;
+  const combos = filterOn() ? c.combos.filter(comboOk) : c.combos;
   return `<h3>${c.hand}</h3>
     <div class="kv"><span>Combos no range</span><span>${num(c.weight)}</span>
     <span>EV médio</span><span>${num(c.ev)} bb</span>
     <span>Equity</span><span>${pct(c.equity)}</span>
     <span title="Quanto da equity a mão realiza: EV ÷ (equity × pote)">EQR</span><span>${eqr(c.ev, c.equity)}</span>
     ${names.map((n, a) => `<span>${n}</span><span>${pct(c.freqs[a])} · EV ${num(c.evs[a])}</span>`).join('')}</div>
+    ${blockersHtml(c)}
     <table class="combos"><tr><th>Combo</th>${names.map(n => `<th>${n}</th>`).join('')}</tr>
     ${combos.map(k => `<tr><td>${k.combo}<small>${[k.made, ...k.draws].join(' · ')}</small><small>Eq ${pct(k.equity)} · EQR ${eqr(k.ev, k.equity)}</small></td>${k.freqs.map((f, a) =>
       `<td>${pct(f)}<small>EV ${num(k.evs[a])}</small></td>`).join('')}</tr>`).join('')}
     </table>`;
+}
+
+function filterTitle() {
+  const parts = Object.entries(filters).map(([f, m]) => (m === 'out' ? 'sem ' : '') + f);
+  if (shape !== 'all') parts.push(SHAPES[shape]);
+  return parts.join(' · ');
+}
+
+// Média dos combos que passam nos filtros (para o painel quando nenhuma mão está selecionada).
+function filteredSummary() {
+  const n = node.actions.length, s = { weight: 0, ev: 0, equity: 0, freqs: Array(n).fill(0), evs: Array(n).fill(0) };
+  for (const cell of node.grid) if (shapeOk(cell.hand)) for (const k of cell.combos) {
+    if (!comboOk(k)) continue;
+    s.weight += k.weight; s.ev += k.weight * k.ev; s.equity += k.weight * k.equity;
+    k.freqs.forEach((f, a) => { s.freqs[a] += k.weight * f; s.evs[a] += k.weight * k.evs[a]; });
+  }
+  const w = s.weight || 1;
+  return { weight: s.weight, ev: s.ev / w, equity: s.equity / w, freqs: s.freqs.map(x => x / w), evs: s.evs.map(x => x / w) };
+}
+
+// Blockers: quanto da parte forte (equity ≥ 75%) e da fraca (< 33%) do range do vilão as cartas da mão tiram.
+function blockersHtml(c) {
+  const opp = node.ranges.find(r => r.player !== node.player);
+  const mine = c.combos.filter(k => k.weight > 0);
+  if (!opp || !mine.length) return '';
+  const groups = [opp.combos.filter(k => k.equity >= 0.75), opp.combos.filter(k => k.equity < 0.33)];
+  const removal = (combo, ks) => {
+    const t = ks.reduce((s, k) => s + k.weight, 0);
+    return t ? ks.reduce((s, k) => s + (overlaps(k.combo, combo) ? k.weight : 0), 0) / t : 0;
+  };
+  const avgOver = (combos, ks) => {
+    const t = combos.reduce((s, k) => s + k.weight, 0);
+    return t ? combos.reduce((s, k) => s + k.weight * removal(k.combo, ks), 0) / t : 0;
+  };
+  node.blockBase ??= groups.map(ks => avgOver(node.grid.flatMap(x => x.combos), ks));
+  const [strong, weak] = groups.map(ks => avgOver(mine, ks));
+  return `<h4>Blockers</h4><div class="kv">
+    <span title="Combos do vilão com equity de 75% ou mais">Tira mãos fortes do vilão</span><span>${pct(strong)} <small>(média do range ${pct(node.blockBase[0])})</small></span>
+    <span title="Combos do vilão com equity abaixo de 33%">Tira mãos fracas do vilão</span><span>${pct(weak)} <small>(média do range ${pct(node.blockBase[1])})</small></span></div>`;
 }
 
 function rangesHtml() {
@@ -865,6 +984,160 @@ async function openSpot(id) {
   } finally { toast(null); }
 }
 
+// ---------- matemática de poker (calculadoras) ----------
+// Cartas como inteiros: rank * 4 + naipe, ranks 2..A = 0..12, naipes c d h s.
+const RANK_CH = '23456789TJQKA', SUIT_CH = 'cdhs';
+const parseCard = (s) => {
+  const r = RANK_CH.indexOf(s[0]?.toUpperCase()), u = SUIT_CH.indexOf(s[1]?.toLowerCase());
+  return r < 0 || u < 0 ? null : r * 4 + u;
+};
+const cardName = (c) => RANK_CH[c >> 2] + SUIT_CH[c & 3];
+function parseCards(text) {
+  const t = text.replace(/[\s,]+/g, '');
+  if (t.length % 2) return null;
+  const cards = t.match(/../g)?.map(parseCard) ?? [];
+  return cards.includes(null) || new Set(cards).size !== cards.length ? null : cards;
+}
+
+// Maior carta de uma sequência numa máscara de ranks (-1 se não houver); A2345 conta como 5-high.
+function straightHigh(m) {
+  for (let hi = 12; hi >= 4; hi--) if (((m >> (hi - 4)) & 31) === 31) return hi;
+  return (m & 0x100F) === 0x100F ? 3 : -1;
+}
+const topBits = (m, n) => { let v = 0; for (let r = 12; r >= 0 && n; r--) if (m >> r & 1) { v = v * 16 + r; n--; } return v; };
+
+// Valor da melhor mão de 5 entre 5 a 7 cartas; maior é melhor.
+function handValue(cards) {
+  const rc = new Array(13).fill(0), sm = [0, 0, 0, 0], sc = [0, 0, 0, 0];
+  let rm = 0;
+  for (const c of cards) { const r = c >> 2, s = c & 3; rc[r]++; sm[s] |= 1 << r; sc[s]++; rm |= 1 << r; }
+  const C = 1 << 20;
+  const fs = sc.findIndex(n => n >= 5);
+  if (fs >= 0) { const sf = straightHigh(sm[fs]); if (sf >= 0) return 8 * C + sf; }
+  let quad = -1, trips = -1, pair1 = -1, pair2 = -1;
+  for (let r = 12; r >= 0; r--) {
+    if (rc[r] === 4 && quad < 0) quad = r;
+    else if (rc[r] === 3 && trips < 0) trips = r;
+    else if (rc[r] >= 2) { if (pair1 < 0) pair1 = r; else if (pair2 < 0) pair2 = r; }
+  }
+  if (quad >= 0) return 7 * C + quad * 16 + topBits(rm & ~(1 << quad), 1);
+  if (trips >= 0 && pair1 >= 0) return 6 * C + trips * 16 + pair1;
+  if (fs >= 0) return 5 * C + topBits(sm[fs], 5);
+  const st = straightHigh(rm);
+  if (st >= 0) return 4 * C + st;
+  if (trips >= 0) return 3 * C + trips * 256 + topBits(rm & ~(1 << trips), 2);
+  if (pair1 >= 0 && pair2 >= 0) return 2 * C + pair1 * 256 + pair2 * 16 + topBits(rm & ~(1 << pair1) & ~(1 << pair2), 1);
+  if (pair1 >= 0) return 1 * C + pair1 * 4096 + topBits(rm & ~(1 << pair1), 3);
+  return topBits(rm, 5);
+}
+
+// Range na notação do Resolver: AA, QQ+, 99-66, AKs, A2s+, KTo-K8o, AK, AhKh, com :peso opcional.
+function parseRange(text) {
+  const out = new Map();
+  const add = (a, b, w) => { const k = a > b ? [a, b] : [b, a]; out.set(k.join(','), { cards: k, w }); };
+  const R = (ch) => RANK_CH.indexOf(ch.toUpperCase());
+  const hand = (r1, r2, kind, w) => {
+    for (let s1 = 0; s1 < 4; s1++) for (let s2 = 0; s2 < 4; s2++) {
+      if (r1 === r2 ? s2 <= s1 : (kind === 's' && s1 !== s2) || (kind === 'o' && s1 === s2)) continue;
+      add(r1 * 4 + s1, r2 * 4 + s2, w);
+    }
+  };
+  for (const raw of text.split(',').map(t => t.trim()).filter(Boolean)) {
+    const [tok, wt] = raw.split(':');
+    const w = wt === undefined ? 1 : parseFloat(wt);
+    if (!(w >= 0 && w <= 1)) throw new Error(`Peso inválido em "${raw}"`);
+    let m;
+    if ((m = tok.match(/^([2-9TJQKA][cdhs])([2-9TJQKA][cdhs])$/i))) {
+      const a = parseCard(m[1]), b = parseCard(m[2]);
+      if (a === b) throw new Error(`Combo inválido "${raw}"`);
+      add(a, b, w);
+    } else if ((m = tok.match(/^([2-9TJQKA])([2-9TJQKA])([so]?)(\+?)(?:-([2-9TJQKA])([2-9TJQKA])\3)?$/i))) {
+      const [, a, b, kind, plus, c, d] = m;
+      let r1 = R(a), r2 = R(b);
+      if (r1 === r2) {
+        if (kind) throw new Error(`Par não leva s/o: "${raw}"`);
+        const lo = c ? Math.min(r1, R(c)) : r1, hi = plus ? 12 : c ? Math.max(r1, R(c)) : r1;
+        for (let r = lo; r <= hi; r++) hand(r, r, '', w);
+      } else {
+        if (r1 < r2) [r1, r2] = [r2, r1];
+        let lo = r2, hi = r2;
+        if (plus) hi = r1 - 1;
+        if (c) { if (R(c) !== r1) throw new Error(`Intervalo inválido "${raw}"`); lo = Math.min(r2, R(d)); hi = Math.max(r2, R(d)); }
+        for (let r = lo; r <= hi; r++) hand(r1, r, kind.toLowerCase(), w);
+      }
+    } else throw new Error(`Não entendi "${raw}"`);
+  }
+  return [...out.values()].filter(x => x.w > 0);
+}
+
+// Equity de A contra B no board. Enumera tudo quando é pouco; senão Monte Carlo por tempo.
+function rangeEquity(A, B, board, budgetMs = 800) {
+  const dead = new Set(board);
+  const ok = (x) => !x.cards.some(c => dead.has(c));
+  A = A.filter(ok); B = B.filter(ok);
+  if (!A.length || !B.length) throw new Error('Um dos ranges ficou vazio (cartas repetidas no board).');
+  const deck = [...Array(52).keys()].filter(c => !dead.has(c));
+  const need = 5 - board.length;
+  let win = 0, tie = 0, total = 0;
+  const showdown = (a, b, run, w) => {
+    const va = handValue([...a, ...board, ...run]), vb = handValue([...b, ...board, ...run]);
+    total += w; if (va > vb) win += w; else if (va === vb) tie += w;
+  };
+  const runouts = need === 0 ? 1 : need === 1 ? 46 : need === 2 ? 1035 : Infinity;
+  if (A.length * B.length * runouts <= 1.5e6) {
+    for (const a of A) for (const b of B) {
+      if (a.cards.some(c => b.cards.includes(c))) continue;
+      const w = a.w * b.w;
+      const rest = deck.filter(c => !a.cards.includes(c) && !b.cards.includes(c));
+      if (need === 0) showdown(a.cards, b.cards, [], w);
+      else if (need === 1) for (const x of rest) showdown(a.cards, b.cards, [x], w);
+      else for (let i = 0; i < rest.length; i++) for (let j = i + 1; j < rest.length; j++) showdown(a.cards, b.cards, [rest[i], rest[j]], w);
+    }
+    if (!total) throw new Error('Os ranges não têm combos compatíveis entre si.');
+    return { equity: (win + tie / 2) / total, win: win / total, tie: tie / total, exact: true, samples: total };
+  }
+  // ponytail: Monte Carlo com tempo fixo; erro típico ~0,2% com 100 mil amostras.
+  const pick = (xs) => { let r = Math.random() * xs.sum; for (const x of xs) if ((r -= x.w) <= 0) return x; return xs[xs.length - 1]; };
+  A.sum = A.reduce((s, x) => s + x.w, 0); B.sum = B.reduce((s, x) => s + x.w, 0);
+  const end = performance.now() + budgetMs;
+  let n = 0, misses = 0;
+  while (performance.now() < end) {
+    for (let k = 0; k < 500; k++) {
+      const a = pick(A), b = pick(B);
+      if (a.cards.some(c => b.cards.includes(c))) { misses++; continue; }
+      const used = new Set([...a.cards, ...b.cards]);
+      const run = [];
+      while (run.length < need) { const c = deck[Math.floor(Math.random() * deck.length)]; if (!used.has(c)) { used.add(c); run.push(c); } }
+      showdown(a.cards, b.cards, run, 1);
+      n++;
+    }
+    if (!n && misses > 50000) throw new Error('Os ranges não têm combos compatíveis entre si.');
+  }
+  return { equity: (win + tie / 2) / total, win: win / total, tie: tie / total, exact: false, samples: n };
+}
+
+// ICM (Malmuth-Harville): probabilidade de cada colocação proporcional às fichas restantes.
+function icm(stacks, prizes) {
+  const n = stacks.length, eq = new Array(n).fill(0);
+  let level = new Map([[(1 << n) - 1, 1]]);
+  for (let place = 0; place < Math.min(prizes.length, n); place++) {
+    const next = new Map();
+    for (const [mask, p] of level) {
+      let S = 0;
+      for (let i = 0; i < n; i++) if (mask >> i & 1) S += stacks[i];
+      for (let i = 0; i < n; i++) {
+        if (!(mask >> i & 1)) continue;
+        const q = S > 0 ? p * stacks[i] / S : 0;
+        eq[i] += q * prizes[place];
+        const m2 = mask & ~(1 << i);
+        next.set(m2, (next.get(m2) || 0) + q);
+      }
+    }
+    level = next;
+  }
+  return eq;
+}
+
 // ---------- treinar ----------
 // O vilão joga a estratégia GTO do combo dele. A nota compara sua ação com o mix e o EV do seu combo.
 let trainer = null;
@@ -874,16 +1147,20 @@ const GRADES = [
   ['mistake', 'Erro', 'g-mistake'], ['blunder', 'Erro grave', 'g-blunder'],
 ];
 const gradeOf = (key) => GRADES.find(x => x[0] === key);
+const STREETS = ['flop', 'turn', 'river'];
 
-// Preferências e histórico ficam só neste aparelho (localStorage); sem ele o Treinar funciona igual, só não lembra.
+// Preferências, histórico e drills ficam só neste aparelho (localStorage); sem ele tudo funciona, só não lembra.
 const store = {
   get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} },
 };
-const prefs = { hero: 'random', source: 'library', format: 'all', depth: 'full', ...store.get('gto-treino-prefs', {}) };
+const DEFAULT_PREFS = { hero: 'random', source: 'library', format: 'all', preset: 'all', start: 'flop', depth: 'full', mode: 'normal' };
+const prefs = { ...DEFAULT_PREFS, ...store.get('gto-treino-prefs', {}) };
+if (prefs.depth === 'flop') prefs.depth = 'street';
 if (BACKEND !== 'wasm') prefs.source = 'open';
 let handLog = store.get('gto-treino-historico', []);
 const sessionStart = Date.now();
+let drill = null; // { name, target, since }
 function setPref(key, value) { prefs[key] = value; store.set('gto-treino-prefs', prefs); trainerView(); }
 
 function weightedPick(items, weightOf) {
@@ -895,6 +1172,7 @@ function weightedPick(items, weightOf) {
 const overlaps = (a, b) => [a.slice(0, 2), a.slice(2, 4)].some(c => b.includes(c));
 const findCombo = (n, combo) => n.grid.flatMap(c => c.combos).find(k => k.combo === combo);
 const comboText = (combo) => combo.match(/../g).map(c => c[0] + SUIT[c[1]]).join('');
+const beforeStart = (n) => n.board.length - 3 < STREETS.indexOf(prefs.start);
 
 function grade(k, a, pot) {
   const best = k.freqs.indexOf(Math.max(...k.freqs));
@@ -904,14 +1182,29 @@ function grade(k, a, pot) {
   return { g, loss: Math.max(0, loss) };
 }
 
-// Sorteia um spot da Biblioteca (no formato escolhido) e carrega no solver do navegador.
+// Modo frequência: nota pela distância entre o seu mix e o do GTO; o EV perdido é o do seu mix.
+function gradeMix(k, mix, pot) {
+  const maxEv = Math.max(...k.evs);
+  const loss = mix.reduce((s, f, a) => s + f * (maxEv - k.evs[a]), 0);
+  const dist = mix.reduce((s, f, a) => s + Math.abs(f - k.freqs[a]), 0) / 2;
+  const lossPct = 100 * loss / pot;
+  const g = dist < 0.1 ? 'best' : dist < 0.25 ? 'correct' : lossPct < 2 ? 'inacc' : lossPct < 10 ? 'mistake' : 'blunder';
+  return { g, loss: Math.max(0, loss), dist };
+}
+
+const libraryPool = () => {
+  const group = { mtt: MTT, cash: CASH }[prefs.format];
+  const pool = libraryIndex.filter(s => prefs.preset !== 'all' ? s.preset === prefs.preset
+    : !group || PRESETS.find(p => p.name === s.preset)?.group === group);
+  return pool.length ? pool : libraryIndex;
+};
+
+// Sorteia um spot da Biblioteca (com os filtros do Treinar) e carrega no solver do navegador.
 async function randomSpot() {
   if (local.state === 'solving') throw new Error('Há um solve em andamento. Espere terminar ou treine a solução aberta.');
   libraryIndex ??= await (await fetch('library/index.json')).json();
-  const group = { mtt: MTT, cash: CASH }[prefs.format];
-  const pool = libraryIndex.filter(s => !group || PRESETS.find(p => p.name === s.preset)?.group === group);
   toast('Sorteando um spot da Biblioteca…');
-  try { await loadSpot(weightedPick(pool.length ? pool : libraryIndex, () => 1)); } finally { toast(null); }
+  try { await loadSpot(weightedPick(libraryPool(), () => 1)); } finally { toast(null); }
 }
 
 async function newHand() {
@@ -919,49 +1212,62 @@ async function newHand() {
   if (prefs.source === 'library') await randomSpot();
   const root = await api('/api/node', { history: [] });
   if (root.type !== 'action') throw new Error('A solução aberta não começa numa decisão.');
-  const hero = prefs.hero === 'random' ? (Math.random() < .5 ? 'OOP' : 'IP') : prefs.hero;
-  const [mine, theirs] = hero === 'OOP' ? [root.ranges[0], root.ranges[1]] : [root.ranges[1], root.ranges[0]];
-  const heroCombo = weightedPick(mine.combos, k => k.weight).combo;
-  const villainCombo = weightedPick(theirs.combos.filter(k => !overlaps(k.combo, heroCombo)), k => k.weight).combo;
-  trainer = {
-    hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false,
-    grades: [], evLost: 0, spot: spot?.label || 'Solução aberta',
-  };
-  await advance();
+  // Começando no turn ou no river, as streets anteriores são jogadas pelo GTO; se a mão acabar antes, sorteia outra.
+  for (let tries = 0; tries < 12; tries++) {
+    const hero = prefs.hero === 'random' ? (Math.random() < .5 ? 'OOP' : 'IP') : prefs.hero;
+    const [mine, theirs] = hero === 'OOP' ? [root.ranges[0], root.ranges[1]] : [root.ranges[1], root.ranges[0]];
+    const heroCombo = weightedPick(mine.combos, k => k.weight).combo;
+    const villainCombo = weightedPick(theirs.combos.filter(k => !overlaps(k.combo, heroCombo)), k => k.weight).combo;
+    trainer = {
+      hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false,
+      grades: [], evLost: 0, spot: spot?.label || 'Solução aberta', reached: false,
+    };
+    await play();
+    if (trainer.reached) break;
+  }
+  if (!trainer.reached) throw new Error('Não consegui chegar à street escolhida neste spot. Tente de novo ou comece no flop.');
+  trainerView();
 }
 
 async function advance() {
+  await play();
+  if (trainer.over) saveHand();
+  trainerView();
+}
+
+async function play() {
   for (;;) {
     const n = await api('/api/node', { history: trainer.history });
     trainer.node = n;
     if (n.type === 'terminal') { trainer.over = true; break; }
     if (n.type === 'chance') {
-      if (prefs.depth === 'flop') { trainer.over = true; trainer.log.push('Fim do flop (modo Só flop).'); break; }
+      if (prefs.depth === 'street' && !beforeStart(n)) { trainer.over = true; trainer.log.push('Fim da street (modo Só uma street).'); break; }
       const used = trainer.heroCombo + trainer.villainCombo;
       const card = weightedPick(n.cards.filter(c => c.possible && !used.includes(c.card)), () => 1);
       trainer.history.push(card.id);
       trainer.log.push(`Carta: ${card.card[0]}${SUIT[card.card[1]]}`);
       continue;
     }
-    if (n.player === trainer.hero) {
+    const mine = n.player === trainer.hero;
+    if (mine && !beforeStart(n)) {
+      trainer.reached = true;
       if (!findCombo(n, trainer.heroCombo)) {
         trainer.over = true;
         trainer.log.push('Sua mão saiu da linha de equilíbrio (ação com frequência 0). Mão encerrada.');
-      }
+      } else trainer.rng = 1 + Math.floor(Math.random() * 100);
       break;
     }
-    const k = findCombo(n, trainer.villainCombo);
+    const k = findCombo(n, mine ? trainer.heroCombo : trainer.villainCombo);
     const a = k ? weightedPick(n.actions.map((_, i) => i), i => k.freqs[i]) : 0;
-    trainer.log.push(`${n.player} (vilão): ${actionLabel(n.actions[a])}`);
+    trainer.log.push(`${n.player} (${mine ? 'você, jogada automática' : 'vilão'}): ${actionLabel(n.actions[a])}`);
     trainer.history.push(a);
   }
-  if (trainer.over) saveHand();
-  trainerView();
 }
 
 function saveHand() {
   const t = trainer;
   t.saved = true;
+  if (!t.reached) return;
   handLog = [...handLog, { t: Date.now(), spot: t.spot, hero: t.hero, combo: t.heroCombo, villain: t.villainCombo, grades: t.grades, ev: t.evLost }].slice(-500);
   store.set('gto-treino-historico', handLog);
 }
@@ -973,20 +1279,45 @@ function clearHistory() {
   trainerView();
 }
 
-async function heroAct(a) {
+// RNG: 1–100 sorteado; a ação certa é a faixa do mix em que o número cai.
+const rngAction = (freqs, rng) => { let acc = 0; const i = freqs.findIndex(f => (acc += 100 * f) >= rng); return i < 0 ? freqs.length - 1 : i; };
+
+async function heroAct(a, mix) {
   if (trainerBusy || !trainer || trainer.over) return;
   trainerBusy = true;
   try {
     const n = trainer.node;
     const k = findCombo(n, trainer.heroCombo);
-    const { g, loss } = grade(k, a, n.pot);
+    let g, loss, dist = null, rngA = null;
+    if (mix) {
+      ({ g, loss, dist } = gradeMix(k, mix, n.pot));
+      a = weightedPick(n.actions.map((_, i) => i), i => mix[i]);
+    } else {
+      ({ g, loss } = grade(k, a, n.pot));
+      if (prefs.mode === 'rng') {
+        rngA = rngAction(k.freqs, trainer.rng);
+        if (a === rngA) g = 'best'; else if (g === 'best') g = 'correct';
+      }
+    }
     trainer.grades.push(g);
     trainer.evLost += loss;
-    trainer.feedback = { g, loss, chosen: a, freqs: k.freqs, evs: k.evs, actions: n.actions, colors: actionColors(n.actions), at: [...trainer.history] };
+    trainer.feedback = { g, loss, chosen: a, mix, dist, rng: rngA == null ? null : trainer.rng, rngA, freqs: k.freqs, evs: k.evs, actions: n.actions, colors: actionColors(n.actions), at: [...trainer.history] };
     trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
     trainer.history.push(a);
     await advance();
   } finally { trainerBusy = false; }
+}
+
+function submitMix() {
+  const vals = [...document.querySelectorAll('#mix input')].map(i => Number(i.value));
+  const sum = vals.reduce((s, x) => s + x, 0);
+  if (!sum) return;
+  heroAct(null, vals.map(x => x / sum));
+}
+function mixInput(el) {
+  el.nextElementSibling.textContent = el.value + '%';
+  const sum = [...document.querySelectorAll('#mix input')].reduce((s, i) => s + Number(i.value), 0);
+  $('#mixSum').textContent = `Soma: ${sum}%${sum === 100 ? '' : ' (vai ser ajustada para 100%)'}`;
 }
 
 function summarize(hands) {
@@ -1002,17 +1333,52 @@ function summarize(hands) {
   return s;
 }
 
-function trainerView() {
-  const el = $('#trainer');
+function trainerSetup() {
   const seg = (label, key, opts) => `<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">${label}</span>
     ${opts.map(([v, l]) => `<button class="${prefs[key] === v ? 'on' : ''}" onclick="setPref('${key}','${v}')">${l}</button>`).join('')}</div>`;
-  const setup = `<div class="setup">
+  const presetSelect = libraryIndex ? `<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">Spot</span>
+    <select style="width:auto;max-width:100%" onchange="setPref('preset', this.value)"><option value="all">Qualquer um do formato</option>${[...new Set(libraryIndex.map(s => s.preset))]
+      .map(p => `<option ${prefs.preset === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>` : '';
+  return `<div class="setup">
     ${BACKEND === 'wasm' ? seg('Spots', 'source', [['library', 'Aleatórios da Biblioteca'], ['open', 'Solução aberta']]) : ''}
-    ${prefs.source === 'library' ? seg('Formato', 'format', [['all', 'Todos'], ['mtt', 'Torneio'], ['cash', 'Cash']]) : ''}
-    ${seg('Jogar', 'depth', [['flop', 'Só flop'], ['full', 'Mão inteira']])}
-    ${seg('Você joga como', 'hero', [['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']])}</div>`;
+    ${prefs.source === 'library' ? seg('Formato', 'format', [['all', 'Todos'], ['mtt', 'Torneio'], ['cash', 'Cash']]) + presetSelect : ''}
+    ${seg('Começar no', 'start', [['flop', 'Flop'], ['turn', 'Turn'], ['river', 'River']])}
+    ${seg('Jogar', 'depth', [['street', 'Só uma street'], ['full', 'Até o fim']])}
+    ${seg('Modo', 'mode', [['normal', 'Normal'], ['rng', 'RNG'], ['freq', 'Frequência']])}
+    ${seg('Você joga como', 'hero', [['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']])}</div>
+    ${prefs.start !== 'flop' ? '<p class="hint">Começando no turn ou no river, as streets anteriores são jogadas pelo GTO e o navegador calcula cada nova street (alguns segundos).</p>' : ''}
+    ${prefs.mode === 'rng' ? '<p class="hint">RNG: um número de 1 a 100 decide qual parte do mix jogar. Ex.: bet 30% e check 70% → 1–30 é bet, 31–100 é check.</p>' : ''}
+    ${prefs.mode === 'freq' ? '<p class="hint">Frequência: em vez de uma ação, diga com que frequência faria cada uma. A nota compara o seu mix com o do GTO.</p>' : ''}`;
+}
 
-  const current = trainer && !trainer.saved ? [{ ev: trainer.evLost, grades: trainer.grades }] : [];
+function drillBanner() {
+  if (!drill) return '';
+  const played = handLog.filter(x => x.t >= drill.since);
+  const s = summarize(played);
+  const done = played.length >= drill.target;
+  return `<div class="panel drill ${done ? 'done' : ''}"><b>Drill: ${drill.name}</b> · ${Math.min(played.length, drill.target)}/${drill.target} mãos
+    ${s.decisions ? ` · acerto ${pct(s.good / s.decisions)} · EV perdido ${num(s.evLost)} bb` : ''}
+    ${done ? ' · <b>concluído!</b>' : ''} · <a href="javascript:endDrill()">${done ? 'fechar' : 'encerrar'}</a></div>`;
+}
+function endDrill() {
+  const played = handLog.filter(x => x.t >= drill.since);
+  if (played.length) {
+    const s = summarize(played);
+    store.set('gto-drills-resultados', [...store.get('gto-drills-resultados', []),
+      { t: Date.now(), name: drill.name, hands: played.length, acerto: s.decisions ? s.good / s.decisions : null, ev: s.evLost }].slice(-50));
+  }
+  drill = null;
+  trainerView();
+}
+
+let libraryLoading = null;
+function trainerView() {
+  if (curPage === 'treinar' && sub) return;
+  if (BACKEND === 'wasm' && !libraryIndex && !libraryLoading) {
+    libraryLoading = fetch('library/index.json').then(r => r.json()).then(x => { libraryIndex ??= x; trainerView(); }).catch(() => {});
+  }
+  const el = $('#trainer');
+  const current = trainer && !trainer.saved && trainer.reached ? [{ ev: trainer.evLost, grades: trainer.grades }] : [];
   const ses = summarize([...handLog.filter(x => x.t >= sessionStart), ...current]);
   const all = summarize([...handLog, ...current]);
   const row = (label, f) => `<span>${label}</span><span>${f(ses)}</span><span>${f(all)}</span>`;
@@ -1036,33 +1402,43 @@ function trainerView() {
     const ready = status?.state === 'done';
     const canStart = prefs.source === 'library' || ready;
     const msg = prefs.source === 'library' ? 'Cada mão sorteia um spot da Biblioteca e as cartas de cada jogador pelos ranges.'
-      : ready ? 'Cada mão começa na raiz da solução aberta: sua mão e a do vilão são sorteadas pelos ranges.'
+      : ready ? 'Cada mão começa na solução aberta: sua mão e a do vilão são sorteadas pelos ranges.'
       : 'Ainda não há solução aberta. Resolva um spot ou treine com spots da Biblioteca.';
-    el.innerHTML = `<div class="trainer"><div class="panel table">${setup}<p style="margin:24px 0">${msg}</p>
+    el.innerHTML = `${drillBanner()}<div class="trainer"><div class="panel table">${trainerSetup()}<p style="margin:24px 0">${msg}</p>
       ${canStart ? '<button class="btn-primary" onclick="startHand()">Começar<kbd>Enter</kbd></button>' : '<a class="btn-primary" href="#/resolver">Resolver um spot</a>'}</div>
       <div class="side">${statsHtml}${histHtml}</div></div>`;
     return;
   }
   const t = trainer, n = t.node;
-  let center = `${t.over ? setup : ''}<div style="margin-top:16px">${seatsBar(t.over ? null : n.player)}</div><div class="cards" style="margin-top:18px">${n.board.map(c => cardEl(c, true)).join('')}</div>
+  let center = `${t.over ? trainerSetup() : ''}<div style="margin-top:16px">${seatsBar(t.over ? null : n.player)}</div><div class="cards" style="margin-top:18px">${n.board.map(c => cardEl(c, true)).join('')}</div>
     <div class="pill">Pote <b>${num(n.pot)} bb</b> · ${t.spot}</div>
     <div class="seat">Você: <b>${t.hero}</b> (${PLAYER_DESC[t.hero]})</div><div class="cards">${comboCards(t.heroCombo, true)}</div>`;
   if (t.over) {
     center += `<div class="seat">Vilão tinha</div><div class="cards">${comboCards(t.villainCombo, true)}</div>
       <p class="pill">Fim da mão.</p><button class="btn-primary" onclick="startHand()">Próxima mão<kbd>Enter</kbd></button>`;
+  } else if (prefs.mode === 'freq') {
+    const even = Math.round(100 / n.actions.length / 5) * 5;
+    center += `<div id="mix" class="mix">${n.actions.map((a, i) => `<label>${actionLabel(a)}
+      <input type="range" min="0" max="100" step="5" value="${even}" oninput="mixInput(this)"><b>${even}%</b></label>`).join('')}
+      <small id="mixSum">Soma: ${even * n.actions.length}%</small>
+      <button class="btn-primary" onclick="submitMix()">Confirmar mix<kbd>Enter</kbd></button></div>`;
   } else {
     const colors = actionColors(n.actions);
-    center += `<div class="actions" style="justify-content:center;margin-top:16px">${n.actions.map((a, i) =>
+    center += `${prefs.mode === 'rng' ? `<div class="rng">RNG <b>${t.rng}</b></div>` : ''}
+      <div class="actions" style="justify-content:center;margin-top:16px">${n.actions.map((a, i) =>
       `<button style="--c:${colors[i]}" onclick="heroAct(${i})">${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}${actionLabel(a)}</button>`).join('')}</div>`;
   }
   if (t.feedback) {
     const f = t.feedback, [, label, cls] = gradeOf(f.g);
+    const yours = (i) => f.mix ? ` · você: ${pct(f.mix[i])}` : i === f.chosen ? ' ← sua escolha' : '';
     center += `<div class="feedback"><div class="grade ${cls}">${label}${f.loss > 0.005 ? ` · −${num(f.loss)} bb` : ''}</div>
+      ${f.rng != null ? `<div>RNG ${f.rng} pedia <b>${actionLabel(f.actions[f.rngA])}</b>.</div>` : ''}
+      ${f.mix ? `<div>Distância do mix GTO: ${pct(f.dist)}. A ação sorteada do seu mix foi <b>${actionLabel(f.actions[f.chosen])}</b>.</div>` : ''}
       <div class="summary" style="margin:8px 0">${mixBar(f.freqs, f.colors)}</div>
-      ${f.actions.map((a, i) => `<div>${i === f.chosen ? '<b>' : ''}${actionLabel(a)}: ${pct(f.freqs[i])} · EV ${num(f.evs[i])}${i === f.chosen ? ' ← sua escolha</b>' : ''}</div>`).join('')}
+      ${f.actions.map((a, i) => `<div>${i === f.chosen && !f.mix ? '<b>' : ''}${actionLabel(a)}: GTO ${pct(f.freqs[i])} · EV ${num(f.evs[i])}${yours(i)}${i === f.chosen && !f.mix ? '</b>' : ''}</div>`).join('')}
       <a href="${studyHash(f.at)}">Ver este spot no Estudar</a></div>`;
   }
-  el.innerHTML = `<div class="trainer"><div class="panel table">${center}</div><div class="side">${statsHtml}
+  el.innerHTML = `${drillBanner()}<div class="trainer"><div class="panel table">${center}</div><div class="side">${statsHtml}
     <div class="panel"><h4>Esta mão</h4><ol class="log">${t.log.map(l => `<li>${l}</li>`).join('')}</ol></div>${histHtml}</div></div>`;
 }
 
@@ -1074,24 +1450,246 @@ async function startHand() {
   finally { trainerBusy = false; }
 }
 
+// ---------- drills ----------
+// Um drill é uma configuração do Treinar com número de mãos; os próprios ficam salvos no aparelho.
+const DRILLS = [
+  { name: 'Torneio · flop fora de posição', desc: 'Decisões de flop como OOP em spots de torneio.', hands: 20, prefs: { source: 'library', format: 'mtt', preset: 'all', hero: 'OOP', start: 'flop', depth: 'street', mode: 'normal' } },
+  { name: 'Torneio · flop em posição', desc: 'Decisões de flop como IP em spots de torneio.', hands: 20, prefs: { source: 'library', format: 'mtt', preset: 'all', hero: 'IP', start: 'flop', depth: 'street', mode: 'normal' } },
+  { name: 'Cash · flop fora de posição', desc: 'Decisões de flop como OOP em cash 100bb.', hands: 20, prefs: { source: 'library', format: 'cash', preset: 'all', hero: 'OOP', start: 'flop', depth: 'street', mode: 'normal' } },
+  { name: 'Cash · flop em posição', desc: 'Decisões de flop como IP em cash 100bb.', hands: 20, prefs: { source: 'library', format: 'cash', preset: 'all', hero: 'IP', start: 'flop', depth: 'street', mode: 'normal' } },
+  { name: 'Mão inteira', desc: 'Do flop ao river, qualquer formato e posição.', hands: 15, prefs: { source: 'library', format: 'all', preset: 'all', hero: 'random', start: 'flop', depth: 'full', mode: 'normal' } },
+  { name: 'Turn', desc: 'O flop é jogado pelo GTO; você decide do turn em diante.', hands: 10, prefs: { source: 'library', format: 'all', preset: 'all', hero: 'random', start: 'turn', depth: 'full', mode: 'normal' } },
+  { name: 'River', desc: 'Só decisões de river, depois de flop e turn jogados pelo GTO.', hands: 10, prefs: { source: 'library', format: 'all', preset: 'all', hero: 'random', start: 'river', depth: 'street', mode: 'normal' } },
+  { name: 'Misturar com RNG', desc: 'Pratique jogar mixes: o número sorteado diz qual ação fazer.', hands: 20, prefs: { source: 'library', format: 'all', preset: 'all', hero: 'random', start: 'flop', depth: 'street', mode: 'rng' } },
+  { name: 'Frequências', desc: 'Diga com que frequência faria cada ação, como o solver.', hands: 15, prefs: { source: 'library', format: 'all', preset: 'all', hero: 'random', start: 'flop', depth: 'street', mode: 'freq' } },
+];
+const describePrefs = (p) => [p.source === 'library' ? (p.preset !== 'all' ? p.preset : { all: 'Todos os formatos', mtt: 'Torneio', cash: 'Cash' }[p.format]) : 'Solução aberta',
+  { random: 'posição aleatória', OOP: 'OOP', IP: 'IP' }[p.hero], `do ${p.start}`, p.depth === 'street' ? 'uma street' : 'até o fim',
+  { normal: 'normal', rng: 'RNG', freq: 'frequência' }[p.mode]].join(' · ');
+
+function startDrill(i, custom) {
+  const d = custom ? store.get('gto-drills', [])[i] : DRILLS[i];
+  Object.assign(prefs, d.prefs);
+  if (BACKEND !== 'wasm') prefs.source = 'open';
+  store.set('gto-treino-prefs', prefs);
+  drill = { name: d.name, target: d.hands, since: Date.now() };
+  trainer = null;
+  location.hash = '#/treinar';
+  startHand();
+}
+function saveDrill() {
+  const name = $('#drillName').value.trim();
+  const hands = parseInt($('#drillHands').value, 10);
+  if (!name || !(hands > 0)) return;
+  const { hero, source, format, preset, start, depth, mode } = prefs;
+  store.set('gto-drills', [...store.get('gto-drills', []), { name, hands, desc: 'Criado por você', prefs: { hero, source, format, preset, start, depth, mode } }]);
+  drillsView();
+}
+function deleteDrill(i) {
+  const list = store.get('gto-drills', []);
+  list.splice(i, 1);
+  store.set('gto-drills', list);
+  drillsView();
+}
+
+function drillsView() {
+  const mine = store.get('gto-drills', []);
+  const results = store.get('gto-drills-resultados', []).slice(-10).reverse();
+  const card = (d, i, custom) => `<div class="lib-item drill-item"><b>${d.name}</b><small>${d.desc}</small>
+    <small>${d.hands} mãos · ${describePrefs(d.prefs)}</small>
+    <div><button class="btn-primary" onclick="startDrill(${i}, ${custom})">Começar</button>${custom ? ` <button onclick="deleteDrill(${i})">Apagar</button>` : ''}</div></div>`;
+  $('#trainer').innerHTML = `<div class="lib-grid">${DRILLS.map((d, i) => card(d, i, false)).join('')}</div>
+    <h4 style="margin-top:24px">Meus drills</h4>
+    ${mine.length ? `<div class="lib-grid">${mine.map((d, i) => card(d, i, true)).join('')}</div>` : ''}
+    <div class="panel" style="margin-top:10px"><p class="hint" style="margin-top:0">Salva a configuração atual de "Jogar mãos" (${describePrefs(prefs)}) como um drill.</p>
+      <div class="row-inline"><input id="drillName" placeholder="Nome do drill"><input id="drillHands" type="number" min="1" value="20" style="width:90px"><button onclick="saveDrill()">Salvar drill</button></div></div>
+    ${results.length ? `<h4 style="margin-top:24px">Últimos resultados</h4><ol class="hist panel">${results.map(r => `<li><b>${r.name}</b><span>${r.hands} mãos</span>
+      <span>acerto ${r.acerto == null ? '—' : pct(r.acerto)}</span><span class="ev">−${num(r.ev)} bb</span><small>${new Date(r.t).toLocaleString('pt-BR')}</small></li>`).join('')}</ol>` : ''}`;
+}
+
+// ---------- construtor de ranges ----------
+// Pinte cada mão com uma ação; a nota é a frequência GTO da ação escolhida, ponderada pelos combos.
+let builder = null;
+let painting = false;
+window.addEventListener('pointerup', () => painting = false);
+
+async function newBuilder() {
+  $('#trainer').innerHTML = '<div class="empty"><p>Preparando o spot…</p></div>';
+  try {
+    if (prefs.source === 'library') await randomSpot();
+    else if (status?.state !== 'done') { $('#trainer').innerHTML = '<div class="empty"><p>Abra uma solução ou use spots da Biblioteca no Treinar.</p></div>'; return; }
+    const root = await api('/api/node', { history: [] });
+    const check = root.actions.findIndex(a => a.kind === 'Check');
+    const history = check >= 0 && Math.random() < .5 ? [check] : [];
+    const n = history.length ? await api('/api/node', { history }) : root;
+    if (n.type !== 'action') throw new Error('Este spot não tem decisão para montar.');
+    builder = { node: n, history, spot: spot?.label || 'Solução aberta', brush: Math.min(1, n.actions.length - 1), paint: n.grid.map(() => 0), checked: false };
+    builderView();
+  } catch (err) { $('#trainer').innerHTML = `<div class="error">${err.message}</div>`; }
+}
+
+function builderScore() {
+  let hit = 0, total = 0;
+  builder.node.grid.forEach((c, i) => { hit += c.weight * c.freqs[builder.paint[i]]; total += c.weight; });
+  return total ? hit / total : 0;
+}
+
+function paintAt(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('#bgrid [data-i]');
+  if (el) paintCell(Number(el.dataset.i));
+}
+function paintCell(i) {
+  if (!builder || builder.checked || builder.node.grid[i].weight <= 0) return;
+  builder.paint[i] = builder.brush;
+  const el = document.querySelector(`#bgrid [data-i="${i}"]`);
+  el.style.background = actionColors(builder.node.actions)[builder.brush];
+}
+
+function builderView() {
+  if (!builder) return newBuilder();
+  const n = builder.node, colors = actionColors(n.actions);
+  const share = (freqOf) => {
+    const t = n.grid.reduce((s, c) => s + c.weight, 0) || 1;
+    return n.actions.map((_, a) => n.grid.reduce((s, c, i) => s + c.weight * freqOf(c, i, a), 0) / t);
+  };
+  const mineShare = share((c, i, a) => builder.paint[i] === a ? 1 : 0), gtoShare = share((c, i, a) => c.freqs[a]);
+  const myGrid = `<div class="grid builder" id="bgrid" onpointerdown="painting=true;paintAt(event)" onpointermove="if(painting)paintAt(event)">${n.grid.map((c, i) =>
+      `<div class="cell ${c.weight > 0 ? '' : 'dead'}" data-i="${i}" style="${c.weight > 0 ? `background:${colors[builder.paint[i]]}` : ''}" title="${c.hand}"><span class="lbl">${c.hand}</span></div>`).join('')}</div>`;
+  const gtoGrid = `<div class="grid">${n.grid.map((c, i) => {
+    const miss = c.weight > 0 && c.freqs[builder.paint[i]] < 0.5;
+    return `<div class="cell ${c.weight > 0 ? '' : 'dead'} ${miss ? 'miss' : ''}" title="${c.hand}: ${n.actions.map((a, k) => `${actionLabel(a)} ${pct(c.freqs[k])}`).join(' · ')}">
+      <div class="fill" style="height:100%">${c.weight > 0 ? mixBar(c.freqs, colors) : ''}</div><span class="lbl">${c.hand}</span></div>`;
+  }).join('')}</div>`;
+  const shares = (s) => n.actions.map((a, k) => `<span><i style="background:${colors[k]}"></i>${actionLabel(a)} ${pct(s[k])}</span>`).join('');
+  $('#trainer').innerHTML = `<div class="panel">
+    <div class="spotbar"><div class="cards">${n.board.map(c => cardEl(c)).join('')}</div><span class="pill">${builder.spot}</span>
+      <span class="pill">Vez do <b>${n.player}</b> (${PLAYER_DESC[n.player]})${builder.history.length ? ' depois do check do OOP' : ''} · pote ${num(n.pot)} bb</span></div>
+    <p>Pinte cada mão do range com a ação que você faria. Clique ou arraste sobre a grade.</p>
+    <div class="actions">${n.actions.map((a, k) => `<button style="--c:${colors[k]}" class="${builder.brush === k ? 'on' : ''}" ${builder.checked ? 'disabled' : ''}
+      onclick="builder.brush=${k};builderView()">${actionLabel(a)}</button>`).join('')}</div>
+    <div class="ranges" style="margin-top:12px"><div><h4>Seu range</h4>${myGrid}<div class="keys">${shares(mineShare)}</div></div>
+      ${builder.checked ? `<div><h4>GTO</h4>${gtoGrid}<div class="keys">${shares(gtoShare)}</div><p class="hint">Contorno vermelho: mãos em que o GTO usa a sua ação menos de 50% das vezes.</p></div>` : ''}</div>
+    <div class="run" style="margin-top:14px">${builder.checked
+      ? `<div class="grade ${builderScore() >= .8 ? 'g-best' : builderScore() >= .6 ? 'g-inacc' : 'g-blunder'}">Acerto ${pct(builderScore())}</div><button class="btn-primary" onclick="builder=null;builderView()">Novo spot</button>`
+      : `<button class="btn-primary" onclick="builder.checked=true;builderView()">Conferir com o GTO</button>`}</div>
+    <p class="hint">Acerto: em média, com que frequência o GTO faz a ação que você pintou, pesando cada mão pelos combos no range. Usa os filtros de "Jogar mãos" (formato e spot).</p></div>`;
+}
+
+// ---------- calculadoras ----------
+let calcResult = '';
+const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+function equityView() {
+  const v = store.get('gto-calc-equity', { a: 'AhKh', b: 'QQ+,AKs,AKo', board: '' });
+  $('#calc').innerHTML = `<div class="panel calc">
+    <div class="row3"><div><label>Você (mão ou range)</label><input id="eqA" value="${esc(v.a)}"></div>
+    <div><label>Vilão (mão ou range)</label><input id="eqB" value="${esc(v.b)}"></div>
+    <div><label>Board (0 a 5 cartas)</label><input id="eqBoard" value="${esc(v.board)}" placeholder="ex.: Qh7h2c"></div></div>
+    <p class="hint">Mãos como <code>AhKh</code>; ranges como no Resolver: <code>QQ+</code>, <code>A5s-A2s</code>, <code>KQo</code>, <code>AK:0.5</code>.</p>
+    <button class="btn-primary" onclick="runEquity()">Calcular</button><div id="eqOut">${calcResult}</div></div>`;
+}
+function runEquity() {
+  $('#eqOut').innerHTML = '<p class="hint">Calculando…</p>';
+  setTimeout(computeEquity, 30);
+}
+function computeEquity() {
+  const a = $('#eqA').value, b = $('#eqB').value, boardText = $('#eqBoard').value;
+  store.set('gto-calc-equity', { a, b, board: boardText });
+  try {
+    const board = parseCards(boardText);
+    if (!board || board.length > 5 || board.length === 1 || board.length === 2) throw new Error('Board precisa ter 0, 3, 4 ou 5 cartas diferentes.');
+    const A = parseRange(a), B = parseRange(b);
+    if (!A.length || !B.length) throw new Error('Preencha as duas mãos ou ranges.');
+    const r = rangeEquity(A, B, board);
+    calcResult = `<div class="eq-result"><div><small>Você</small><b>${pct(r.equity)}</b></div><div><small>Vilão</small><b>${pct(1 - r.equity)}</b></div></div>
+      <div class="summary"><div style="width:${100 * r.equity}%;background:var(--primary)"></div><div style="width:${100 * (1 - r.equity)}%;background:var(--fold)"></div></div>
+      <p class="hint">Vitória ${pct(r.win)} · empate ${pct(r.tie)} · ${r.exact ? 'cálculo exato' : `Monte Carlo com ${r.samples.toLocaleString('pt-BR')} simulações (erro ≈ ±0,3%)`}.</p>`;
+  } catch (err) { calcResult = `<div class="error">${err.message}</div>`; }
+  $('#eqOut').innerHTML = calcResult;
+}
+
+function icmView() {
+  const v = store.get('gto-calc-icm', { stacks: '25000\n18000\n12000\n8000\n5000', prizes: '50\n30\n20' });
+  $('#calc').innerHTML = `<div class="panel calc"><div class="row2">
+    <div><label>Stacks (um por linha)</label><textarea id="icmStacks" rows="8">${esc(v.stacks)}</textarea></div>
+    <div><label>Prêmios por colocação (um por linha, em R$ ou %)</label><textarea id="icmPrizes" rows="8">${esc(v.prizes)}</textarea></div></div>
+    <button class="btn-primary" onclick="runIcm()">Calcular</button><div id="icmOut"></div>
+    <p class="hint">ICM (Malmuth-Harville): a chance de terminar em cada posição é proporcional às fichas. Mostra quanto do prêmio cada stack vale de verdade — em torneio, dobrar as fichas não dobra o dinheiro.</p></div>`;
+  runIcm();
+}
+function runIcm() {
+  const nums = (t) => t.split(/[\n;]+/).map(x => parseFloat(x.replace(/\./g, '').replace(',', '.'))).filter(x => x >= 0);
+  const stacksText = $('#icmStacks').value, prizesText = $('#icmPrizes').value;
+  store.set('gto-calc-icm', { stacks: stacksText, prizes: prizesText });
+  const stacks = nums(stacksText), prizes = nums(prizesText);
+  if (stacks.length < 2 || stacks.length > 20 || !prizes.length) {
+    $('#icmOut').innerHTML = '<div class="error">Informe de 2 a 20 stacks e pelo menos um prêmio.</div>';
+    return;
+  }
+  const eq = icm(stacks, prizes), chips = stacks.reduce((s, x) => s + x, 0), pool = prizes.slice(0, stacks.length).reduce((s, x) => s + x, 0);
+  $('#icmOut').innerHTML = `<table class="combos" style="margin-top:14px"><tr><th>Jogador</th><th>Fichas</th><th>% das fichas</th><th>Valor ICM</th><th>% do prêmio</th></tr>
+    ${stacks.map((s, i) => `<tr><td>${i + 1}</td><td>${s.toLocaleString('pt-BR')}</td><td>${pct(s / chips)}</td><td>${num(eq[i])}</td><td><b>${pct(eq[i] / pool)}</b></td></tr>`).join('')}</table>`;
+}
+
+// ---------- relatórios ----------
+// Estratégia de flop dos spots da Biblioteca lado a lado (dados gerados no CI junto com a biblioteca).
+let reportPreset = null;
+function texture(board) {
+  const cards = board.match(/../g), ranks = cards.map(c => RANK_CH.indexOf(c[0])).sort((a, b) => b - a);
+  const suits = new Set(cards.map(c => c[1])).size;
+  const parts = [`${RANK_CH[ranks[0]]}-high`, suits === 1 ? 'monotone' : suits === 2 ? 'two-tone' : 'rainbow'];
+  if (new Set(ranks).size < 3) parts.push('pareado');
+  else if (ranks[0] - ranks[2] <= 4) parts.push('conectado');
+  return parts.join(' · ');
+}
+async function reportsView() {
+  const el = $('#library');
+  if (BACKEND !== 'wasm') { el.innerHTML = '<div class="empty"><p>Os relatórios fazem parte da versão online do GTO Studio.</p></div>'; return; }
+  try { libraryIndex ??= await (await fetch('library/index.json')).json(); }
+  catch { el.innerHTML = '<div class="empty"><p>Não foi possível carregar a biblioteca.</p></div>'; return; }
+  const presets = [...new Set(libraryIndex.map(s => s.preset))];
+  reportPreset ??= presets[0];
+  const spots = libraryIndex.filter(s => s.preset === reportPreset);
+  if (!spots.every(s => s.report)) { el.innerHTML = '<div class="empty"><p>Os relatórios ainda estão sendo gerados. Volte depois da próxima atualização do site.</p></div>'; return; }
+  const betShare = (side) => side.freqs.reduce((s, f, i) => s + (side.actions[i].kind === 'Check' ? 0 : f), 0);
+  const bar = (side) => `<div class="summary">${mixBar(side.freqs, actionColors(side.actions))}</div>`;
+  const avg = (f) => spots.reduce((s, x) => s + f(x), 0) / spots.length;
+  el.innerHTML = `<div class="seg" style="flex-wrap:wrap;margin-bottom:14px"><select style="width:auto;max-width:100%" onchange="reportPreset=this.value;reportsView()">${presets
+      .map(p => `<option ${p === reportPreset ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+    <div class="panel"><table class="report"><tr><th>Board</th><th>Equity OOP</th><th>OOP primeira ação</th><th>IP depois do check</th></tr>
+    ${spots.map(s => `<tr onclick="openSpot('${s.id}')" title="Abrir no Estudar"><td><div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div><small>${texture(s.board)}</small></td>
+      <td>${pct(s.report.oop_equity)}</td>
+      <td>${bar(s.report.oop)}<small>Bet ${pct(betShare(s.report.oop))} · Check ${pct(1 - betShare(s.report.oop))}</small></td>
+      <td>${bar(s.report.ip)}<small>Bet ${pct(betShare(s.report.ip))} · Check ${pct(1 - betShare(s.report.ip))}</small></td></tr>`).join('')}
+    <tr class="avg"><td><b>Média</b></td><td>${pct(avg(s => s.report.oop_equity))}</td><td>Bet ${pct(avg(s => betShare(s.report.oop)))}</td><td>Bet ${pct(avg(s => betShare(s.report.ip)))}</td></tr></table>
+    <p class="hint">Barras: mix de ações de todo o range (check em verde, bet em laranja). Clique numa linha para abrir o spot no Estudar.</p></div>`;
+}
+
+// ---------- início ----------
+function homeView() {
+  const all = summarize(handLog), week = summarize(handLog.filter(x => x.t > Date.now() - 7 * 864e5));
+  $('#homeStats').innerHTML = all.hands ? `<h4 style="margin-top:24px">Seu treino (neste aparelho)</h4><div class="machine" style="margin-top:0">${[
+    ['Mãos treinadas', all.hands], ['Acerto', all.decisions ? pct(all.good / all.decisions) : '—'],
+    ['EV perdido por mão', `${num(all.evLost / all.hands)} bb`], ['Mãos nos últimos 7 dias', week.hands],
+  ].map(([l, v]) => `<a class="panel stat" href="#/treinar" style="text-decoration:none"><small>${l}</small><b>${v}</b></a>`).join('')}</div>` : '';
+}
+
 // ---------- atalhos de teclado ----------
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey || $('#keys').open || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
   if (e.key === '?') return $('#keys').showModal();
-  const page = location.hash.replace(/^#\/?/, '').split('/')[0];
   const d = /^[1-9]$/.test(e.key) ? Number(e.key) - 1 : null;
-  if (page === 'estudar' && node) {
+  if (curPage === 'estudar' && node) {
     if (d != null && node.type === 'action' && d < node.actions.length) return go(d);
     if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && history.length) { e.preventDefault(); return jump(history.length - 1); }
     if (e.key === 'Escape') { selected = null; return clearFilters(); }
     if ((e.key === 'r' || e.key === 'R') && node.type === 'action') return setTab(tab === 'ranges' ? 'strategy' : 'ranges');
   }
-  if (page === 'treinar') {
-    if (d != null && trainer && !trainer.over && d < trainer.node.actions.length) return heroAct(d);
+  if (curPage === 'treinar' && !sub) {
+    if (d != null && prefs.mode !== 'freq' && trainer && !trainer.over && d < trainer.node.actions.length) return heroAct(d);
     // Enter/Espaço num botão focado já clicam nele; só trata quando o foco está fora.
-    if ((e.key === 'Enter' || e.key === ' ') && !['BUTTON', 'A'].includes(e.target.tagName) && (!trainer || trainer.over) && $('#trainer .btn-primary[onclick]')) {
-      e.preventDefault();
-      return startHand();
+    if ((e.key === 'Enter' || e.key === ' ') && !['BUTTON', 'A'].includes(e.target.tagName)) {
+      if (trainer && !trainer.over && prefs.mode === 'freq') { e.preventDefault(); return submitMix(); }
+      if ((!trainer || trainer.over) && $('#trainer .btn-primary[onclick]')) { e.preventDefault(); return startHand(); }
     }
   }
 });
