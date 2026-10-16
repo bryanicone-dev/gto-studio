@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "bet": "50%",
+  "raise": "3x",
+  "target_pct": 1.0,
+  "max_iterations": 300,
+  "presets": [
+    "40bb · BTN open 2,2 vs BB call",
+    "40bb · CO open 2,2 vs BB call",
+    "40bb · BB 3-bet vs BTN call",
+    "25bb · BTN open 2 vs BB call",
+    "25bb · SB open 2 vs BB call",
+    "15bb · BTN open 2 vs BB call",
+    "BTN open vs BB call (pote simples)",
+    "CO open vs BB call (pote simples)",
+    "UTG open vs BB call (pote simples)",
+    "SB open vs BB call (pote simples)",
+    "BB 3-bet vs BTN call (pote 3-bet)",
+    "BTN 3-bet vs CO call (pote 3-bet)"
+  ],
+  "boards": ["As7d2c", "Kh9s4d", "QsJs4h", "9h8h7c", "7s7d2c", "6h4h2h"]
+}

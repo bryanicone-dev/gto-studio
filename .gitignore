@@ -1,7 +1,7 @@
-target/
-web/target/
-dist/
-library/
-spots/
-partes/
-.claude/
+/target/
+/web/target/
+/dist/
+/library/
+/spots/
+/partes/
+/.claude/
