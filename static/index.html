@@ -183,6 +183,23 @@
   .stats span:nth-child(odd) { color: var(--muted); }
   .seg { display: flex; gap: 4px; }
   .seg button.on { border-color: var(--primary); color: var(--primary); }
+  .setup { display: grid; gap: 8px; justify-items: center; }
+  .setup .seg { flex-wrap: wrap; justify-content: center; }
+  kbd { font: 600 10px/1 ui-monospace, monospace; padding: 2px 4px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); margin-right: 5px; vertical-align: 1px; }
+  .btn-primary kbd { color: inherit; border-color: currentColor; margin: 0 0 0 6px; }
+  .keys-btn { margin-left: 8px; border-radius: 999px; padding: 3px 9px; font-size: 12px; color: var(--muted); }
+  @media (hover: none) { kbd, .keys-btn { display: none; } }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink); max-width: 440px; }
+  dialog h3 { margin-top: 0; }
+  dialog table { font-size: 13px; border-spacing: 10px 6px; margin: 0 -10px 12px; }
+  .stats.three { grid-template-columns: 1fr auto auto; }
+  .stats.three span { color: var(--ink); }
+  .stats.three span:nth-child(3n+1) { color: var(--muted); }
+  .hist { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+  .hist li { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .hist small { flex-basis: 100%; color: var(--muted); }
+  .hist .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; margin-right: 2px; }
+  .hist .ev { margin-left: auto; color: var(--muted); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -196,6 +213,7 @@
     <a href="#/biblioteca" data-route="biblioteca">Biblioteca</a>
   </nav>
   <a class="status" id="statusPill" href="#/resolver">Solver livre</a>
+  <button class="keys-btn" onclick="$('#keys').showModal()" title="Atalhos de teclado">?</button>
 </header>
 
 <!-- Início -->
@@ -318,10 +336,19 @@
 
 <div class="toast" id="toast" hidden></div>
 
+<dialog id="keys"><h3>Atalhos de teclado</h3><table>
+  <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Estudar: seguir a ação · Treinar: escolher a ação</td></tr>
+  <tr><td><kbd>←</kbd> <kbd>Backspace</kbd></td><td>Estudar: voltar uma ação</td></tr>
+  <tr><td><kbd>R</kbd></td><td>Estudar: alternar Estratégia e Ranges</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Estudar: limpar filtros e a mão selecionada</td></tr>
+  <tr><td><kbd>Enter</kbd> <kbd>Espaço</kbd></td><td>Treinar: começar / próxima mão</td></tr>
+  <tr><td><kbd>?</kbd></td><td>Mostrar esta lista</td></tr>
+</table><form method="dialog"><button class="btn-primary">Fechar</button></form></dialog>
+
 <!-- Treinar -->
 <section class="page" data-page="treinar" hidden>
   <h2>Treinar</h2>
-  <p class="sub">Mãos sorteadas da solução aberta. O vilão joga a estratégia GTO; cada decisão sua recebe nota.</p>
+  <p class="sub">Mãos sorteadas da Biblioteca ou da solução aberta. O vilão joga a estratégia GTO; cada decisão sua recebe nota.</p>
   <div id="trainer"></div>
 </section>
 
@@ -707,7 +734,7 @@ function strategyHtml() {
   const colors = actionColors(node.actions);
   const inFilter = (cell) => shapeOk(cell.hand) && (!filter || cell.combos.some(k => comboHas(k, filter)));
   let html = `<div class="actions">${node.actions.map((a, i) =>
-    `<button style="--c:${colors[i]}" onclick="go(${i})">${actionLabel(a)} <small>${pct(node.summary[i])} · EV ${num(node.summary_evs[i])}</small></button>`
+    `<button style="--c:${colors[i]}" onclick="go(${i})">${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}${actionLabel(a)} <small>${pct(node.summary[i])} · EV ${num(node.summary_evs[i])}</small></button>`
   ).join('')}</div>
   <div class="summary">${mixBar(node.summary, colors)}</div>
   <div class="viewer"><div><div class="grid">${node.grid.map((c, i) => {
@@ -815,20 +842,23 @@ async function libraryView() {
       <small>Bet ${s.bet} · raise ${s.raise} · exploitability ${num(s.exploitability_pct)}%</small></button>`).join('')}</div></div>`).join('');
 }
 
+async function loadSpot(s) {
+  const bytes = await (await fetch('library/' + s.file)).arrayBuffer();
+  await callWorker('load', { bytes });
+  const preset = PRESETS.find(p => p.name === s.preset);
+  spot = { preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
+  Object.assign(local, {
+    state: 'done', iteration: s.iterations, max_iterations: s.iterations, exploitability_pct: s.exploitability_pct,
+    memory_gb: s.bytes / 2 ** 30, compressed: true, cancelled: false, error: '',
+  });
+  status = await api('/api/status');
+}
+
 async function openSpot(id) {
-  const s = libraryIndex.find(x => x.id === id);
   toast('Abrindo o spot…');
   try {
-    const bytes = await (await fetch('library/' + s.file)).arrayBuffer();
-    await callWorker('load', { bytes });
-    const preset = PRESETS.find(p => p.name === s.preset);
-    spot = { preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
-    Object.assign(local, {
-      state: 'done', iteration: s.iterations, max_iterations: s.iterations, exploitability_pct: s.exploitability_pct,
-      memory_gb: s.bytes / 2 ** 30, compressed: true, cancelled: false, error: '',
-    });
+    await loadSpot(libraryIndex.find(x => x.id === id));
     trainer = null;
-    status = await api('/api/status');
     if (location.hash === '#/estudar') load(); else location.hash = '#/estudar';
   } catch (err) {
     $('#library').insertAdjacentHTML('afterbegin', `<div class="error">${err.message}</div>`);
@@ -838,12 +868,23 @@ async function openSpot(id) {
 // ---------- treinar ----------
 // O vilão joga a estratégia GTO do combo dele. A nota compara sua ação com o mix e o EV do seu combo.
 let trainer = null;
-const stats = { hands: 0, decisions: 0, grades: {}, evLost: 0 };
+let trainerBusy = false;
 const GRADES = [
   ['best', 'Melhor jogada', 'g-best'], ['correct', 'Correta', 'g-correct'], ['inacc', 'Imprecisa', 'g-inacc'],
   ['mistake', 'Erro', 'g-mistake'], ['blunder', 'Erro grave', 'g-blunder'],
 ];
-let heroPref = 'random';
+const gradeOf = (key) => GRADES.find(x => x[0] === key);
+
+// Preferências e histórico ficam só neste aparelho (localStorage); sem ele o Treinar funciona igual, só não lembra.
+const store = {
+  get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} },
+};
+const prefs = { hero: 'random', source: 'library', format: 'all', depth: 'full', ...store.get('gto-treino-prefs', {}) };
+if (BACKEND !== 'wasm') prefs.source = 'open';
+let handLog = store.get('gto-treino-historico', []);
+const sessionStart = Date.now();
+function setPref(key, value) { prefs[key] = value; store.set('gto-treino-prefs', prefs); trainerView(); }
 
 function weightedPick(items, weightOf) {
   const total = items.reduce((s, x) => s + weightOf(x), 0);
@@ -853,6 +894,7 @@ function weightedPick(items, weightOf) {
 }
 const overlaps = (a, b) => [a.slice(0, 2), a.slice(2, 4)].some(c => b.includes(c));
 const findCombo = (n, combo) => n.grid.flatMap(c => c.combos).find(k => k.combo === combo);
+const comboText = (combo) => combo.match(/../g).map(c => c[0] + SUIT[c[1]]).join('');
 
 function grade(k, a, pot) {
   const best = k.freqs.indexOf(Math.max(...k.freqs));
@@ -862,15 +904,29 @@ function grade(k, a, pot) {
   return { g, loss: Math.max(0, loss) };
 }
 
+// Sorteia um spot da Biblioteca (no formato escolhido) e carrega no solver do navegador.
+async function randomSpot() {
+  if (local.state === 'solving') throw new Error('Há um solve em andamento. Espere terminar ou treine a solução aberta.');
+  libraryIndex ??= await (await fetch('library/index.json')).json();
+  const group = { mtt: MTT, cash: CASH }[prefs.format];
+  const pool = libraryIndex.filter(s => !group || PRESETS.find(p => p.name === s.preset)?.group === group);
+  toast('Sorteando um spot da Biblioteca…');
+  try { await loadSpot(weightedPick(pool.length ? pool : libraryIndex, () => 1)); } finally { toast(null); }
+}
+
 async function newHand() {
+  if (trainer && !trainer.saved && trainer.grades.length) saveHand();
+  if (prefs.source === 'library') await randomSpot();
   const root = await api('/api/node', { history: [] });
   if (root.type !== 'action') throw new Error('A solução aberta não começa numa decisão.');
-  const hero = heroPref === 'random' ? (Math.random() < .5 ? 'OOP' : 'IP') : heroPref;
+  const hero = prefs.hero === 'random' ? (Math.random() < .5 ? 'OOP' : 'IP') : prefs.hero;
   const [mine, theirs] = hero === 'OOP' ? [root.ranges[0], root.ranges[1]] : [root.ranges[1], root.ranges[0]];
   const heroCombo = weightedPick(mine.combos, k => k.weight).combo;
   const villainCombo = weightedPick(theirs.combos.filter(k => !overlaps(k.combo, heroCombo)), k => k.weight).combo;
-  trainer = { hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false };
-  stats.hands++;
+  trainer = {
+    hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false,
+    grades: [], evLost: 0, spot: spot?.label || 'Solução aberta',
+  };
   await advance();
 }
 
@@ -880,6 +936,7 @@ async function advance() {
     trainer.node = n;
     if (n.type === 'terminal') { trainer.over = true; break; }
     if (n.type === 'chance') {
+      if (prefs.depth === 'flop') { trainer.over = true; trainer.log.push('Fim do flop (modo Só flop).'); break; }
       const used = trainer.heroCombo + trainer.villainCombo;
       const card = weightedPick(n.cards.filter(c => c.possible && !used.includes(c.card)), () => 1);
       trainer.history.push(card.id);
@@ -898,68 +955,146 @@ async function advance() {
     trainer.log.push(`${n.player} (vilão): ${actionLabel(n.actions[a])}`);
     trainer.history.push(a);
   }
+  if (trainer.over) saveHand();
+  trainerView();
+}
+
+function saveHand() {
+  const t = trainer;
+  t.saved = true;
+  handLog = [...handLog, { t: Date.now(), spot: t.spot, hero: t.hero, combo: t.heroCombo, villain: t.villainCombo, grades: t.grades, ev: t.evLost }].slice(-500);
+  store.set('gto-treino-historico', handLog);
+}
+
+function clearHistory() {
+  if (!confirm('Apagar o histórico de treino deste aparelho?')) return;
+  handLog = [];
+  store.set('gto-treino-historico', handLog);
   trainerView();
 }
 
 async function heroAct(a) {
-  const n = trainer.node;
-  const k = findCombo(n, trainer.heroCombo);
-  const { g, loss } = grade(k, a, n.pot);
-  stats.decisions++;
-  stats.grades[g] = (stats.grades[g] || 0) + 1;
-  stats.evLost += loss;
-  const colors = actionColors(n.actions);
-  trainer.feedback = { g, loss, chosen: a, freqs: k.freqs, evs: k.evs, actions: n.actions, colors, at: [...trainer.history] };
-  trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
-  trainer.history.push(a);
-  await advance();
+  if (trainerBusy || !trainer || trainer.over) return;
+  trainerBusy = true;
+  try {
+    const n = trainer.node;
+    const k = findCombo(n, trainer.heroCombo);
+    const { g, loss } = grade(k, a, n.pot);
+    trainer.grades.push(g);
+    trainer.evLost += loss;
+    trainer.feedback = { g, loss, chosen: a, freqs: k.freqs, evs: k.evs, actions: n.actions, colors: actionColors(n.actions), at: [...trainer.history] };
+    trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
+    trainer.history.push(a);
+    await advance();
+  } finally { trainerBusy = false; }
+}
+
+function summarize(hands) {
+  const s = { hands: hands.length, decisions: 0, good: 0, grades: {}, evLost: 0 };
+  for (const h of hands) {
+    s.evLost += h.ev;
+    for (const g of h.grades) {
+      s.decisions++;
+      s.grades[g] = (s.grades[g] || 0) + 1;
+      if (g === 'best' || g === 'correct') s.good++;
+    }
+  }
+  return s;
 }
 
 function trainerView() {
   const el = $('#trainer');
-  if (!status || status.state !== 'done') return emptyState(el);
-  const setup = `<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">Você joga como</span>
-    ${[['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']].map(([v, l]) =>
-      `<button class="${heroPref === v ? 'on' : ''}" onclick="heroPref='${v}';trainerView()">${l}</button>`).join('')}</div>`;
-  const statsHtml = `<div class="panel"><h4>Sessão</h4><div class="stats">
-    <span>Mãos</span><span>${stats.hands}</span><span>Decisões</span><span>${stats.decisions}</span>
-    ${GRADES.map(([key, label, cls]) => `<span class="${cls}">${label}</span><span>${stats.grades[key] || 0}</span>`).join('')}
-    <span>EV perdido</span><span>${num(stats.evLost)} bb</span>
-    <span>Por mão</span><span>${num(stats.hands ? stats.evLost / stats.hands : 0)} bb</span></div>
-    <p class="hint">Melhor: a ação mais frequente do GTO. Correta: usada em 5% ou mais. Abaixo disso, a nota depende do EV perdido: imprecisa (&lt; 2% do pote), erro (&lt; 10%) ou erro grave.</p></div>`;
+  const seg = (label, key, opts) => `<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">${label}</span>
+    ${opts.map(([v, l]) => `<button class="${prefs[key] === v ? 'on' : ''}" onclick="setPref('${key}','${v}')">${l}</button>`).join('')}</div>`;
+  const setup = `<div class="setup">
+    ${BACKEND === 'wasm' ? seg('Spots', 'source', [['library', 'Aleatórios da Biblioteca'], ['open', 'Solução aberta']]) : ''}
+    ${prefs.source === 'library' ? seg('Formato', 'format', [['all', 'Todos'], ['mtt', 'Torneio'], ['cash', 'Cash']]) : ''}
+    ${seg('Jogar', 'depth', [['flop', 'Só flop'], ['full', 'Mão inteira']])}
+    ${seg('Você joga como', 'hero', [['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']])}</div>`;
+
+  const current = trainer && !trainer.saved ? [{ ev: trainer.evLost, grades: trainer.grades }] : [];
+  const ses = summarize([...handLog.filter(x => x.t >= sessionStart), ...current]);
+  const all = summarize([...handLog, ...current]);
+  const row = (label, f) => `<span>${label}</span><span>${f(ses)}</span><span>${f(all)}</span>`;
+  const statsHtml = `<div class="panel"><h4>Resultados</h4><div class="stats three">
+    <span></span><span><b>Sessão</b></span><span><b>Geral</b></span>
+    ${row('Mãos', s => s.hands)}${row('Decisões', s => s.decisions)}
+    ${row('Acerto', s => s.decisions ? pct(s.good / s.decisions) : '—')}
+    ${GRADES.map(([key, label]) => row(label, s => s.grades[key] || 0)).join('')}
+    ${row('EV perdido', s => `${num(s.evLost)} bb`)}
+    ${row('Por mão', s => `${num(s.hands ? s.evLost / s.hands : 0)} bb`)}</div>
+    <p class="hint">Melhor: a ação mais frequente do GTO. Correta: usada em 5% ou mais. Abaixo disso, a nota depende do EV perdido: imprecisa (&lt; 2% do pote), erro (&lt; 10%) ou erro grave. Acerto: melhores + corretas.</p></div>`;
+  const recent = handLog.slice(-15).reverse();
+  const histHtml = `<div class="panel"><h4>Histórico${handLog.length ? ` · <a href="javascript:clearHistory()">limpar</a>` : ''}</h4>
+    ${recent.length ? `<ol class="hist">${recent.map(x => `<li title="${new Date(x.t).toLocaleString('pt-BR')}">
+      <b>${comboText(x.combo)}</b><span>${x.hero}</span>
+      <span>${x.grades.map(g => `<i class="dot ${gradeOf(g)[2]}" title="${gradeOf(g)[1]}"></i>`).join('')}</span>
+      <span class="ev">${x.ev > 0.005 ? `−${num(x.ev)} bb` : 'sem perda'}</span><small>${x.spot}</small></li>`).join('')}</ol>`
+    : '<p class="hint">As mãos jogadas ficam salvas neste aparelho.</p>'}</div>`;
 
   if (!trainer) {
-    el.innerHTML = `<div class="trainer"><div class="panel table">${setup}<p style="margin:24px 0">Cada mão começa na raiz da solução aberta: sua mão e a do vilão são sorteadas pelos ranges.</p>
-      <button class="btn-primary" onclick="startHand()">Começar</button></div>${statsHtml}</div>`;
+    const ready = status?.state === 'done';
+    const canStart = prefs.source === 'library' || ready;
+    const msg = prefs.source === 'library' ? 'Cada mão sorteia um spot da Biblioteca e as cartas de cada jogador pelos ranges.'
+      : ready ? 'Cada mão começa na raiz da solução aberta: sua mão e a do vilão são sorteadas pelos ranges.'
+      : 'Ainda não há solução aberta. Resolva um spot ou treine com spots da Biblioteca.';
+    el.innerHTML = `<div class="trainer"><div class="panel table">${setup}<p style="margin:24px 0">${msg}</p>
+      ${canStart ? '<button class="btn-primary" onclick="startHand()">Começar<kbd>Enter</kbd></button>' : '<a class="btn-primary" href="#/resolver">Resolver um spot</a>'}</div>
+      <div class="side">${statsHtml}${histHtml}</div></div>`;
     return;
   }
   const t = trainer, n = t.node;
-  let center = `${setup}<div style="margin-top:16px">${seatsBar(t.over ? null : n.player)}</div><div class="cards" style="margin-top:18px">${n.board.map(c => cardEl(c, true)).join('')}</div>
-    <div class="pill">Pote <b>${num(n.pot)} bb</b></div>
+  let center = `${t.over ? setup : ''}<div style="margin-top:16px">${seatsBar(t.over ? null : n.player)}</div><div class="cards" style="margin-top:18px">${n.board.map(c => cardEl(c, true)).join('')}</div>
+    <div class="pill">Pote <b>${num(n.pot)} bb</b> · ${t.spot}</div>
     <div class="seat">Você: <b>${t.hero}</b> (${PLAYER_DESC[t.hero]})</div><div class="cards">${comboCards(t.heroCombo, true)}</div>`;
   if (t.over) {
     center += `<div class="seat">Vilão tinha</div><div class="cards">${comboCards(t.villainCombo, true)}</div>
-      <p class="pill">Fim da mão.</p><button class="btn-primary" onclick="startHand()">Próxima mão</button>`;
+      <p class="pill">Fim da mão.</p><button class="btn-primary" onclick="startHand()">Próxima mão<kbd>Enter</kbd></button>`;
   } else {
     const colors = actionColors(n.actions);
     center += `<div class="actions" style="justify-content:center;margin-top:16px">${n.actions.map((a, i) =>
-      `<button style="--c:${colors[i]}" onclick="heroAct(${i})">${actionLabel(a)}</button>`).join('')}</div>`;
+      `<button style="--c:${colors[i]}" onclick="heroAct(${i})">${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}${actionLabel(a)}</button>`).join('')}</div>`;
   }
   if (t.feedback) {
-    const f = t.feedback, [, label, cls] = GRADES.find(x => x[0] === f.g);
+    const f = t.feedback, [, label, cls] = gradeOf(f.g);
     center += `<div class="feedback"><div class="grade ${cls}">${label}${f.loss > 0.005 ? ` · −${num(f.loss)} bb` : ''}</div>
       <div class="summary" style="margin:8px 0">${mixBar(f.freqs, f.colors)}</div>
       ${f.actions.map((a, i) => `<div>${i === f.chosen ? '<b>' : ''}${actionLabel(a)}: ${pct(f.freqs[i])} · EV ${num(f.evs[i])}${i === f.chosen ? ' ← sua escolha</b>' : ''}</div>`).join('')}
       <a href="${studyHash(f.at)}">Ver este spot no Estudar</a></div>`;
   }
   el.innerHTML = `<div class="trainer"><div class="panel table">${center}</div><div class="side">${statsHtml}
-    <div class="panel"><h4>Esta mão</h4><ol class="log">${t.log.map(l => `<li>${l}</li>`).join('')}</ol></div></div></div>`;
+    <div class="panel"><h4>Esta mão</h4><ol class="log">${t.log.map(l => `<li>${l}</li>`).join('')}</ol></div>${histHtml}</div></div>`;
 }
 
 async function startHand() {
+  if (trainerBusy) return;
+  trainerBusy = true;
   try { await newHand(); }
-  catch (err) { $('#trainer').innerHTML = `<div class="error">${err.message}</div>`; }
+  catch (err) { $('#trainer').innerHTML = `<div class="error">${err.message}</div><button onclick="trainer=null;trainerView()">Voltar</button>`; }
+  finally { trainerBusy = false; }
 }
+
+// ---------- atalhos de teclado ----------
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || $('#keys').open || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  if (e.key === '?') return $('#keys').showModal();
+  const page = location.hash.replace(/^#\/?/, '').split('/')[0];
+  const d = /^[1-9]$/.test(e.key) ? Number(e.key) - 1 : null;
+  if (page === 'estudar' && node) {
+    if (d != null && node.type === 'action' && d < node.actions.length) return go(d);
+    if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && history.length) { e.preventDefault(); return jump(history.length - 1); }
+    if (e.key === 'Escape') { selected = null; return clearFilters(); }
+    if ((e.key === 'r' || e.key === 'R') && node.type === 'action') return setTab(tab === 'ranges' ? 'strategy' : 'ranges');
+  }
+  if (page === 'treinar') {
+    if (d != null && trainer && !trainer.over && d < trainer.node.actions.length) return heroAct(d);
+    // Enter/Espaço num botão focado já clicam nele; só trata quando o foco está fora.
+    if ((e.key === 'Enter' || e.key === ' ') && !['BUTTON', 'A'].includes(e.target.tagName) && (!trainer || trainer.over) && $('#trainer .btn-primary[onclick]')) {
+      e.preventDefault();
+      return startHand();
+    }
+  }
+});
 
 if (BACKEND === 'wasm') {
   $('#mTotalLabel').textContent = 'Memória do aparelho';
