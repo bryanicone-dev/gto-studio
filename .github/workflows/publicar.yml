@@ -1,0 +1,116 @@
+# Faz tudo na nuvem a cada push na main (ou manualmente em Actions > Publicar site > Run workflow):
+#   1. roda os testes;
+#   2. resolve os spots da biblioteca, um preset por máquina, em paralelo (com cache: só
+#      recalcula o que ainda não existe; para refazer tudo, aumente "version" em spots.json);
+#   3. compila o site (WebAssembly) e publica no Hugging Face Space.
+# Requer o secret HF_TOKEN (token "Write" do Hugging Face) em Settings > Secrets and variables > Actions.
+name: Publicar site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+env:
+  HF_SPACE: bryansennaprog/gto-studio
+  CARGO_TERM_COLOR: never
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-native-${{ hashFiles('Cargo.lock') }}
+      - run: cargo test --release
+
+  plano:
+    runs-on: ubuntu-latest
+    outputs:
+      presets: ${{ steps.p.outputs.presets }}
+      version: ${{ steps.p.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          node -e '
+            const s = require("./deploy/library/spots.json");
+            const slug = (n) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+            console.log("presets=" + JSON.stringify(s.presets.map((name) => ({ name, slug: slug(name) }))));
+            console.log("version=" + (s.version || 1));
+          ' >> "$GITHUB_OUTPUT"
+
+  biblioteca:
+    needs: plano
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: ${{ fromJSON(needs.plano.outputs.presets) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-native-${{ hashFiles('Cargo.lock') }}
+      - uses: actions/cache@v4
+        with:
+          path: spots
+          key: spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.slug }}-${{ github.run_id }}
+          restore-keys: spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.slug }}-
+      - name: Resolver ${{ matrix.preset.name }}
+        env:
+          PRESET: ${{ matrix.preset.name }}
+        run: cargo run --release --bin library -- deploy/library/spots.json spots "$PRESET"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spots-${{ matrix.preset.slug }}
+          path: spots
+          retention-days: 3
+
+  site:
+    needs: [testes, biblioteca]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: spots-*
+          path: partes
+      - run: node deploy/library/merge.mjs partes library
+      - name: Ferramentas WebAssembly
+        run: |
+          rustup target add wasm32-unknown-unknown
+          v=$(grep -A1 'name = "wasm-bindgen"' web/Cargo.lock | sed -n 's/^version = "\(.*\)"/\1/p')
+          curl -fsSL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/$v/wasm-bindgen-$v-x86_64-unknown-linux-musl.tar.gz" | tar -xz
+          echo "$PWD/wasm-bindgen-$v-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            web/target
+          key: cargo-web-${{ hashFiles('web/Cargo.lock', 'Cargo.lock') }}
+      - run: bash deploy/web/build.sh
+      - run: cp deploy/huggingface/README.md dist/README.md
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet huggingface_hub
+      - name: Publicar no Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python deploy/huggingface/upload.py

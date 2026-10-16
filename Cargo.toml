@@ -1,0 +1,37 @@
+[package]
+name = "gto-studio"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "AGPL-3.0-or-later"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "gto-studio"
+path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+# native: multithreaded solver + HTTP server. The browser build (web/) turns it off.
+default = ["native"]
+native = ["postflop-solver/rayon", "dep:tiny_http"]
+
+[dependencies]
+postflop-solver = { git = "https://github.com/b-inary/postflop-solver", default-features = false, features = ["bincode"] }
+# The solver was written against bincode 2.0.0-rc.3; the stable 2.x API is incompatible. Pin it.
+bincode = "=2.0.0-rc.3"
+bincode_derive = "=2.0.0-rc.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tiny_http = { version = "0.12.0", optional = true }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
+[[bin]]
+name = "library"
+path = "src/bin/library.rs"
+required-features = ["native"]

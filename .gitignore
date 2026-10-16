@@ -1,0 +1,7 @@
+target/
+web/target/
+dist/
+library/
+spots/
+partes/
+.claude/

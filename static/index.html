@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTO Studio</title>
+<style>
+  :root {
+    --bg: #f6f6f7; --panel: #ffffff; --ink: #1d1f24; --muted: #6c707a; --line: #e2e3e7;
+    --empty: #ececef; --primary: #d42a3c; --primary-ink: #ffffff; --primary-soft: #fbe7ea;
+    --fold: #4a78c6; --check: #3a9a68; --allin: #7d1e3c;
+    --bet1: #e8a33d; --bet2: #e37d34; --bet3: #d4562f; --bet4: #b8392f;
+    --good: #3a9a68; --warn: #d69a2d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121317; --panel: #1b1c22; --ink: #ececef; --muted: #8d909b; --line: #2b2d36;
+      --empty: #24262e; --primary: #e5484d; --primary-soft: #3a1a1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, "Segoe UI", sans-serif; }
+  a { color: inherit; }
+  [hidden] { display: none !important; }
+  code { font-size: 12px; }
+
+  /* Barra superior */
+  .top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 24px; padding: 0 20px; height: 56px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; text-decoration: none; }
+  .brand i { width: 26px; height: 26px; border-radius: 7px; background: var(--primary); display: grid; place-items: center; color: var(--primary-ink); font-style: normal; font-size: 15px; }
+  nav { display: flex; gap: 4px; }
+  nav a { text-decoration: none; padding: 7px 12px; border-radius: 8px; color: var(--muted); font-weight: 500; }
+  nav a:hover { color: var(--ink); }
+  nav a.on { color: var(--primary); background: var(--primary-soft); }
+  .status { margin-left: auto; font-size: 12px; color: var(--muted); text-decoration: none; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; white-space: nowrap; }
+  .status.busy { color: var(--primary); border-color: var(--primary); }
+  @media (max-width: 640px) { .top { gap: 8px; padding: 0 10px; } .brand span, .status { display: none; } nav a { padding: 7px 8px; } }
+
+  .page { max-width: 1320px; margin: 0 auto; padding: 24px 20px 48px; }
+  @media (max-width: 640px) { .page { padding: 16px; } }
+  h2 { font-size: 22px; margin: 0 0 4px; }
+  h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+
+  /* Tela inicial */
+  .hero { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 24px; }
+  .hero h2 { font-size: 28px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .tile { display: flex; flex-direction: column; gap: 8px; padding: 20px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); text-decoration: none; min-height: 150px; transition: border-color .15s, transform .15s; }
+  a.tile:hover { border-color: var(--primary); transform: translateY(-2px); }
+  .tile .ico { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); font-size: 19px; }
+  .tile h3 { margin: 4px 0 0; font-size: 16px; }
+  .tile p { margin: 0; color: var(--muted); font-size: 13px; }
+  .tile.soon { opacity: .55; }
+  .tile.soon .ico { background: var(--empty); color: var(--muted); }
+  .tag { align-self: flex-start; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--empty); color: var(--muted); }
+  .tag.ok { background: var(--primary-soft); color: var(--primary); }
+  .machine { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+  .stat small { color: var(--muted); display: block; font-size: 12px; }
+  .stat b { font-size: 20px; }
+
+  /* Formulário */
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+  input, textarea, select { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font: inherit; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+  textarea { height: 92px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .solver { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .solver { grid-template-columns: 1fr; } }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .sizes { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .sizes th { font-size: 11px; color: var(--muted); font-weight: 500; padding: 3px; text-align: center; }
+  .sizes th:first-child { text-align: left; }
+  .sizes td { padding: 3px; }
+  .sizes input { padding: 5px; font-size: 12px; }
+  details { margin-top: 14px; } summary { cursor: pointer; color: var(--muted); font-weight: 500; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 12px; }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); padding: 10px 18px; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .45; cursor: default; }
+  .run { display: flex; gap: 10px; margin-top: 16px; }
+  .run .btn-primary { flex: 1; }
+  .progress { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .bar { height: 6px; background: var(--empty); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; background: var(--primary); width: 0; transition: width .2s; }
+  .error { color: var(--primary); font-size: 13px; margin-top: 10px; white-space: pre-wrap; }
+
+  /* Estudo */
+  .crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 12px; }
+  .crumbs button { padding: 3px 9px; font-size: 12px; }
+  .crumbs button:last-of-type { border-color: var(--primary); color: var(--primary); }
+  .crumbs .sep { color: var(--muted); }
+  .crumbs .copy { margin-left: auto; }
+  .spotbar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 14px; }
+  .cards { display: flex; gap: 4px; }
+  .card { width: 32px; height: 42px; border-radius: 6px; display: grid; place-items: center; font-weight: 700; color: #fff; font-size: 15px; }
+  .card.big { width: 46px; height: 62px; font-size: 21px; }
+  .s-c { background: #2f8a4f; } .s-d { background: #2a64c4; } .s-h { background: #c43a3a; } .s-s { background: #3b4150; }
+  .pill { color: var(--muted); }
+  .pill b { color: var(--ink); }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  .tabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); padding: 8px 12px; font-weight: 500; }
+  .tabs button.on { color: var(--primary); border-bottom-color: var(--primary); }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .actions button { display: flex; gap: 8px; align-items: center; border-left: 5px solid var(--c); }
+  .actions button:hover { border-color: var(--c); }
+  .actions small { color: var(--muted); }
+  .summary { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 14px; }
+  .viewer { display: grid; grid-template-columns: minmax(0, 620px) minmax(280px, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 1150px) { .viewer { grid-template-columns: 1fr; } }
+  .grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; aspect-ratio: 1; }
+  .cell { position: relative; background: var(--empty); border-radius: 3px; overflow: hidden; cursor: pointer; transition: opacity .15s; }
+  .cell .fill { position: absolute; left: 0; right: 0; bottom: 0; display: flex; }
+  .cell .lbl { position: absolute; top: 2px; left: 3px; font-size: clamp(8px, 1.05vw, 12px); font-weight: 600; text-shadow: 0 0 2px rgba(0,0,0,.4); color: #fff; }
+  .cell.dead .lbl { color: var(--muted); text-shadow: none; }
+  .cell.sel { outline: 2px solid var(--primary); outline-offset: -1px; }
+  .cell.off { opacity: .18; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .detail h3 { margin: 0 0 8px; font-size: 18px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; margin-bottom: 12px; }
+  .kv span:nth-child(odd) { color: var(--muted); }
+  table.combos { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .combos th, .combos td { text-align: right; padding: 4px; border-bottom: 1px solid var(--line); }
+  .combos th:first-child, .combos td:first-child { text-align: left; }
+  .combos td small { color: var(--muted); display: block; }
+  .cats { display: flex; flex-direction: column; gap: 2px; max-height: 360px; overflow-y: auto; }
+  .cat { display: grid; grid-template-columns: 1fr 70px 52px; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; font-size: 12px; background: none; text-align: left; }
+  .cat:hover { background: var(--empty); }
+  .cat.on { border-color: var(--primary); background: var(--primary-soft); }
+  .cat .mix { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--empty); }
+  .cat .n { color: var(--muted); text-align: right; }
+  .cat-group { font-size: 11px; color: var(--muted); margin: 8px 0 2px; }
+  .picker { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; max-width: 600px; }
+  .picker button { padding: 7px 0; font-weight: 700; color: #fff; border: none; }
+  .empty { color: var(--muted); padding: 48px 0; text-align: center; }
+  .empty p { margin: 0 0 16px; }
+  .ranges { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .ranges { grid-template-columns: 1fr; } }
+  .range-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .chart { margin-top: 18px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart .axis { stroke: var(--line); }
+  .chart text { fill: var(--muted); font-size: 11px; }
+  .keys { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .keys i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 6px; }
+
+  /* Mesa (posições) */
+  .seats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; }
+  .seat-box { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; background: var(--bg); }
+  .seat-box b { display: block; font-size: 13px; }
+  .seat-box span { color: var(--muted); }
+  .seat-box.out { opacity: .45; }
+  .seat-box.live { border-color: var(--ink); }
+  .seat-box.turn { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
+  .seat-box.turn b { color: var(--primary); }
+  @media (max-width: 640px) { .seats { grid-template-columns: repeat(3, 1fr); } }
+
+  /* Biblioteca */
+  .lib-group { margin-bottom: 22px; }
+  .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .lib-item { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; text-align: left; }
+  .lib-item:hover { border-color: var(--primary); }
+  .lib-item small { color: var(--muted); }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 999px; font-size: 13px; z-index: 10; }
+
+  /* Trainer */
+  .trainer { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .trainer { grid-template-columns: 1fr; } }
+  .table { text-align: center; padding: 28px 18px; }
+  .table .cards { justify-content: center; margin: 10px 0; }
+  .seat { font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .seat b { color: var(--ink); }
+  .feedback { margin-top: 16px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); text-align: left; font-size: 13px; }
+  .grade { font-weight: 700; font-size: 15px; }
+  .g-best, .g-correct { color: var(--good); } .g-inacc { color: var(--warn); } .g-mistake, .g-blunder { color: var(--primary); }
+  .log { font-size: 12px; color: var(--muted); margin: 0; padding-left: 18px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; font-size: 13px; }
+  .stats span:nth-child(odd) { color: var(--muted); }
+  .seg { display: flex; gap: 4px; }
+  .seg button.on { border-color: var(--primary); color: var(--primary); }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/"><i>♠</i><span>GTO Studio</span></a>
+  <nav>
+    <a href="#/" data-route="">Início</a>
+    <a href="#/resolver" data-route="resolver">Resolver</a>
+    <a href="#/estudar" data-route="estudar">Estudar</a>
+    <a href="#/treinar" data-route="treinar">Treinar</a>
+    <a href="#/biblioteca" data-route="biblioteca">Biblioteca</a>
+  </nav>
+  <a class="status" id="statusPill" href="#/resolver">Solver livre</a>
+</header>
+
+<!-- Início -->
+<section class="page" data-page="">
+  <div class="hero">
+    <div>
+      <h2>Seu laboratório de estratégia GTO</h2>
+      <p class="sub">Resolva qualquer spot pós-flop no seu computador e estude a estratégia de equilíbrio mão a mão.</p>
+    </div>
+    <a class="btn-primary" href="#/resolver">Resolver um spot</a>
+  </div>
+  <div class="tiles">
+    <a class="tile" href="#/resolver">
+      <span class="ico">⚙</span><span class="tag ok">Disponível</span>
+      <h3>Resolver</h3>
+      <p>Escolha um preset pré-flop ou defina ranges, board, pote e bet sizes. O solver calcula o equilíbrio.</p>
+    </a>
+    <a class="tile" href="#/estudar">
+      <span class="ico">▦</span><span class="tag ok" id="studyTag">Disponível</span>
+      <h3>Estudar</h3>
+      <p>Estratégia de cada mão na grade 13×13, EV por ação, filtros por categoria, ranges e gráfico de equity.</p>
+    </a>
+    <a class="tile" href="#/treinar">
+      <span class="ico">◎</span><span class="tag ok">Disponível</span>
+      <h3>Treinar</h3>
+      <p>Jogue mãos da solução aberta contra a estratégia GTO e receba nota e EV perdido em cada decisão.</p>
+    </a>
+    <a class="tile" href="#/biblioteca">
+      <span class="ico">❒</span><span class="tag ok">Disponível</span>
+      <h3>Biblioteca</h3>
+      <p>Spots de torneio já resolvidos: abrem na hora. O turn e o river são calculados quando você escolhe a carta.</p>
+    </a>
+    <div class="tile soon"><span class="ico">▤</span><span class="tag">Em breve</span><h3>Relatórios</h3><p>Estratégia agregada por textura de flop: frequência de bet, check e sizing em cada board.</p></div>
+    <div class="tile soon"><span class="ico">⌕</span><span class="tag">Em breve</span><h3>Analisar mãos</h3><p>Importe seu hand history e compare suas jogadas com a estratégia GTO.</p></div>
+  </div>
+  <div class="machine">
+    <div class="panel stat"><small id="mTotalLabel">Memória total</small><b id="mTotal">—</b></div>
+    <div class="panel stat"><small id="mFreeLabel">Livre para o solver</small><b id="mFree">—</b></div>
+    <div class="panel stat"><small>Núcleos em uso</small><b id="mThreads">—</b></div>
+    <div class="panel stat"><small>Última solução</small><b id="mLast">Nenhuma</b></div>
+  </div>
+</section>
+
+<!-- Resolver -->
+<section class="page" data-page="resolver" hidden>
+  <h2>Resolver</h2>
+  <p class="sub">Monte o spot. Quanto mais bet sizes, maior a árvore e mais memória o cálculo exige.</p>
+  <form id="form" class="solver">
+    <div class="panel">
+      <label style="margin-top:0">Preset pré-flop</label>
+      <select id="preset"></select>
+      <p class="hint" id="presetHint">Ranges aproximados de referência; o pote já inclui blinds e ante. Torneios são calculados em fichas (chip EV), sem ICM. Edite à vontade.</p>
+      <label>Range OOP (fora de posição)</label>
+      <textarea name="oop_range"></textarea>
+      <label>Range IP (em posição)</label>
+      <textarea name="ip_range"></textarea>
+      <p class="hint">Notação: <code>QQ+</code> (QQ ou maior), <code>A5s-A2s</code> (intervalo), <code>KQo</code> (offsuit), <code>AK:0.5</code> (50% das vezes).</p>
+      <div class="row3">
+        <div><label>Board (3 a 5 cartas)</label><input name="board" value="Ks7d2c"></div>
+        <div><label>Pote (bb)</label><input name="pot" type="number" step="0.5" min="0.5"></div>
+        <div><label>Stack efetivo (bb)</label><input name="stack" type="number" step="0.5" min="0.5"></div>
+      </div>
+      <p class="hint">Com 4 cartas o cálculo começa no turn; com 5, no river.</p>
+    </div>
+
+    <div class="panel">
+      <label style="margin-top:0">Bet sizes</label>
+      <table class="sizes">
+        <tr><th></th><th>OOP bet</th><th>OOP raise</th><th>IP bet</th><th>IP raise</th></tr>
+        <tr><th>Flop</th><td><input name="flop.oop_bet" value="50%"></td><td><input name="flop.oop_raise" value="3x"></td><td><input name="flop.ip_bet" value="50%"></td><td><input name="flop.ip_raise" value="3x"></td></tr>
+        <tr><th>Turn</th><td><input name="turn.oop_bet" value="50%"></td><td><input name="turn.oop_raise" value="3x"></td><td><input name="turn.ip_bet" value="50%"></td><td><input name="turn.ip_raise" value="3x"></td></tr>
+        <tr><th>River</th><td><input name="river.oop_bet" value="50%"></td><td><input name="river.oop_raise" value="3x"></td><td><input name="river.ip_bet" value="50%"></td><td><input name="river.ip_raise" value="3x"></td></tr>
+      </table>
+      <p class="hint">Separe por vírgula. Bet: <code>33%</code> do pote, <code>e</code> geométrico, <code>a</code> all-in. Raise: <code>3x</code> o bet anterior, <code>%</code> do pote ou <code>a</code>. Vazio = sem raise.</p>
+      <div class="row2">
+        <div><label>Máximo de iterações</label><input name="max_iterations" type="number" min="1" value="1000"></div>
+        <div><label>Exploitability alvo (% do pote)</label><input name="target_pct" type="number" step="0.1" min="0" value="0.5"></div>
+      </div>
+      <details>
+        <summary>Opções avançadas</summary>
+        <div class="row2">
+          <div><label>Rake (%)</label><input name="rake_pct" type="number" step="0.5" min="0" value="0"></div>
+          <div><label>Rake cap (bb)</label><input name="rake_cap" type="number" step="0.5" min="0" value="0"></div>
+        </div>
+        <div class="row2">
+          <div><label>Donk bet turn (OOP)</label><input name="turn_donk" placeholder="padrão"></div>
+          <div><label>Donk bet river (OOP)</label><input name="river_donk" placeholder="padrão"></div>
+        </div>
+        <div class="row2">
+          <div><label title="Inclui all-in quando o maior bet for até X vezes o pote">Add all-in até (× pote)</label><input name="add_allin_threshold" type="number" step="0.1" value="1.5"></div>
+          <div><label title="Transforma o bet em all-in quando sobra pouco stack depois do call">Force all-in com SPR até</label><input name="force_allin_threshold" type="number" step="0.05" value="0.15"></div>
+        </div>
+        <div class="row2">
+          <div><label title="Une bet sizes muito próximos para reduzir a árvore">Merging threshold</label><input name="merging_threshold" type="number" step="0.05" value="0.1"></div>
+          <div><label>Precisão numérica</label><select name="precision"><option value="auto">Automática</option><option value="full">32 bits (máxima)</option><option value="compressed">16 bits (metade da memória)</option></select></div>
+        </div>
+      </details>
+      <div class="run">
+        <button class="btn-primary" id="solveBtn" type="submit">Resolver</button>
+        <button type="button" id="cancelBtn" hidden>Parar e ver parcial</button>
+      </div>
+      <div class="progress" id="progress"></div>
+      <div class="bar"><div id="bar"></div></div>
+      <div class="error" id="formError"></div>
+    </div>
+  </form>
+</section>
+
+<!-- Estudar -->
+<section class="page" data-page="estudar" hidden>
+  <div class="panel" id="main"></div>
+</section>
+
+<!-- Biblioteca -->
+<section class="page" data-page="biblioteca" hidden>
+  <h2>Biblioteca</h2>
+  <p class="sub">Spots já resolvidos no flop. Abra e estude na hora; ao escolher a carta do turn, o app resolve aquela street em alguns segundos.</p>
+  <div id="library"></div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+
+<!-- Treinar -->
+<section class="page" data-page="treinar" hidden>
+  <h2>Treinar</h2>
+  <p class="sub">Mãos sorteadas da solução aberta. O vilão joga a estratégia GTO; cada decisão sua recebe nota.</p>
+  <div id="trainer"></div>
+</section>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const SUIT = { c: '♣', d: '♦', h: '♥', s: '♠' };
+const BET_COLORS = ['--bet1', '--bet2', '--bet3', '--bet4'];
+const ACTION_NAME = { Fold: 'Fold', Check: 'Check', Call: 'Call', Bet: 'Bet', Raise: 'Raise', Allin: 'All-in' };
+const PLAYER_DESC = { OOP: 'fora de posição', IP: 'em posição' };
+
+// Ranges aproximados de referência. Não são saída de solver pré-flop.
+// Torneio: ante de 1bb pago pelo BB (big blind ante), já somado ao pote.
+const CASH = 'Cash 100bb (6-max)', MTT = 'Torneio (ante 1bb no BB)';
+const PRESETS = [
+  { group: CASH, name: 'BTN open vs BB call (pote simples)', pot: 5.5, stack: 97.5,
+    oop: 'TT-22,AJs-A2s,AJo-A6o,KJs-K2s,KJo-K8o,QJs-Q4s,Q9o+,J6s+,J9o+,T6s+,T8o+,95s+,98o,85s+,87o,74s+,76o,63s+,65o,52s+,54o,43s',
+    ip: '22+,A2s+,A2o+,K2s+,K8o+,Q4s+,Q9o+,J6s+,J9o+,T6s+,T9o,95s+,98o,85s+,74s+,64s+,53s+,43s' },
+  { group: CASH, name: 'CO open vs BB call (pote simples)', pot: 5.5, stack: 97.5,
+    oop: 'TT-22,AJs-A2s,AJo-A8o,KJs-K5s,KJo-K9o,QJs-Q7s,QTo+,J7s+,JTo,T7s+,96s+,86s+,75s+,64s+,54s',
+    ip: '22+,A2s+,A8o+,K7s+,KTo+,Q8s+,QTo+,J8s+,JTo,T7s+,96s+,86s+,75s+,65s,54s' },
+  { group: CASH, name: 'UTG open vs BB call (pote simples)', pot: 5.5, stack: 97.5,
+    oop: 'JJ-22,AQs-A2s,AQo-AJo,KQs-K9s,KQo,Q9s+,J9s+,T8s+,97s+,86s+,75s+,65s,54s',
+    ip: '22+,A2s+,ATo+,K9s+,KJo+,Q9s+,QJo,J9s+,T9s,98s,87s,76s' },
+  { group: CASH, name: 'SB open vs BB call (pote simples)', pot: 6, stack: 97,
+    oop: '22+,A2s+,A4o+,K2s+,K8o+,Q5s+,Q9o+,J7s+,J9o+,T7s+,T9o,96s+,98o,85s+,75s+,64s+,54s',
+    ip: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K5o,Q2s+,Q8o+,J4s+,J8o+,T5s+,T8o+,95s+,97o+,84s+,87o,74s+,76o,63s+,65o,53s+,43s' },
+  { group: CASH, name: 'BB 3-bet vs BTN call (pote 3-bet)', pot: 22.5, stack: 89,
+    oop: 'QQ+,AKs,AKo,AQs,A5s-A4s,KQs,K9s,QJs,J9s,T9s,76s,65s',
+    ip: 'JJ-55,AQs-ATs,AQo,AJo,KTs+,KQo,QTs+,JTs,T9s,98s,87s,76s' },
+  { group: CASH, name: 'BTN 3-bet vs CO call (pote 3-bet)', pot: 17.5, stack: 92,
+    oop: 'JJ-77,AQs-ATs,AQo,KQs,KJs,QJs,JTs,T9s',
+    ip: 'QQ+,AKs,AKo,AQs,AJs,A5s-A3s,KQs,KJs,K9s,QTs,J9s,T8s,76s,65s' },
+  { group: MTT, name: '40bb · BTN open 2,2 vs BB call', pot: 5.9, stack: 37.8,
+    oop: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K4o,QJs-Q2s,QJo-Q7o,J2s+,J7o+,T3s+,T7o+,93s+,96o+,84s+,86o+,73s+,75o+,63s+,65o,52s+,54o,42s+,32s',
+    ip: '22+,A2s+,A2o+,K2s+,K7o+,Q4s+,Q9o+,J6s+,J9o+,T6s+,T9o,95s+,98o,85s+,74s+,64s+,53s+,43s' },
+  { group: MTT, name: '40bb · CO open 2,2 vs BB call', pot: 5.9, stack: 37.8,
+    oop: 'TT-22,AJs-A2s,AJo-A5o,KJs-K2s,KJo-K8o,QJs-Q5s,QJo-Q9o,J6s+,J9o+,T6s+,T9o,95s+,98o,85s+,87o,74s+,76o,63s+,65o,53s+,43s',
+    ip: '22+,A2s+,A8o+,K6s+,KTo+,Q8s+,QTo+,J8s+,JTo,T7s+,97s+,86s+,76s,65s,54s' },
+  { group: MTT, name: '40bb · BB 3-bet vs BTN call', pot: 19.5, stack: 31,
+    oop: 'QQ+,AKs,AKo,AQs,AJs,A5s-A3s,KQs,KTs,QJs,J9s,T9s,65s',
+    ip: 'JJ-66,AQs-A9s,AQo-AJo,KTs+,KQo,QTs+,JTs,T9s,98s,87s' },
+  { group: MTT, name: '25bb · BTN open 2 vs BB call', pot: 5.5, stack: 23,
+    oop: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K5o,QJs-Q2s,QJo-Q8o,J4s+,J8o+,T5s+,T8o+,95s+,97o+,84s+,87o,74s+,76o,63s+,65o,53s+,43s',
+    ip: '22+,A2s+,A2o+,K2s+,K8o+,Q5s+,Q9o+,J7s+,J9o+,T7s+,T9o,96s+,86s+,75s+,65s,54s' },
+  { group: MTT, name: '25bb · SB open 2 vs BB call', pot: 5, stack: 23,
+    oop: '22+,A2s+,A2o+,K2s+,K6o+,Q4s+,Q8o+,J6s+,J8o+,T6s+,T8o+,95s+,98o,85s+,74s+,64s+,53s+',
+    ip: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K2o,Q2s+,Q5o+,J2s+,J7o+,T3s+,T7o+,93s+,96o+,83s+,86o+,73s+,75o+,62s+,65o,52s+,54o,42s+,32s' },
+  { group: MTT, name: '15bb · BTN open 2 vs BB call', pot: 5.5, stack: 13,
+    oop: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K7o,QJs-Q4s,QJo-Q9o,J6s+,J9o+,T6s+,T9o,96s+,98o,85s+,75s+,64s+,54s',
+    ip: '22+,A2s+,A7o+,K5s+,K9o+,Q7s+,QTo+,J8s+,JTo,T8s+,98s,87s,76s' },
+];
+
+// Mesa de cada preset: profundidade, quem está fora de posição / em posição e a ação pré-flop.
+const SEATS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+const TABLES = {
+  'BTN open vs BB call (pote simples)': { depth: 100, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2,5'], ['BB', 'Call']] },
+  'CO open vs BB call (pote simples)': { depth: 100, oopSeat: 'BB', ipSeat: 'CO', pre: [['CO', 'Raise 2,5'], ['BB', 'Call']] },
+  'UTG open vs BB call (pote simples)': { depth: 100, oopSeat: 'BB', ipSeat: 'UTG', pre: [['UTG', 'Raise 2,5'], ['BB', 'Call']] },
+  'SB open vs BB call (pote simples)': { depth: 100, oopSeat: 'SB', ipSeat: 'BB', pre: [['SB', 'Raise 3'], ['BB', 'Call']] },
+  'BB 3-bet vs BTN call (pote 3-bet)': { depth: 100, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2,5'], ['BB', 'Raise 11'], ['BTN', 'Call']] },
+  'BTN 3-bet vs CO call (pote 3-bet)': { depth: 100, oopSeat: 'CO', ipSeat: 'BTN', pre: [['CO', 'Raise 2,5'], ['BTN', 'Raise 8'], ['CO', 'Call']] },
+  '40bb · BTN open 2,2 vs BB call': { depth: 40, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2,2'], ['BB', 'Call']] },
+  '40bb · CO open 2,2 vs BB call': { depth: 40, oopSeat: 'BB', ipSeat: 'CO', pre: [['CO', 'Raise 2,2'], ['BB', 'Call']] },
+  '40bb · BB 3-bet vs BTN call': { depth: 40, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2,2'], ['BB', 'Raise 9'], ['BTN', 'Call']] },
+  '25bb · BTN open 2 vs BB call': { depth: 25, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2'], ['BB', 'Call']] },
+  '25bb · SB open 2 vs BB call': { depth: 25, oopSeat: 'SB', ipSeat: 'BB', pre: [['SB', 'Raise 2'], ['BB', 'Call']] },
+  '15bb · BTN open 2 vs BB call': { depth: 15, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2'], ['BB', 'Call']] },
+};
+let spot = null; // { preset, stack } da solução aberta, para a barra da mesa
+
+// Barra com os 6 lugares: ação pré-flop de cada um, stacks no início do flop e quem age agora.
+function seatsBar(toAct) {
+  const t = spot && TABLES[spot.preset];
+  if (!t) return '';
+  const actions = Object.fromEntries(SEATS.map(s => [s, []]));
+  t.pre.forEach(([s, a]) => actions[s].push(a));
+  const seat = { OOP: t.oopSeat, IP: t.ipSeat };
+  return `<div class="seats">${SEATS.map(s => {
+    const live = s === t.oopSeat || s === t.ipSeat;
+    const who = s === t.oopSeat ? 'OOP' : s === t.ipSeat ? 'IP' : '';
+    const stack = live ? `${num(spot.stack, 1)} bb` : `${t.depth} bb`;
+    const line = live ? actions[s].join(' · ') : 'Fold';
+    return `<div class="seat-box ${live ? 'live' : 'out'} ${toAct && seat[toAct] === s ? 'turn' : ''}">
+      <b>${s}${who ? ` <span>${who}</span>` : ''}</b><span>${stack}</span><br><span>${line}</span></div>`;
+  }).join('')}</div>`;
+}
+
+let status = null;
+let solveStartedHere = false;
+let pollTimer = null;
+const schedule = (ms) => { clearTimeout(pollTimer); pollTimer = setTimeout(poll, ms); };
+
+// ---------- rotas: #/estudar/0.1.48 guarda o caminho na árvore ----------
+let history = [];
+function route() {
+  const [page0, hist] = location.hash.replace(/^#\/?/, '').split('/');
+  const page = ['', 'resolver', 'estudar', 'treinar', 'biblioteca'].includes(page0) ? page0 : '';
+  document.querySelectorAll('[data-page]').forEach(s => s.hidden = s.dataset.page !== page);
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.route === page));
+  if (page === 'estudar') {
+    history = hist ? hist.split('.').map(Number).filter(Number.isInteger) : [];
+    load();
+  }
+  if (page === 'treinar') trainerView();
+  if (page === 'biblioteca') libraryView();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+const studyHash = (h) => '#/estudar' + (h.length ? '/' + h.join('.') : '');
+
+// ---------- backend: servidor local ou solver no navegador ----------
+// 'server' usa a API HTTP do executável; o build do site estático (deploy/web/build.ps1)
+// troca para 'wasm', e o mesmo motor roda num Web Worker. As respostas têm o mesmo formato.
+const BACKEND = 'server';
+
+async function serverApi(url, body) {
+  const r = await fetch(url, body ? { method: 'POST', body: JSON.stringify(body) } : undefined);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+// ponytail: teto fixo por tipo de aparelho. O WebAssembly 32-bit não passa de 4 GB por aba,
+// e navegadores de celular encerram abas bem antes disso.
+function browserLimitGb() {
+  const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  const cap = mobile ? 1.2 : 3;
+  return navigator.deviceMemory ? Math.min(cap, navigator.deviceMemory * 0.4) : cap;
+}
+
+const local = {
+  state: 'idle', iteration: 0, max_iterations: 0, exploitability_pct: null, memory_gb: 0,
+  compressed: false, cancelled: false, error: '', total_ram_gb: navigator.deviceMemory || 0, threads: 1,
+};
+let worker = null, seq = 0;
+const pending = new Map();
+
+function startWorker() {
+  worker = new Worker('worker.js', { type: 'module' });
+  worker.onmessage = ({ data }) => {
+    if (data.type === 'progress') { Object.assign(local, data); return; }
+    const p = pending.get(data.id);
+    pending.delete(data.id);
+    data.result.error ? p.reject(new Error(data.result.error)) : p.resolve(data.result);
+  };
+  worker.onerror = (e) => {
+    e.preventDefault();
+    const msg = 'O navegador interrompeu o cálculo, provavelmente por falta de memória. Use menos bet sizes, ranges menores ou a precisão de 16 bits.';
+    for (const p of pending.values()) p.reject(new Error(msg));
+    pending.clear();
+    Object.assign(local, { state: 'idle', error: msg });
+    worker.terminate();
+    worker = null;
+  };
+}
+
+function callWorker(cmd, body) {
+  if (!worker) startWorker();
+  return new Promise((resolve, reject) => {
+    const id = ++seq;
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ id, cmd, body });
+  });
+}
+
+async function wasmApi(url, body) {
+  if (url === '/api/status') return { ...local, limit_gb: browserLimitGb() };
+  if (url === '/api/cancel') return callWorker('cancel');
+  if (url === '/api/node') {
+    let r = await callWorker('node', body);
+    if (r.type === 'resolve_needed') {
+      toast('Calculando esta street no seu navegador (alguns segundos)…');
+      try {
+        await callWorker('resolve', { prefix: r.prefix, card: r.card, limit_gb: browserLimitGb(), max_iterations: 300, target_pct: 0.5 });
+      } finally { toast(null); }
+      r = await callWorker('node', body);
+    }
+    return r;
+  }
+  if (url === '/api/solve') {
+    if (local.state === 'solving') throw new Error('Já existe um solve em andamento.');
+    Object.assign(local, { state: 'idle', error: '' });
+    const r = await callWorker('solve', { ...body, limit_gb: browserLimitGb() });
+    Object.assign(local, {
+      state: 'solving', iteration: 0, max_iterations: body.max_iterations, exploitability_pct: null,
+      memory_gb: r.memory_gb, compressed: r.compressed, cancelled: false,
+    });
+    return r;
+  }
+  throw new Error('rota desconhecida: ' + url);
+}
+
+const api = BACKEND === 'wasm' ? wasmApi : serverApi;
+
+function toast(msg) {
+  const el = $('#toast');
+  el.hidden = !msg;
+  el.textContent = msg || '';
+}
+
+// ---------- utilitários ----------
+const cardEl = (c, big) => `<div class="card s-${c[1]}${big ? ' big' : ''}">${c[0]}${SUIT[c[1]]}</div>`;
+const comboCards = (combo, big) => cardEl(combo.slice(0, 2), big) + cardEl(combo.slice(2, 4), big);
+const actionLabel = (a) => a.amount == null ? ACTION_NAME[a.kind] : `${ACTION_NAME[a.kind]} ${a.amount.toLocaleString('pt-BR')} bb`;
+const stepLabel = (s) => s.card ? `${s.card[0]}${SUIT[s.card[1]]}` : `${s.player}: ${actionLabel(s.action)}`;
+const pct = (x) => (100 * x).toFixed(1).replace('.', ',') + '%';
+const num = (x, d = 2) => x.toFixed(d).replace('.', ',');
+const sign = (x) => (x > 0 ? '+' : '') + num(x);
+// Máximo de combos por classe de mão, para escalar a presença no range.
+const maxCombos = (h) => h.length === 2 ? 6 : h.endsWith('s') ? 4 : 12;
+const mixBar = (freqs, colors) => freqs.map((f, i) => `<div style="width:${100 * f}%;background:${colors[i]}"></div>`).join('');
+
+function actionColors(actions) {
+  let bet = 0;
+  return actions.map(a => {
+    if (a.kind === 'Fold') return 'var(--fold)';
+    if (a.kind === 'Check' || a.kind === 'Call') return 'var(--check)';
+    if (a.kind === 'Allin') return 'var(--allin)';
+    return `var(${BET_COLORS[Math.min(bet++, 3)]})`;
+  });
+}
+
+// ---------- resolver ----------
+$('#preset').innerHTML = [CASH, MTT].map(g => `<optgroup label="${g}">` +
+  PRESETS.map((p, i) => p.group === g ? `<option value="${i}">${p.name}</option>` : '').join('') + '</optgroup>').join('') +
+  '<option value="">Personalizado</option>';
+function applyPreset(i) {
+  const p = PRESETS[i];
+  if (!p) return;
+  const f = $('#form');
+  f.oop_range.value = p.oop; f.ip_range.value = p.ip; f.pot.value = p.pot; f.stack.value = p.stack;
+}
+$('#preset').addEventListener('change', (e) => applyPreset(e.target.value));
+for (const n of ['oop_range', 'ip_range', 'pot', 'stack']) $('#form')[n].addEventListener('input', () => $('#preset').value = '');
+applyPreset(0);
+
+$('#form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {};
+  for (const [k, v] of new FormData(e.target)) {
+    const [a, b] = k.split('.');
+    if (b) (body[a] ??= {})[b] = v; else body[k] = v;
+  }
+  for (const k of ['pot', 'stack', 'target_pct', 'rake_pct', 'rake_cap', 'add_allin_threshold', 'force_allin_threshold', 'merging_threshold'])
+    body[k] = parseFloat(String(body[k]).replace(',', '.')) || 0;
+  body.max_iterations = parseInt(body.max_iterations, 10);
+  body.board = body.board.replace(/\s+/g, '');
+  $('#formError').textContent = '';
+  try {
+    await api('/api/solve', body);
+    solveStartedHere = true;
+    spot = TABLES[PRESETS[$('#preset').value]?.name] ? { preset: PRESETS[$('#preset').value].name, stack: body.stack } : null;
+    trainer = null;
+  } catch (err) { $('#formError').textContent = err.message; }
+  poll();
+});
+$('#cancelBtn').addEventListener('click', () => api('/api/cancel', {}));
+
+async function poll() {
+  try { status = await api('/api/status'); }
+  catch {
+    $('#progress').textContent = 'Servidor desligado. Inicie o GTO Studio e recarregue a página.';
+    $('#statusPill').textContent = 'Servidor desligado';
+    return schedule(3000);
+  }
+  const s = status;
+  const solving = s.state === 'solving';
+  const expl = Number.isFinite(s.exploitability_pct) ? `${num(s.exploitability_pct)}% do pote` : 'calculando…';
+  const mem = `${num(s.memory_gb)} GB${s.compressed ? ' (16 bits)' : ''}`;
+  $('#progress').innerHTML = solving
+    ? `Resolvendo… iteração ${s.iteration} de ${s.max_iterations} · exploitability ${expl} · ${mem}`
+    : s.state === 'done' ? `${s.cancelled ? 'Interrompido' : 'Concluído'} em ${s.iteration} iterações · exploitability ${expl} · ${mem}`
+    : '';
+  $('#bar').style.width = s.state === 'done' ? '100%' : s.max_iterations ? `${100 * s.iteration / s.max_iterations}%` : '0';
+  $('#solveBtn').disabled = solving;
+  $('#cancelBtn').hidden = !solving;
+
+  const pill = $('#statusPill');
+  pill.classList.toggle('busy', solving);
+  pill.textContent = solving ? `Resolvendo ${Math.round(100 * s.iteration / s.max_iterations)}%`
+    : s.state === 'done' ? 'Solução pronta' : 'Solver livre';
+  pill.href = s.state === 'done' ? '#/estudar' : '#/resolver';
+
+  if (s.error) $('#formError').textContent = s.error;
+  $('#mTotal').textContent = s.total_ram_gb ? `${num(s.total_ram_gb, 1)} GB` : '—';
+  $('#mFree').textContent = `${num(s.limit_gb, 1)} GB`;
+  $('#mThreads').textContent = s.threads;
+  $('#mLast').textContent = s.state === 'done' ? `${s.iteration} iterações` : solving ? 'Em cálculo' : 'Nenhuma';
+  $('#studyTag').textContent = s.state === 'done' ? 'Solução pronta' : 'Disponível';
+
+  if (solving) return schedule(700);
+  if (s.state === 'done' && solveStartedHere) {
+    solveStartedHere = false;
+    location.hash = '#/estudar';
+  }
+  schedule(4000);
+}
+
+// ---------- estudar ----------
+let node = null;
+let selected = null;  // índice na grade
+let tab = 'strategy'; // strategy | ranges
+let filter = null;    // nome da categoria
+
+function emptyState(el) {
+  const solving = status && status.state === 'solving';
+  el.innerHTML = `<div class="empty"><p>${solving
+    ? 'O solver ainda está calculando. A estratégia aparece aqui quando terminar.'
+    : 'Ainda não há solução aberta.'}</p><a class="btn-primary" href="#/resolver">${solving ? 'Ver progresso' : 'Resolver um spot'}</a></div>`;
+}
+
+async function load() {
+  if (status && status.state !== 'done') return emptyState($('#main'));
+  try {
+    node = await api('/api/node', { history });
+    if (filter && !(node.categories || []).some(c => c.name === filter)) filter = null;
+    render();
+  } catch (err) {
+    if (/Nenhuma solução/.test(err.message)) return emptyState($('#main'));
+    if (/Histórico inválido/.test(err.message)) { location.hash = '#/estudar'; return; }
+    $('#main').innerHTML = `<div class="error">${err.message}</div>`;
+  }
+}
+
+function go(index) { selected = null; location.hash = studyHash([...history, index]); }
+function jump(n) { selected = null; location.hash = studyHash(history.slice(0, n)); }
+function pick(i) { selected = i; render(); }
+function setTab(t) { tab = t; render(); }
+function setFilter(name) { filter = filter === name ? null : name; render(); }
+function copyLink() { navigator.clipboard?.writeText(location.href); $('#copyBtn').textContent = 'Link copiado'; }
+
+function render() {
+  const crumbs = ['<button onclick="jump(0)">Início da mão</button>']
+    .concat(node.path.map((s, i) => `<span class="sep">›</span><button onclick="jump(${i + 1})">${stepLabel(s)}</button>`))
+    .join('') + '<button class="copy" id="copyBtn" onclick="copyLink()">Copiar link do spot</button>';
+  let html = `${seatsBar(node.type === 'action' ? node.player : null)}<div class="crumbs">${crumbs}</div>
+    <div class="spotbar"><div class="cards">${node.board.map(c => cardEl(c)).join('')}</div>
+    <span class="pill">Pote <b>${num(node.pot)} bb</b></span>
+    ${node.type === 'action' ? `<span class="pill">Vez do <b>${node.player}</b> (${PLAYER_DESC[node.player]}) · ${num(node.total_combos, 1)} combos</span>` : ''}</div>`;
+
+  if (node.type === 'terminal') {
+    html += `<div class="empty"><p>Fim da mão: fold ou showdown.</p><button onclick="jump(${history.length - 1})">Voltar uma decisão</button></div>`;
+  } else if (node.type === 'chance') {
+    const street = node.board.length === 3 ? 'turn' : 'river';
+    html += `<p>Escolha a carta do <b>${street}</b>:</p><div class="picker">` +
+      ['s', 'h', 'd', 'c'].flatMap(s => 'AKQJT98765432'.split('').map(r => {
+        const c = node.cards.find(x => x.card === r + s);
+        return `<button class="s-${s}" ${c.possible ? '' : 'disabled'} onclick="go(${c.id})">${r}${SUIT[s]}</button>`;
+      })).join('') + '</div>';
+  } else {
+    html += `<div class="tabs"><button class="${tab === 'strategy' ? 'on' : ''}" onclick="setTab('strategy')">Estratégia</button>
+      <button class="${tab === 'ranges' ? 'on' : ''}" onclick="setTab('ranges')">Ranges e equity</button></div>`;
+    html += tab === 'ranges' ? rangesHtml() : strategyHtml();
+  }
+  $('#main').innerHTML = html;
+}
+
+function strategyHtml() {
+  const colors = actionColors(node.actions);
+  const inFilter = (cell) => !filter || cell.combos.some(k => k.made === filter || k.draws.includes(filter));
+  let html = `<div class="actions">${node.actions.map((a, i) =>
+    `<button style="--c:${colors[i]}" onclick="go(${i})">${actionLabel(a)} <small>${pct(node.summary[i])} · EV ${num(node.summary_evs[i])}</small></button>`
+  ).join('')}</div>
+  <div class="summary">${mixBar(node.summary, colors)}</div>
+  <div class="viewer"><div><div class="grid">${node.grid.map((c, i) => {
+    const h = Math.min(1, c.weight / maxCombos(c.hand));
+    const off = c.weight > 0 && !inFilter(c);
+    return `<div class="cell ${c.weight > 0 ? '' : 'dead'} ${off ? 'off' : ''} ${selected === i ? 'sel' : ''}" onclick="pick(${i})" title="${c.hand}">
+      <div class="fill" style="height:${100 * h}%">${c.weight > 0 ? mixBar(c.freqs, colors) : ''}</div><span class="lbl">${c.hand}</span></div>`;
+  }).join('')}</div>
+  <div class="legend"><span>Cores: mix de ações da mão</span><span>Altura: quanto da mão ainda está no range</span><span>EV em bb</span></div></div>
+  <div class="side"><div class="detail">${detailHtml(colors)}</div><div>${categoriesHtml(colors)}</div></div></div>`;
+  return html;
+}
+
+function categoriesHtml(colors) {
+  const row = (c) => `<button class="cat ${filter === c.name ? 'on' : ''}" onclick="setFilter('${c.name}')" title="EV médio ${num(c.ev)} bb">
+    <span>${c.name}</span><span class="mix">${mixBar(c.freqs, colors)}</span><span class="n">${num(c.weight, 1)}</span></button>`;
+  const made = node.categories.filter(c => c.kind === 'made');
+  const draws = node.categories.filter(c => c.kind === 'draw');
+  return `<h4>Filtrar por categoria${filter ? ` · <a href="javascript:setFilter(null)">limpar</a>` : ''}</h4><div class="cats">
+    <div class="cat-group">Made hands (combos)</div>${made.map(row).join('')}
+    ${draws.length ? `<div class="cat-group">Draws (combos)</div>${draws.map(row).join('')}` : ''}</div>`;
+}
+
+function detailHtml(colors) {
+  const names = node.actions.map(actionLabel);
+  if (selected == null || node.grid[selected].weight <= 0) {
+    if (!filter) return `<p class="pill">Clique numa mão da grade para ver frequências, EV por ação e cada combo. Use os filtros abaixo para destacar categorias.</p>`;
+    const c = node.categories.find(x => x.name === filter);
+    return `<h3>${filter}</h3><div class="kv"><span>Combos</span><span>${num(c.weight, 1)}</span><span>EV médio</span><span>${num(c.ev)} bb</span><span>Equity</span><span>${pct(c.equity)}</span>
+      ${names.map((n, a) => `<span>${n}</span><span>${pct(c.freqs[a])} · EV ${num(c.evs[a])}</span>`).join('')}</div>`;
+  }
+  const c = node.grid[selected];
+  const combos = filter ? c.combos.filter(k => k.made === filter || k.draws.includes(filter)) : c.combos;
+  return `<h3>${c.hand}</h3>
+    <div class="kv"><span>Combos no range</span><span>${num(c.weight)}</span>
+    <span>EV médio</span><span>${num(c.ev)} bb</span>
+    <span>Equity</span><span>${pct(c.equity)}</span>
+    ${names.map((n, a) => `<span>${n}</span><span>${pct(c.freqs[a])} · EV ${num(c.evs[a])}</span>`).join('')}</div>
+    <table class="combos"><tr><th>Combo</th>${names.map(n => `<th>${n}</th>`).join('')}</tr>
+    ${combos.map(k => `<tr><td>${k.combo}<small>${[k.made, ...k.draws].join(' · ')}</small></td>${k.freqs.map((f, a) =>
+      `<td>${pct(f)}<small>EV ${num(k.evs[a])}</small></td>`).join('')}</tr>`).join('')}
+    </table>`;
+}
+
+function rangesHtml() {
+  const heat = (e) => `color-mix(in srgb, var(--primary) ${Math.round(100 * e)}%, var(--fold))`;
+  const grid = (r) => `<div class="grid">${r.grid.map(c => {
+    const h = Math.min(1, c.weight / maxCombos(c.hand));
+    return `<div class="cell ${c.weight > 0 ? '' : 'dead'}" title="${c.hand}: ${num(c.weight, 2)} combos · equity ${pct(c.equity)}">
+      <div class="fill" style="height:${100 * h}%;background:${c.weight > 0 ? heat(c.equity) : 'none'}"></div><span class="lbl">${c.hand}</span></div>`;
+  }).join('')}</div>`;
+  const total = (r) => r.combos.reduce((s, k) => s + k.weight, 0);
+  return `<div class="ranges">${node.ranges.map(r => `<div><div class="range-head"><b>${r.player} <span class="pill">(${PLAYER_DESC[r.player]})</span></b>
+    <span class="pill">${num(total(r), 1)} combos · equity <b>${pct(r.equity)}</b></span></div>${grid(r)}</div>`).join('')}</div>
+    <div class="legend"><span>Cor: equity da mão (azul baixa → vermelho alta)</span><span>Altura: quanto da mão está no range</span></div>
+    <div class="chart panel"><h4>Distribuição de equity</h4>${equityChart(node.ranges)}
+    <div class="keys">${node.ranges.map((r, i) => `<span><i style="background:${i ? 'var(--primary)' : 'var(--fold)'}"></i>${r.player}</span>`).join('')}</div>
+    <p class="hint">Eixo X: percentil do range (mãos ordenadas da mais forte para a mais fraca). Eixo Y: equity contra o range do oponente.</p></div>`;
+}
+
+function equityChart(ranges) {
+  const W = 600, H = 240, P = 32;
+  const line = (r) => {
+    const combos = [...r.combos].sort((a, b) => b.equity - a.equity);
+    const total = combos.reduce((s, k) => s + k.weight, 0) || 1;
+    let acc = 0;
+    return combos.map(k => {
+      acc += k.weight;
+      return `${(P + (W - P - 8) * acc / total).toFixed(1)},${(H - P - (H - P - 8) * k.equity).toFixed(1)}`;
+    }).join(' ');
+  };
+  const gridLines = [0, .25, .5, .75, 1].map(y => {
+    const py = H - P - (H - P - 8) * y;
+    return `<line class="axis" x1="${P}" x2="${W - 8}" y1="${py}" y2="${py}"/><text x="${P - 6}" y="${py + 4}" text-anchor="end">${y * 100}%</text>`;
+  }).join('');
+  const xLabels = [[0, 'start'], [50, 'middle'], [100, 'end']].map(([x, anchor]) =>
+    `<text x="${P + (W - P - 8) * x / 100}" y="${H - P + 16}" text-anchor="${anchor}">${x}%</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Distribuição de equity dos dois ranges">${gridLines}${xLabels}
+    ${ranges.map((r, i) => `<polyline fill="none" stroke-width="2.5" stroke="${i ? 'var(--primary)' : 'var(--fold)'}" points="${line(r)}"/>`).join('')}</svg>`;
+}
+
+// ---------- biblioteca ----------
+let libraryIndex = null;
+
+async function libraryView() {
+  const el = $('#library');
+  if (BACKEND !== 'wasm') {
+    el.innerHTML = '<div class="empty"><p>A biblioteca faz parte da versão online (no navegador) do GTO Studio.</p></div>';
+    return;
+  }
+  try {
+    libraryIndex ??= await (await fetch('library/index.json')).json();
+  } catch {
+    el.innerHTML = '<div class="empty"><p>Não foi possível carregar a biblioteca.</p></div>';
+    return;
+  }
+  const groups = [...new Set(libraryIndex.map(s => s.preset))];
+  el.innerHTML = groups.map(g => `<div class="lib-group"><h4>${g}</h4><div class="lib-grid">${libraryIndex
+    .filter(s => s.preset === g)
+    .map(s => `<button class="lib-item" onclick="openSpot('${s.id}')">
+      <div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div>
+      <small>Bet ${s.bet} · raise ${s.raise} · exploitability ${num(s.exploitability_pct)}%</small></button>`).join('')}</div></div>`).join('');
+}
+
+async function openSpot(id) {
+  const s = libraryIndex.find(x => x.id === id);
+  toast('Abrindo o spot…');
+  try {
+    const bytes = await (await fetch('library/' + s.file)).arrayBuffer();
+    await callWorker('load', { bytes });
+    const preset = PRESETS.find(p => p.name === s.preset);
+    spot = preset ? { preset: s.preset, stack: preset.stack } : null;
+    Object.assign(local, {
+      state: 'done', iteration: s.iterations, max_iterations: s.iterations, exploitability_pct: s.exploitability_pct,
+      memory_gb: s.bytes / 2 ** 30, compressed: true, cancelled: false, error: '',
+    });
+    trainer = null;
+    status = await api('/api/status');
+    location.hash = '#/estudar';
+  } catch (err) {
+    $('#library').insertAdjacentHTML('afterbegin', `<div class="error">${err.message}</div>`);
+  } finally { toast(null); }
+}
+
+// ---------- treinar ----------
+// O vilão joga a estratégia GTO do combo dele. A nota compara sua ação com o mix e o EV do seu combo.
+let trainer = null;
+const stats = { hands: 0, decisions: 0, grades: {}, evLost: 0 };
+const GRADES = [
+  ['best', 'Melhor jogada', 'g-best'], ['correct', 'Correta', 'g-correct'], ['inacc', 'Imprecisa', 'g-inacc'],
+  ['mistake', 'Erro', 'g-mistake'], ['blunder', 'Erro grave', 'g-blunder'],
+];
+let heroPref = 'random';
+
+function weightedPick(items, weightOf) {
+  const total = items.reduce((s, x) => s + weightOf(x), 0);
+  let r = Math.random() * total;
+  for (const x of items) if ((r -= weightOf(x)) <= 0) return x;
+  return items[items.length - 1];
+}
+const overlaps = (a, b) => [a.slice(0, 2), a.slice(2, 4)].some(c => b.includes(c));
+const findCombo = (n, combo) => n.grid.flatMap(c => c.combos).find(k => k.combo === combo);
+
+function grade(k, a, pot) {
+  const best = k.freqs.indexOf(Math.max(...k.freqs));
+  const loss = Math.max(...k.evs) - k.evs[a];
+  const lossPct = 100 * loss / pot;
+  const g = a === best ? 'best' : k.freqs[a] >= 0.05 ? 'correct' : lossPct < 2 ? 'inacc' : lossPct < 10 ? 'mistake' : 'blunder';
+  return { g, loss: Math.max(0, loss) };
+}
+
+async function newHand() {
+  const root = await api('/api/node', { history: [] });
+  if (root.type !== 'action') throw new Error('A solução aberta não começa numa decisão.');
+  const hero = heroPref === 'random' ? (Math.random() < .5 ? 'OOP' : 'IP') : heroPref;
+  const [mine, theirs] = hero === 'OOP' ? [root.ranges[0], root.ranges[1]] : [root.ranges[1], root.ranges[0]];
+  const heroCombo = weightedPick(mine.combos, k => k.weight).combo;
+  const villainCombo = weightedPick(theirs.combos.filter(k => !overlaps(k.combo, heroCombo)), k => k.weight).combo;
+  trainer = { hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false };
+  stats.hands++;
+  await advance();
+}
+
+async function advance() {
+  for (;;) {
+    const n = await api('/api/node', { history: trainer.history });
+    trainer.node = n;
+    if (n.type === 'terminal') { trainer.over = true; break; }
+    if (n.type === 'chance') {
+      const used = trainer.heroCombo + trainer.villainCombo;
+      const card = weightedPick(n.cards.filter(c => c.possible && !used.includes(c.card)), () => 1);
+      trainer.history.push(card.id);
+      trainer.log.push(`Carta: ${card.card[0]}${SUIT[card.card[1]]}`);
+      continue;
+    }
+    if (n.player === trainer.hero) {
+      if (!findCombo(n, trainer.heroCombo)) {
+        trainer.over = true;
+        trainer.log.push('Sua mão saiu da linha de equilíbrio (ação com frequência 0). Mão encerrada.');
+      }
+      break;
+    }
+    const k = findCombo(n, trainer.villainCombo);
+    const a = k ? weightedPick(n.actions.map((_, i) => i), i => k.freqs[i]) : 0;
+    trainer.log.push(`${n.player} (vilão): ${actionLabel(n.actions[a])}`);
+    trainer.history.push(a);
+  }
+  trainerView();
+}
+
+async function heroAct(a) {
+  const n = trainer.node;
+  const k = findCombo(n, trainer.heroCombo);
+  const { g, loss } = grade(k, a, n.pot);
+  stats.decisions++;
+  stats.grades[g] = (stats.grades[g] || 0) + 1;
+  stats.evLost += loss;
+  const colors = actionColors(n.actions);
+  trainer.feedback = { g, loss, chosen: a, freqs: k.freqs, evs: k.evs, actions: n.actions, colors, at: [...trainer.history] };
+  trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
+  trainer.history.push(a);
+  await advance();
+}
+
+function trainerView() {
+  const el = $('#trainer');
+  if (!status || status.state !== 'done') return emptyState(el);
+  const setup = `<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">Você joga como</span>
+    ${[['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']].map(([v, l]) =>
+      `<button class="${heroPref === v ? 'on' : ''}" onclick="heroPref='${v}';trainerView()">${l}</button>`).join('')}</div>`;
+  const statsHtml = `<div class="panel"><h4>Sessão</h4><div class="stats">
+    <span>Mãos</span><span>${stats.hands}</span><span>Decisões</span><span>${stats.decisions}</span>
+    ${GRADES.map(([key, label, cls]) => `<span class="${cls}">${label}</span><span>${stats.grades[key] || 0}</span>`).join('')}
+    <span>EV perdido</span><span>${num(stats.evLost)} bb</span>
+    <span>Por mão</span><span>${num(stats.hands ? stats.evLost / stats.hands : 0)} bb</span></div>
+    <p class="hint">Melhor: a ação mais frequente do GTO. Correta: usada em 5% ou mais. Abaixo disso, a nota depende do EV perdido: imprecisa (&lt; 2% do pote), erro (&lt; 10%) ou erro grave.</p></div>`;
+
+  if (!trainer) {
+    el.innerHTML = `<div class="trainer"><div class="panel table">${setup}<p style="margin:24px 0">Cada mão começa na raiz da solução aberta: sua mão e a do vilão são sorteadas pelos ranges.</p>
+      <button class="btn-primary" onclick="startHand()">Começar</button></div>${statsHtml}</div>`;
+    return;
+  }
+  const t = trainer, n = t.node;
+  let center = `${setup}<div style="margin-top:16px">${seatsBar(t.over ? null : n.player)}</div><div class="cards" style="margin-top:18px">${n.board.map(c => cardEl(c, true)).join('')}</div>
+    <div class="pill">Pote <b>${num(n.pot)} bb</b></div>
+    <div class="seat">Você: <b>${t.hero}</b> (${PLAYER_DESC[t.hero]})</div><div class="cards">${comboCards(t.heroCombo, true)}</div>`;
+  if (t.over) {
+    center += `<div class="seat">Vilão tinha</div><div class="cards">${comboCards(t.villainCombo, true)}</div>
+      <p class="pill">Fim da mão.</p><button class="btn-primary" onclick="startHand()">Próxima mão</button>`;
+  } else {
+    const colors = actionColors(n.actions);
+    center += `<div class="actions" style="justify-content:center;margin-top:16px">${n.actions.map((a, i) =>
+      `<button style="--c:${colors[i]}" onclick="heroAct(${i})">${actionLabel(a)}</button>`).join('')}</div>`;
+  }
+  if (t.feedback) {
+    const f = t.feedback, [, label, cls] = GRADES.find(x => x[0] === f.g);
+    center += `<div class="feedback"><div class="grade ${cls}">${label}${f.loss > 0.005 ? ` · −${num(f.loss)} bb` : ''}</div>
+      <div class="summary" style="margin:8px 0">${mixBar(f.freqs, f.colors)}</div>
+      ${f.actions.map((a, i) => `<div>${i === f.chosen ? '<b>' : ''}${actionLabel(a)}: ${pct(f.freqs[i])} · EV ${num(f.evs[i])}${i === f.chosen ? ' ← sua escolha</b>' : ''}</div>`).join('')}
+      <a href="${studyHash(f.at)}">Ver este spot no Estudar</a></div>`;
+  }
+  el.innerHTML = `<div class="trainer"><div class="panel table">${center}</div><div class="side">${statsHtml}
+    <div class="panel"><h4>Esta mão</h4><ol class="log">${t.log.map(l => `<li>${l}</li>`).join('')}</ol></div></div></div>`;
+}
+
+async function startHand() {
+  try { await newHand(); }
+  catch (err) { $('#trainer').innerHTML = `<div class="error">${err.message}</div>`; }
+}
+
+if (BACKEND === 'wasm') {
+  $('#mTotalLabel').textContent = 'Memória do aparelho';
+  $('#mFreeLabel').textContent = 'Limite no navegador';
+}
+route();
+poll().then(() => { if (location.hash.startsWith('#/treinar')) trainerView(); });
+</script>
+</body>
+</html>

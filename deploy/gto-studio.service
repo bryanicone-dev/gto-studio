@@ -1,0 +1,18 @@
+[Unit]
+Description=GTO Studio (solver pós-flop)
+After=network.target
+
+[Service]
+User=gto
+ExecStart=/opt/gto-studio/gto-studio
+# Só escuta em 127.0.0.1: o acesso de fora passa pelo Cloudflare Tunnel (ou Tailscale).
+Environment=GTO_PORT=7878
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
