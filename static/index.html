@@ -661,7 +661,7 @@ async function load() {
     if (filter && !(node.categories || []).some(c => c.name === filter)) filter = null;
     render();
   } catch (err) {
-    if (/Nenhuma solução/.test(err.message)) return emptyState($('#main'));
+    if (/Nenhuma solução/.test(err.message)) return BACKEND === 'wasm' && !openingDefault ? openDefaultSpot() : emptyState($('#main'));
     if (/Histórico inválido/.test(err.message)) { location.hash = '#/estudar'; return; }
     $('#main').innerHTML = `<div class="error">${err.message}</div>`;
   }
