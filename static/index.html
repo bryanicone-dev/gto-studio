@@ -241,6 +241,150 @@
   .search { margin-bottom: 18px; }
   .search .row-inline select { width: auto; max-width: 100%; }
   @media (max-width: 640px) { .report th:nth-child(2), .report td:nth-child(2) { display: none; } .row3 { grid-template-columns: 1fr; } }
+
+  /* Layout no modelo de posições do Wizard (cores e formas do GTO Studio) */
+  .top nav { margin: 0 auto; }
+  .top .status { margin-left: 0; }
+  .tabbar { display: none; }
+  .mini-btn { font-size: 11px; padding: 3px 8px; border-radius: 6px; text-decoration: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink); display: inline-block; }
+  .mini-btn.on { border-color: var(--primary); color: var(--primary); }
+  .ico-box { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); font-style: normal; font-size: 18px; flex: none; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .card-head h3 { margin: 0; font-size: 16px; }
+  .card-head a { text-decoration: none; color: var(--muted); font-size: 20px; line-height: 1; }
+  .crumb { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .crumb a { text-decoration: none; }
+  .crumb b { color: var(--ink); }
+
+  /* Início: painel de atalhos em 3 colunas e estatísticas */
+  .painel h3 { margin: 0 0 12px; font-size: 18px; }
+  .shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, auto); grid-auto-flow: column; gap: 2px 24px; }
+  .shortcuts a, .hub a { display: flex; gap: 12px; align-items: center; padding: 8px; border-radius: 10px; text-decoration: none; }
+  .shortcuts a:hover { background: var(--empty); }
+  .shortcuts b, .hub b { display: block; font-size: 14px; }
+  .shortcuts small, .hub small { color: var(--muted); font-size: 12px; }
+  .dash { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: start; }
+  .statgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 24px; align-items: center; }
+  .nums { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .nums small { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .nums b { font-size: 26px; }
+  .gbars { display: grid; gap: 9px; }
+  .gbar { display: grid; grid-template-columns: 104px minmax(0, 1fr) 34px; gap: 10px; align-items: center; font-size: 12px; }
+  .gbar .track { height: 6px; border-radius: 3px; background: var(--empty); overflow: hidden; }
+  .gbar .track div { height: 100%; background: currentColor; border-radius: 3px; }
+  .gbar span:last-child { text-align: right; }
+  .device dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13px; margin: 0 0 4px; }
+  .device dt { color: var(--muted); } .device dd { margin: 0; font-weight: 600; text-align: right; }
+  #syncPanel .panel { border: none; padding: 0; margin-top: 16px !important; }
+
+  /* Treinar: hub com cartões */
+  .hub { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .hub a { padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .hub a:hover { border-color: var(--primary); }
+
+  /* Estudar: linha de ação, grade à esquerda, ações à direita */
+  .actionline { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px; }
+  .al-col { flex: none; min-width: 96px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; background: var(--panel); }
+  .al-col header { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; margin-bottom: 4px; white-space: nowrap; }
+  .al-col header span { color: var(--muted); font-weight: 500; }
+  .al-col div { color: var(--muted); padding: 1px 4px; border-radius: 4px; white-space: nowrap; }
+  .al-col div.on { color: var(--ink); font-weight: 700; background: var(--empty); }
+  .al-col button { display: block; width: 100%; text-align: left; border: none; background: none; padding: 2px 4px; color: var(--ink); font-size: 12px; border-radius: 4px; white-space: nowrap; }
+  .al-col button:hover { background: var(--primary-soft); color: var(--primary); }
+  .al-col.out { opacity: .5; }
+  .al-col.past { cursor: pointer; }
+  .al-col.past:hover, .al-col.sel { border-color: var(--muted); }
+  .al-col.now { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+  .al-spot { min-width: 170px; max-width: 230px; white-space: normal; }
+  .al-spot b { display: block; font-size: 12px; margin-bottom: 6px; }
+  .al-spot .row-inline { gap: 4px; }
+  .al-board .cards { gap: 3px; padding: 0; }
+  .al-board .card { width: 24px; height: 32px; font-size: 12px; border-radius: 4px; }
+  .pf-set label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 3px 0; font-size: 12px; color: var(--muted); }
+  .pf-set input, .pf-set select { width: 64px; padding: 2px 4px; font-size: 12px; }
+  .pf-icm { margin-bottom: 14px; }
+  .study-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .study-right { min-width: 0; }
+  .overview { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 10px; font-size: 13px; }
+  .act-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-bottom: 8px; }
+  .act-card { position: relative; text-align: left; border: 2px solid transparent; border-radius: 8px; padding: 10px 12px 8px; min-height: 88px; color: #fff; background: var(--c); display: flex; flex-direction: column; justify-content: space-between; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+  .act-card:hover { filter: brightness(1.07); }
+  .act-card.on { border-color: var(--ink); }
+  .act-card b { font-size: 14px; }
+  .act-card strong { font-size: 24px; line-height: 1.1; }
+  .act-card small { position: absolute; right: 10px; bottom: 8px; font-size: 11px; text-align: right; opacity: .95; }
+  .act-card kbd { position: absolute; right: 8px; top: 8px; color: #fff; border-color: rgba(255,255,255,.6); margin: 0; }
+  .start-card { text-align: center; padding: 32px 18px; }
+  .mini-grid { display: grid; grid-template-columns: repeat(13, 10px); gap: 2px; justify-content: center; margin-bottom: 18px; }
+  .mini-grid i { height: 10px; border-radius: 2px; }
+  .start { margin-top: 18px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+  /* Jogar mãos: drills à esquerda, mesa no meio, resultados à direita */
+  .play { display: grid; grid-template-columns: 230px minmax(0, 1fr) 290px; gap: 16px; align-items: start; }
+  .play-drills { padding: 12px; }
+  .seg.small button { padding: 3px 10px; font-size: 12px; }
+  .drill-list { display: grid; gap: 4px; margin: 10px 0; max-height: 460px; overflow-y: auto; }
+  .drill-row { text-align: left; border: 1px solid transparent; background: none; padding: 7px 8px; border-radius: 8px; }
+  .drill-row:hover { border-color: var(--line); background: var(--empty); }
+  .drill-row b { display: block; font-size: 13px; } .drill-row small { color: var(--muted); font-size: 11px; }
+  .drill-foot { display: flex; justify-content: space-between; font-size: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .drill-foot a { text-decoration: none; color: var(--muted); } .drill-foot a:hover { color: var(--primary); }
+  .ptable { position: relative; aspect-ratio: 2 / 1.1; max-width: 660px; margin: 14px auto 22px; }
+  .ptable .felt { position: absolute; inset: 11% 9%; border-radius: 999px; border: 2px solid var(--line); background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .ptable .felt .cards { margin: 0; }
+  .pseat { position: absolute; transform: translate(-50%, -50%); min-width: 78px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; text-align: center; line-height: 1.25; }
+  .pseat b { display: block; white-space: nowrap; }
+  .pseat span { display: block; color: var(--muted); font-size: 11px; }
+  .pseat .act { color: var(--ink); font-weight: 600; }
+  .pseat.out { opacity: .4; }
+  .pseat.hero { border-color: var(--primary); }
+  .pseat.hero b { color: var(--primary); }
+  .pseat.turn { box-shadow: 0 0 0 2px var(--primary); }
+  .play-actions { justify-content: center; margin-top: 10px; }
+
+  /* Biblioteca: situações à esquerda, flops à direita */
+  .lib-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .lib-side { padding: 10px; }
+  .lib-side h4 { margin: 10px 6px 6px; }
+  .lib-side h4:first-child { margin-top: 2px; }
+  .lib-side button { display: block; width: 100%; text-align: left; border: none; background: none; padding: 7px 10px; border-radius: 7px; font-size: 13px; }
+  .lib-side button:hover { background: var(--empty); }
+  .lib-side button.on { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+  .search { padding: 12px; margin-bottom: 14px; }
+
+  @media (max-width: 1200px) { .play { grid-template-columns: 220px minmax(0, 1fr); } .play > .side { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
+  @media (max-width: 1000px) { .study-body { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) {
+    .shortcuts { grid-template-columns: 1fr 1fr; grid-template-rows: none; grid-auto-flow: row; }
+    .dash, .statgrid { grid-template-columns: 1fr; }
+    .hub { grid-template-columns: 1fr 1fr; }
+    .play { grid-template-columns: 1fr; } .play-drills { order: 3; }
+    .lib-layout { grid-template-columns: 1fr; }
+    .lib-side { display: flex; gap: 4px; overflow-x: auto; } .lib-side h4 { display: none; } .lib-side button { width: auto; white-space: nowrap; }
+  }
+  @media (max-width: 640px) {
+    .top nav { display: none; }
+    .top { justify-content: space-between; }
+    .top .brand span { display: inline; }
+    .tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--panel); border-top: 1px solid var(--line); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+    .tabbar a, .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; font-size: 11px; color: var(--muted); text-decoration: none; border: none; background: none; border-radius: 8px; }
+    .tabbar i { font-style: normal; font-size: 18px; line-height: 1.1; }
+    .tabbar .on { color: var(--primary); }
+    body { padding-bottom: 72px; }
+    .toast { bottom: 84px; }
+    .shortcuts, .hub { grid-template-columns: 1fr; }
+    .pseat { min-width: 56px; padding: 3px 6px; font-size: 11px; }
+    .pseat span { font-size: 10px; }
+    .ptable { aspect-ratio: 1 / 0.85; }
+    .ptable .felt { inset: 13% 7%; }
+    .ptable .card.big { width: 32px; height: 44px; font-size: 15px; }
+    .al-spot { min-width: 128px; }
+    #main.panel { padding: 12px; }
+    .act-card { min-height: 74px; }
+    .act-card strong { font-size: 20px; }
+  }
+  dialog.sheet { width: min(420px, 92vw); }
+  .sheet-links { display: grid; gap: 2px; margin-bottom: 14px; }
 </style>
 </head>
 <body>
@@ -262,70 +406,29 @@
 
 <!-- Início -->
 <section class="page" data-page="">
-  <div class="hero">
-    <div>
-      <h2>Seu laboratório de estratégia GTO</h2>
-      <p class="sub">Resolva qualquer spot pós-flop no seu computador e estude a estratégia de equilíbrio mão a mão.</p>
+  <div class="panel painel"><h3>Painel</h3><div class="shortcuts">
+    <a href="#/estudar"><i class="ico-box">▦</i><span><b>Estudar</b><small>Estratégia mão a mão na grade 13×13</small></span></a>
+    <a href="#/resolver"><i class="ico-box">⚙</i><span><b>Resolver</b><small>Resolva qualquer spot pós-flop</small></span></a>
+    <a href="#/biblioteca/relatorios"><i class="ico-box">▤</i><span><b>Relatórios</b><small>Bet e check em cada flop da Biblioteca</small></span></a>
+    <a href="#/biblioteca"><i class="ico-box">❒</i><span><b>Biblioteca</b><small>300 spots prontos e busca pelo flop</small></span></a>
+    <a href="#/treinar/jogar"><i class="ico-box">◎</i><span><b>Treinar</b><small>Jogue contra o GTO, com nota</small></span></a>
+    <a href="#/treinar/construtor"><i class="ico-box">▧</i><span><b>Construtor de ranges</b><small>Pinte o range e compare</small></span></a>
+    <a href="#/treinar/drills"><i class="ico-box">☰</i><span><b>Drills</b><small>Séries de mãos prontas e as suas</small></span></a>
+    <a href="#/pushfold"><i class="ico-box">⇪</i><span><b>Push/fold</b><small>Stack curto: Nash e ICM</small></span></a>
+    <a href="#/calculadoras"><i class="ico-box">∑</i><span><b>Calculadoras</b><small>Equity e ICM</small></span></a>
+    <a href="#/treinar/historico"><i class="ico-box">↺</i><span><b>Histórico</b><small>Mãos jogadas e resultados</small></span></a>
+    <a href="javascript:$('#keys').showModal()"><i class="ico-box">?</i><span><b>Atalhos</b><small>Teclas do Estudar e do Treinar</small></span></a>
+  </div></div>
+  <div class="dash">
+    <div class="panel" id="homeStats"></div>
+    <div class="panel device"><div class="card-head"><h3>Este aparelho</h3></div>
+      <dl><dt id="mTotalLabel">Memória total</dt><dd id="mTotal">—</dd><dt id="mFreeLabel">Livre para o solver</dt><dd id="mFree">—</dd>
+      <dt>Núcleos em uso</dt><dd id="mThreads">—</dd><dt>Última solução</dt><dd id="mLast">Nenhuma</dd></dl>
+      <div id="syncPanel"></div>
+      <p class="hint" id="iosHint" hidden>Para usar como app no iPhone: no Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".</p>
     </div>
-    <a class="btn-primary" href="#/resolver">Resolver um spot</a>
   </div>
-  <div class="tiles">
-    <a class="tile" href="#/resolver">
-      <span class="ico">⚙</span><span class="tag ok">Disponível</span>
-      <h3>Resolver</h3>
-      <p>Escolha um preset pré-flop ou defina ranges, board, pote e bet sizes. O solver calcula o equilíbrio.</p>
-    </a>
-    <a class="tile" href="#/estudar">
-      <span class="ico">▦</span><span class="tag ok" id="studyTag">Disponível</span>
-      <h3>Estudar</h3>
-      <p>Estratégia de cada mão na grade 13×13, EV por ação, filtros por categoria, ranges e gráfico de equity.</p>
-    </a>
-    <a class="tile" href="#/treinar">
-      <span class="ico">◎</span><span class="tag ok">Disponível</span>
-      <h3>Treinar</h3>
-      <p>Jogue mãos da solução aberta contra a estratégia GTO e receba nota e EV perdido em cada decisão.</p>
-    </a>
-    <a class="tile" href="#/biblioteca">
-      <span class="ico">❒</span><span class="tag ok">Disponível</span>
-      <h3>Biblioteca</h3>
-      <p>Spots de torneio já resolvidos: abrem na hora. O turn e o river são calculados quando você escolhe a carta.</p>
-    </a>
-    <a class="tile" href="#/pushfold">
-      <span class="ico">⇪</span><span class="tag ok">Disponível</span>
-      <h3>Push/fold</h3>
-      <p>Stack curto em torneio: quando dar all-in e quando pagar, pelo Nash em fichas ou com ICM. Com treino.</p>
-    </a>
-    <a class="tile" href="#/treinar/drills">
-      <span class="ico">☰</span><span class="tag ok">Disponível</span>
-      <h3>Drills</h3>
-      <p>Séries de mãos prontas por formato, posição e street, com resultado no fim. Crie os seus.</p>
-    </a>
-    <a class="tile" href="#/treinar/construtor">
-      <span class="ico">▧</span><span class="tag ok">Disponível</span>
-      <h3>Construtor de ranges</h3>
-      <p>Pinte o range na grade com a ação que você faria e compare com o GTO.</p>
-    </a>
-    <a class="tile" href="#/calculadoras">
-      <span class="ico">∑</span><span class="tag ok">Disponível</span>
-      <h3>Calculadoras</h3>
-      <p>Equity de mão ou range contra range, e ICM para saber quanto valem as fichas no torneio.</p>
-    </a>
-    <a class="tile" href="#/biblioteca/relatorios">
-      <span class="ico">▤</span><span class="tag ok">Disponível</span>
-      <h3>Relatórios</h3>
-      <p>Frequência de bet e check em cada flop da Biblioteca, lado a lado, por spot.</p>
-    </a>
-    <div class="tile soon"><span class="ico">⌕</span><span class="tag">Em breve</span><h3>Analisar mãos</h3><p>Importe seu hand history e compare suas jogadas com a estratégia GTO.</p></div>
-  </div>
-  <div id="homeStats"></div>
-  <div id="syncPanel"></div>
-  <p class="hint" id="iosHint" hidden>Para usar como app no iPhone: no Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".</p>
-  <div class="machine">
-    <div class="panel stat"><small id="mTotalLabel">Memória total</small><b id="mTotal">—</b></div>
-    <div class="panel stat"><small id="mFreeLabel">Livre para o solver</small><b id="mFree">—</b></div>
-    <div class="panel stat"><small>Núcleos em uso</small><b id="mThreads">—</b></div>
-    <div class="panel stat"><small>Última solução</small><b id="mLast">Nenhuma</b></div>
-  </div>
+  <span id="studyTag" hidden></span>
 </section>
 
 <!-- Resolver -->
@@ -424,6 +527,22 @@
 
 <div class="toast" id="toast" hidden></div>
 
+<nav class="tabbar">
+  <a href="#/" data-route=""><i>⌂</i>Início</a>
+  <a href="#/estudar" data-route="estudar"><i>▦</i>Estudar</a>
+  <a href="#/treinar" data-route="treinar"><i>◎</i>Treinar</a>
+  <a href="#/pushfold" data-route="pushfold"><i>⇪</i>Push/fold</a>
+  <button id="moreTab" onclick="$('#more').showModal()"><i>☰</i>Mais</button>
+</nav>
+
+<dialog id="more" class="sheet"><h3>Mais</h3><div class="sheet-links shortcuts" style="grid-template-columns:1fr;grid-auto-flow:row;grid-template-rows:none" onclick="if(event.target.closest('a'))$('#more').close()">
+  <a href="#/resolver"><i class="ico-box">⚙</i><span><b>Resolver</b><small>Resolva qualquer spot pós-flop</small></span></a>
+  <a href="#/biblioteca"><i class="ico-box">❒</i><span><b>Biblioteca</b><small>Spots prontos e busca pelo flop</small></span></a>
+  <a href="#/biblioteca/relatorios"><i class="ico-box">▤</i><span><b>Relatórios</b><small>Bet e check em cada flop</small></span></a>
+  <a href="#/calculadoras"><i class="ico-box">∑</i><span><b>Calculadoras</b><small>Equity e ICM</small></span></a>
+  <a href="#/treinar/historico"><i class="ico-box">↺</i><span><b>Histórico</b><small>Mãos jogadas e resultados</small></span></a>
+</div><form method="dialog"><button class="btn-primary">Fechar</button></form></dialog>
+
 <dialog id="keys"><h3>Atalhos de teclado</h3><table>
   <tr><td><kbd>1</kbd>…<kbd>9</kbd></td><td>Estudar: seguir a ação · Treinar: escolher a ação</td></tr>
   <tr><td><kbd>←</kbd> <kbd>Backspace</kbd></td><td>Estudar: voltar uma ação</td></tr>
@@ -436,9 +555,6 @@
 
 <!-- Treinar -->
 <section class="page" data-page="treinar" hidden>
-  <h2>Treinar</h2>
-  <p class="sub">Mãos sorteadas da Biblioteca ou da solução aberta. O vilão joga a estratégia GTO; cada decisão sua recebe nota.</p>
-  <div id="trainTabs"></div>
   <div id="trainer"></div>
 </section>
 
@@ -543,14 +659,18 @@ function route() {
   sub = page === 'estudar' ? '' : hist || '';
   document.querySelectorAll('[data-page]').forEach(s => s.hidden = s.dataset.page !== page);
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.route === page));
+  $('#moreTab').classList.toggle('on', ['resolver', 'biblioteca', 'calculadoras'].includes(page));
   if (page === 'estudar') {
     history = hist ? hist.split('.').map(Number).filter(Number.isInteger) : [];
     load();
   }
   if (page === '') homeView();
   if (page === 'treinar') {
-    $('#trainTabs').innerHTML = subTabs('#/treinar', [['', 'Jogar mãos'], ['drills', 'Drills'], ['construtor', 'Construtor de ranges']]);
-    if (sub === 'drills') drillsView(); else if (sub === 'construtor') builderView(); else trainerView();
+    if (sub === 'jogar') trainerView();
+    else if (sub === 'drills') drillsView();
+    else if (sub === 'construtor') builderView();
+    else if (sub === 'historico') historyView();
+    else trainHub();
   }
   if (page === 'biblioteca') {
     $('#libTabs').innerHTML = subTabs('#/biblioteca', [['', 'Spots'], ['relatorios', 'Relatórios']]);
@@ -808,57 +928,56 @@ async function load() {
 
 function go(index) { selected = null; location.hash = studyHash([...history, index]); }
 function jump(n) { selected = null; location.hash = studyHash(history.slice(0, n)); }
-function pick(i) { selected = i; render(); }
+function pick(i) { selected = i; sideTab = 'hand'; render(); }
 function setTab(t) { tab = t; render(); }
 // Clique: incluir → excluir → limpar.
-function setFilter(name) { const m = filters[name]; if (!m) filters[name] = 'in'; else if (m === 'in') filters[name] = 'out'; else delete filters[name]; render(); }
+function setFilter(name) { sideTab = 'filters'; const m = filters[name]; if (!m) filters[name] = 'in'; else if (m === 'in') filters[name] = 'out'; else delete filters[name]; render(); }
 function setShape(s) { shape = s; render(); }
 function clearFilters() { filters = {}; shape = 'all'; render(); }
 function copyLink() { navigator.clipboard?.writeText(location.href); $('#copyBtn').textContent = 'Link copiado'; }
 
 function render() {
-  const crumbs = ['<button onclick="jump(0)">Início da mão</button>']
-    .concat(node.path.map((s, i) => `<span class="sep">›</span><button onclick="jump(${i + 1})">${stepLabel(s)}</button>`))
-    .join('') + '<button class="copy" id="copyBtn" onclick="copyLink()">Copiar link do spot</button>';
-  let html = `${seatsBar(node.type === 'action' ? node.player : null)}<div class="crumbs">${crumbs}</div>
-    <div class="spotbar"><div class="cards">${node.board.map(c => cardEl(c)).join('')}</div>
-    <span class="pill">Pote <b>${num(node.pot)} bb</b></span>
-    ${spot?.label ? `<span class="pill">Spot: <b>${spot.label}</b> · <a href="#/biblioteca">trocar</a></span>` : ''}
-    ${node.type === 'action' ? `<span class="pill">Vez do <b>${node.player}</b> (${PLAYER_DESC[node.player]}) · ${num(node.total_combos, 1)} combos</span>` : ''}</div>`;
-
+  const tools = '<div class="row-inline"><a class="mini-btn" href="#/biblioteca">Trocar spot</a><button class="mini-btn" id="copyBtn" onclick="copyLink()">Copiar link</button></div>';
+  let left = '', right = '';
   if (node.type === 'terminal') {
-    html += `<div class="empty"><p>Fim da mão: fold ou showdown.</p><button onclick="jump(${history.length - 1})">Voltar uma decisão</button></div>`;
+    left = '<div class="empty"><p>Fim da mão: fold ou showdown.</p><button onclick="jump(' + (history.length - 1) + ')">Voltar uma decisão</button></div>';
   } else if (node.type === 'chance') {
     const street = node.board.length === 3 ? 'turn' : 'river';
-    html += `<p>Escolha a carta do <b>${street}</b>:</p><div class="picker">` +
+    left = '<p>Escolha a carta do <b>' + street + '</b>:</p><div class="picker">' +
       ['s', 'h', 'd', 'c'].flatMap(s => 'AKQJT98765432'.split('').map(r => {
         const c = node.cards.find(x => x.card === r + s);
-        return `<button class="s-${s}" ${c.possible ? '' : 'disabled'} onclick="go(${c.id})">${r}${SUIT[s]}</button>`;
+        return '<button class="s-' + s + '" ' + (c.possible ? '' : 'disabled') + ' onclick="go(' + c.id + ')">' + r + SUIT[s] + '</button>';
       })).join('') + '</div>';
+    right = '<div class="overview"><span class="pill">Pote <b>' + num(node.pot) + ' bb</b></span></div><p class="hint">O navegador calcula a nova street quando você escolhe a carta.</p>';
   } else {
-    html += `<div class="tabs"><button class="${tab === 'strategy' ? 'on' : ''}" onclick="setTab('strategy')">Estratégia</button>
-      <button class="${tab === 'ranges' ? 'on' : ''}" onclick="setTab('ranges')">Ranges e equity</button></div>`;
-    html += tab === 'ranges' ? rangesHtml() : strategyHtml();
+    const tabs = '<div class="tabs"><button class="' + (tab === 'strategy' ? 'on' : '') + '" onclick="setTab(\'strategy\')">Estratégia</button>' +
+      '<button class="' + (tab === 'ranges' ? 'on' : '') + '" onclick="setTab(\'ranges\')">Ranges e equity</button></div>';
+    [left, right] = tab === 'ranges' ? rangesParts() : strategyParts();
+    left = tabs + left;
   }
-  $('#main').innerHTML = html;
+  $('#main').innerHTML = actionLine(node, { tools, nav: true }) + '<div class="study-body"><div>' + left + '</div><div class="study-right">' + right + '</div></div>';
 }
 
-function strategyHtml() {
+function strategyParts() {
   const colors = actionColors(node.actions);
   const inFilter = (cell) => shapeOk(cell.hand) && (!filterOn() || cell.combos.some(comboOk));
-  let html = `<div class="actions">${node.actions.map((a, i) =>
-    `<button style="--c:${colors[i]}" onclick="go(${i})">${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}${actionLabel(a)} <small>${pct(node.summary[i])} · EV ${num(node.summary_evs[i])}</small></button>`
-  ).join('')}</div>
-  <div class="summary">${mixBar(node.summary, colors)}</div>
-  <div class="viewer"><div><div class="grid">${node.grid.map((c, i) => {
+  const grid = '<div class="grid">' + node.grid.map((c, i) => {
     const h = Math.min(1, c.weight / maxCombos(c.hand));
     const off = c.weight > 0 && !inFilter(c);
-    return `<div class="cell ${c.weight > 0 ? '' : 'dead'} ${off ? 'off' : ''} ${selected === i ? 'sel' : ''}" onclick="pick(${i})" title="${c.hand}">
-      <div class="fill" style="height:${100 * h}%">${c.weight > 0 ? mixBar(c.freqs, colors) : ''}</div><span class="lbl">${c.hand}</span></div>`;
-  }).join('')}</div>
-  <div class="legend"><span>Cores: mix de ações da mão</span><span>Altura: quanto da mão ainda está no range</span><span>EV em bb</span></div></div>
-  <div class="side"><div class="detail">${detailHtml(colors)}</div><div>${categoriesHtml(colors)}</div></div></div>`;
-  return html;
+    return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + ' ' + (off ? 'off' : '') + ' ' + (selected === i ? 'sel' : '') + '" onclick="pick(' + i + ')" title="' + c.hand + '">' +
+      '<div class="fill" style="height:' + (100 * h) + '%">' + (c.weight > 0 ? mixBar(c.freqs, colors) : '') + '</div><span class="lbl">' + c.hand + '</span></div>';
+  }).join('') + '</div><div class="legend"><span>Cores: mix de ações da mão</span><span>Altura: quanto da mão ainda está no range</span><span>EV em bb</span></div>';
+  const nFilters = Object.keys(filters).length + (shape !== 'all' ? 1 : 0);
+  const right = '<div class="overview"><span class="pill">Pote <b>' + num(node.pot) + ' bb</b></span>' +
+    '<span class="pill">Vez do <b>' + node.player + '</b> (' + PLAYER_DESC[node.player] + ')</span><span class="pill"><b>' + num(node.total_combos, 1) + '</b> combos</span></div>' +
+    '<div class="act-cards">' + node.actions.map((a, i) => '<button class="act-card" style="--c:' + colors[i] + '" onclick="go(' + i + ')">' +
+      (i < 9 ? '<kbd>' + (i + 1) + '</kbd>' : '') + '<b>' + actionLabel(a) + '</b><strong>' + pct(node.summary[i]) + '</strong>' +
+      '<small>' + num(node.total_combos * node.summary[i], 1) + ' combos<br>EV ' + num(node.summary_evs[i]) + '</small></button>').join('') + '</div>' +
+    '<div class="summary">' + mixBar(node.summary, colors) + '</div>' +
+    '<div class="tabs"><button class="' + (sideTab === 'hand' ? 'on' : '') + '" onclick="sideTab=\'hand\';render()">Mão</button>' +
+    '<button class="' + (sideTab === 'filters' ? 'on' : '') + '" onclick="sideTab=\'filters\';render()">Filtros' + (nFilters ? ' (' + nFilters + ')' : '') + '</button></div>' +
+    (sideTab === 'filters' ? categoriesHtml(colors) : '<div class="detail">' + detailHtml(colors) + '</div>');
+  return [grid, right];
 }
 
 function categoriesHtml(colors) {
@@ -877,7 +996,7 @@ function categoriesHtml(colors) {
 function detailHtml(colors) {
   const names = node.actions.map(actionLabel);
   if (selected == null || node.grid[selected].weight <= 0) {
-    if (!filterOn() && shape === 'all') return `<p class="pill">Clique numa mão da grade para ver frequências, EV por ação e cada combo. Use os filtros abaixo para destacar categorias.</p>`;
+    if (!filterOn() && shape === 'all') return `<p class="pill">Clique numa mão da grade para ver frequências, EV por ação, blockers e cada combo. Na aba Filtros dá para destacar categorias.</p>`;
     const c = filteredSummary();
     return `<h3>${filterTitle()}</h3><div class="kv"><span>Combos</span><span>${num(c.weight, 1)}</span><span>EV médio</span><span>${num(c.ev)} bb</span><span>Equity</span><span>${pct(c.equity)}</span><span title="EV ÷ (equity × pote)">EQR</span><span>${eqr(c.ev, c.equity)}</span>
       ${names.map((n, a) => `<span>${n}</span><span>${pct(c.freqs[a])} · EV ${num(c.evs[a])}</span>`).join('')}</div>`;
@@ -936,20 +1055,21 @@ function blockersHtml(c) {
     <span title="Combos do vilão com equity abaixo de 33%">Tira mãos fracas do vilão</span><span>${pct(weak)} <small>(média do range ${pct(node.blockBase[1])})</small></span></div>`;
 }
 
-function rangesHtml() {
-  const heat = (e) => `color-mix(in srgb, var(--primary) ${Math.round(100 * e)}%, var(--fold))`;
-  const grid = (r) => `<div class="grid">${r.grid.map(c => {
+function rangesParts() {
+  const heat = (e) => 'color-mix(in srgb, var(--primary) ' + Math.round(100 * e) + '%, var(--fold))';
+  const grid = (r) => '<div class="grid">' + r.grid.map(c => {
     const h = Math.min(1, c.weight / maxCombos(c.hand));
-    return `<div class="cell ${c.weight > 0 ? '' : 'dead'}" title="${c.hand}: ${num(c.weight, 2)} combos · equity ${pct(c.equity)}">
-      <div class="fill" style="height:${100 * h}%;background:${c.weight > 0 ? heat(c.equity) : 'none'}"></div><span class="lbl">${c.hand}</span></div>`;
-  }).join('')}</div>`;
+    return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + '" title="' + c.hand + ': ' + num(c.weight, 2) + ' combos · equity ' + pct(c.equity) + '">' +
+      '<div class="fill" style="height:' + (100 * h) + '%;background:' + (c.weight > 0 ? heat(c.equity) : 'none') + '"></div><span class="lbl">' + c.hand + '</span></div>';
+  }).join('') + '</div>';
   const total = (r) => r.combos.reduce((s, k) => s + k.weight, 0);
-  return `<div class="ranges">${node.ranges.map(r => `<div><div class="range-head"><b>${r.player} <span class="pill">(${PLAYER_DESC[r.player]})</span></b>
-    <span class="pill">${num(total(r), 1)} combos · equity <b>${pct(r.equity)}</b></span></div>${grid(r)}</div>`).join('')}</div>
-    <div class="legend"><span>Cor: equity da mão (azul baixa → vermelho alta)</span><span>Altura: quanto da mão está no range</span></div>
-    <div class="chart panel"><h4>Distribuição de equity</h4>${equityChart(node.ranges)}
-    <div class="keys">${node.ranges.map((r, i) => `<span><i style="background:${i ? 'var(--primary)' : 'var(--fold)'}"></i>${r.player}</span>`).join('')}</div>
-    <p class="hint">Eixo X: percentil do range (mãos ordenadas da mais forte para a mais fraca). Eixo Y: equity contra o range do oponente.</p></div>`;
+  const left = '<div class="ranges">' + node.ranges.map(r => '<div><div class="range-head"><b>' + r.player + ' <span class="pill">(' + PLAYER_DESC[r.player] + ')</span></b>' +
+    '<span class="pill">' + num(total(r), 1) + ' combos · equity <b>' + pct(r.equity) + '</b></span></div>' + grid(r) + '</div>').join('') + '</div>' +
+    '<div class="legend"><span>Cor: equity da mão (azul baixa → vermelho alta)</span><span>Altura: quanto da mão está no range</span></div>';
+  const right = '<div class="overview"><span class="pill">Pote <b>' + num(node.pot) + ' bb</b></span></div><div class="chart"><h4>Distribuição de equity</h4>' + equityChart(node.ranges) +
+    '<div class="keys">' + node.ranges.map((r, i) => '<span><i style="background:' + (i ? 'var(--primary)' : 'var(--fold)') + '"></i>' + r.player + ' · ' + pct(r.equity) + '</span>').join('') + '</div>' +
+    '<p class="hint">Eixo X: percentil do range (mãos ordenadas da mais forte para a mais fraca). Eixo Y: equity contra o range do oponente.</p></div>';
+  return [left, right];
 }
 
 function equityChart(ranges) {
@@ -982,18 +1102,18 @@ async function libraryView() {
     el.innerHTML = '<div class="empty"><p>A biblioteca faz parte da versão online (no navegador) do GTO Studio.</p></div>';
     return;
   }
-  try {
-    libraryIndex ??= await (await fetch('library/index.json')).json();
-  } catch {
-    el.innerHTML = '<div class="empty"><p>Não foi possível carregar a biblioteca.</p></div>';
-    return;
-  }
-  const groups = [...new Set(libraryIndex.map(s => s.preset))];
-  el.innerHTML = searchHtml(groups) + groups.map(g => `<div class="lib-group"><h4>${g}</h4><div class="lib-grid">${libraryIndex
-    .filter(s => s.preset === g)
-    .map(s => `<button class="lib-item" onclick="openSpot('${s.id}')">
-      <div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div>
-      <small>Bet ${s.bet} · raise ${s.raise} · exploitability ${num(s.exploitability_pct)}%</small></button>`).join('')}</div></div>`).join('');
+  try { libraryIndex ??= await (await fetch('library/index.json')).json(); }
+  catch { el.innerHTML = '<div class="empty"><p>Não foi possível carregar a biblioteca.</p></div>'; return; }
+  libGroups = [...new Set(libraryIndex.map(s => s.preset))];
+  libPreset ??= libGroups[0];
+  const side = [[MTT, 'Torneio'], [CASH, 'Cash 100bb']].map(([g, l]) => {
+    const ps = libGroups.map((p, i) => [p, i]).filter(([p]) => PRESETS.find(x => x.name === p)?.group === g);
+    return ps.length ? '<h4>' + l + '</h4>' + ps.map(([p, i]) => '<button class="' + (p === libPreset ? 'on' : '') + '" onclick="libPreset=libGroups[' + i + '];libraryView()">' + p + '</button>').join('') : '';
+  }).join('');
+  const spots = libraryIndex.filter(s => s.preset === libPreset);
+  el.innerHTML = '<div class="lib-layout"><aside class="panel lib-side">' + side + '</aside><div>' + searchHtml() +
+    '<div class="lib-grid">' + spots.map(s => '<button class="lib-item" onclick="openSpot(\'' + s.id + '\')"><div class="cards">' + s.board.match(/../g).map(c => cardEl(c)).join('') + '</div>' +
+      '<small>' + texture(s.board) + '</small><small>Bet ' + s.bet + ' · raise ' + s.raise + ' · exploitability ' + num(s.exploitability_pct) + '%</small></button>').join('') + '</div></div></div>';
 }
 
 async function loadSpot(s) {
@@ -1024,26 +1144,21 @@ function flopDistance(a, b) {
   const A = f(a), B = f(b);
   return 2 * Math.abs(A.r[0] - B.r[0]) + Math.abs(A.r[1] - B.r[1]) + Math.abs(A.r[2] - B.r[2]) + 6 * (A.suits !== B.suits) + 10 * (A.paired !== B.paired);
 }
-let findPreset = null;
-function searchHtml(groups) {
-  findPreset ??= groups[0];
-  return `<div class="panel search"><h4>Achar o flop de uma mão sua</h4><div class="row-inline">
-    <select id="findPreset" onchange="findPreset=this.value">${groups.map(g => `<option ${g === findPreset ? 'selected' : ''}>${g}</option>`).join('')}</select>
-    <input id="findBoard" placeholder="Flop, ex.: Tc8d3s" onkeydown="if(event.key==='Enter')findFlop()"><button class="btn-primary" onclick="findFlop()">Buscar</button></div>
-    <div id="findOut"></div></div>`;
+function searchHtml() {
+  return '<div class="panel search"><div class="row-inline"><input id="findBoard" placeholder="Achar o flop de uma mão sua, ex.: Tc8d3s" onkeydown="if(event.key===\'Enter\')findFlop()"><button class="btn-primary" onclick="findFlop()">Buscar</button></div><div id="findOut"></div></div>';
 }
 function findFlop() {
-  const cards = parseCards($('#findBoard').value), preset = $('#findPreset').value;
+  const cards = parseCards($('#findBoard').value), preset = libPreset;
   if (!cards || cards.length !== 3) { $('#findOut').innerHTML = '<div class="error">Digite as 3 cartas do flop, por exemplo Tc8d3s.</div>'; return; }
   const board = cards.map(cardName).join(''), key = flopKey(board);
   const spots = libraryIndex.filter(s => s.preset === preset);
   const exact = spots.find(s => flopKey(s.board) === key);
   const near = exact ? [] : spots.map(s => ({ s, d: flopDistance(board, s.board) })).sort((a, b) => a.d - b.d).slice(0, 3).map(x => x.s);
-  const item = (s) => `<button class="lib-item" onclick="openSpot('${s.id}')"><div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div><small>${texture(s.board)}</small></button>`;
+  const item = (s) => '<button class="lib-item" onclick="openSpot(\'' + s.id + '\')"><div class="cards">' + s.board.match(/../g).map(c => cardEl(c)).join('') + '</div><small>' + texture(s.board) + '</small></button>';
   $('#findOut').innerHTML = (exact
-    ? `<p>Este flop está na Biblioteca${exact.board === board ? '' : ' (mesma estratégia, só muda o naipe)'}:</p><div class="lib-grid">${item(exact)}</div>`
-    : `<p>Este flop exato não está na Biblioteca. Os mais parecidos (aproximação):</p><div class="lib-grid">${near.map(item).join('')}</div>`)
-    + `<p class="hint">Quer o flop exato? <a href="javascript:solveExact(${JSON.stringify(preset).replace(/"/g, '&quot;')}, '${board}')">Resolver ${board} neste spot</a> — no navegador, de alguns segundos a poucos minutos.</p>`;
+    ? '<p>Este flop está em <b>' + preset + '</b>' + (exact.board === board ? '' : ' (mesma estratégia, só muda o naipe)') + ':</p><div class="lib-grid">' + item(exact) + '</div>'
+    : '<p>Este flop exato não está em <b>' + preset + '</b>. Os mais parecidos (aproximação):</p><div class="lib-grid">' + near.map(item).join('') + '</div>') +
+    '<p class="hint">Quer o flop exato? <a href="javascript:solveExact(libPreset, \'' + board + '\')">Resolver ' + board + ' neste spot</a> — no navegador, de alguns segundos a poucos minutos.</p>';
 }
 function solveExact(presetName, board) {
   const i = PRESETS.findIndex(p => p.name === presetName);
@@ -1299,7 +1414,7 @@ async function newHand() {
     const villainCombo = weightedPick(theirs.combos.filter(k => !overlaps(k.combo, heroCombo)), k => k.weight).combo;
     trainer = {
       hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false,
-      grades: [], evLost: 0, spot: spot?.label || 'Solução aberta', reached: false,
+      grades: [], evLost: 0, spot: spot?.label || 'Solução aberta', reached: false, last: {},
     };
     await play();
     if (trainer.reached) break;
@@ -1324,6 +1439,7 @@ async function play() {
       const used = trainer.heroCombo + trainer.villainCombo;
       const card = weightedPick(n.cards.filter(c => c.possible && !used.includes(c.card)), () => 1);
       trainer.history.push(card.id);
+      trainer.last = {};
       trainer.log.push(`Carta: ${card.card[0]}${SUIT[card.card[1]]}`);
       continue;
     }
@@ -1339,6 +1455,7 @@ async function play() {
     const k = findCombo(n, mine ? trainer.heroCombo : trainer.villainCombo);
     const a = k ? weightedPick(n.actions.map((_, i) => i), i => k.freqs[i]) : 0;
     trainer.log.push(`${n.player} (${mine ? 'você, jogada automática' : 'vilão'}): ${actionLabel(n.actions[a])}`);
+    trainer.last = { ...trainer.last, [n.player]: actionLabel(n.actions[a]) };
     trainer.history.push(a);
   }
 }
@@ -1356,7 +1473,7 @@ function clearHistory() {
   handLog = [];
   store.set('gto-historico-limpo', Date.now());
   store.set('gto-treino-historico', handLog);
-  trainerView();
+  route();
 }
 
 // RNG: 1–100 sorteado; a ação certa é a faixa do mix em que o número cai.
@@ -1383,6 +1500,7 @@ async function heroAct(a, mix) {
     trainer.evLost += loss;
     trainer.feedback = { g, loss, chosen: a, mix, dist, rng: rngA == null ? null : trainer.rng, rngA, freqs: k.freqs, evs: k.evs, actions: n.actions, colors: actionColors(n.actions), at: [...trainer.history] };
     trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
+    trainer.last = { ...trainer.last, [n.player]: actionLabel(n.actions[a]) };
     trainer.history.push(a);
     await advance();
   } finally { trainerBusy = false; }
@@ -1453,7 +1571,7 @@ function endDrill() {
 
 let libraryLoading = null;
 function trainerView() {
-  if (curPage === 'treinar' && sub) return;
+  if (curPage === 'treinar' && sub !== 'jogar') return;
   if (BACKEND === 'wasm' && !libraryIndex && !libraryLoading) {
     libraryLoading = fetch('library/index.json').then(r => r.json()).then(x => { libraryIndex ??= x; trainerView(); }).catch(() => {});
   }
@@ -1461,65 +1579,52 @@ function trainerView() {
   const current = trainer && !trainer.saved && trainer.reached ? [{ ev: trainer.evLost, grades: trainer.grades }] : [];
   const ses = summarize([...handLog.filter(x => x.t >= sessionStart), ...current]);
   const all = summarize([...handLog, ...current]);
-  const row = (label, f) => `<span>${label}</span><span>${f(ses)}</span><span>${f(all)}</span>`;
-  const statsHtml = `<div class="panel"><h4>Resultados</h4><div class="stats three">
-    <span></span><span><b>Sessão</b></span><span><b>Geral</b></span>
-    ${row('Mãos', s => s.hands)}${row('Decisões', s => s.decisions)}
-    ${row('Acerto', s => s.decisions ? pct(s.good / s.decisions) : '—')}
-    ${GRADES.map(([key, label]) => row(label, s => s.grades[key] || 0)).join('')}
-    ${row('EV perdido', s => `${num(s.evLost)} bb`)}
-    ${row('Por mão', s => `${num(s.hands ? s.evLost / s.hands : 0)} bb`)}</div>
-    <p class="hint">Melhor: a ação mais frequente do GTO. Correta: usada em 5% ou mais. Abaixo disso, a nota depende do EV perdido: imprecisa (&lt; 2% do pote), erro (&lt; 10%) ou erro grave. Acerto: melhores + corretas.</p></div>`;
-  const recent = handLog.slice(-15).reverse();
-  const histHtml = `<div class="panel"><h4>Histórico${handLog.length ? ` · <a href="javascript:clearHistory()">limpar</a>` : ''}</h4>
-    ${recent.length ? `<ol class="hist">${recent.map(x => `<li title="${new Date(x.t).toLocaleString('pt-BR')}">
-      <b>${comboText(x.combo)}</b><span>${x.hero}</span>
-      <span>${x.grades.map(g => `<i class="dot ${gradeOf(g)[2]}" title="${gradeOf(g)[1]}"></i>`).join('')}</span>
-      <span class="ev">${x.ev > 0.005 ? `−${num(x.ev)} bb` : 'sem perda'}</span><small>${x.spot}</small></li>`).join('')}</ol>`
-    : '<p class="hint">As mãos jogadas ficam salvas neste aparelho.</p>'}</div>`;
+  const row = (label, f) => '<span>' + label + '</span><span>' + f(ses) + '</span><span>' + f(all) + '</span>';
+  const statsHtml = '<div class="panel"><h4>Resultados</h4><div class="stats three"><span></span><span><b>Sessão</b></span><span><b>Geral</b></span>' +
+    row('Mãos', s => s.hands) + row('Decisões', s => s.decisions) + row('Acerto', s => s.decisions ? pct(s.good / s.decisions) : '—') +
+    GRADES.map(([key, label]) => row(label, s => s.grades[key] || 0)).join('') +
+    row('EV perdido', s => num(s.evLost) + ' bb') + row('Por mão', s => num(s.hands ? s.evLost / s.hands : 0) + ' bb') + '</div>' +
+    '<p class="hint">Melhor: a ação mais frequente do GTO. Correta: usada em 5% ou mais. Abaixo disso, a nota depende do EV perdido: imprecisa (&lt; 2% do pote), erro (&lt; 10%) ou erro grave.</p></div>';
+  const recent = handLog.slice(-8).reverse();
+  const histHtml = '<div class="panel"><div class="card-head"><h4 style="margin:0">Últimas mãos</h4><a href="#/treinar/historico" title="Histórico completo">›</a></div>' +
+    (recent.length ? '<ol class="hist">' + recent.map(histItem).join('') + '</ol>' : '<p class="hint">As mãos jogadas ficam salvas neste aparelho.</p>') + '</div>';
 
-  if (!trainer) {
+  const t = trainer, n = t?.node;
+  let below = '';
+  if (!t || t.over) {
     const ready = status?.state === 'done';
     const canStart = prefs.source === 'library' || ready;
-    const msg = prefs.source === 'library' ? 'Cada mão sorteia um spot da Biblioteca e as cartas de cada jogador pelos ranges.'
-      : ready ? 'Cada mão começa na solução aberta: sua mão e a do vilão são sorteadas pelos ranges.'
-      : 'Ainda não há solução aberta. Resolva um spot ou treine com spots da Biblioteca.';
-    el.innerHTML = `${drillBanner()}<div class="trainer"><div class="panel table">${trainerSetup()}<p style="margin:24px 0">${msg}</p>
-      ${canStart ? '<button class="btn-primary" onclick="startHand()">Começar<kbd>Enter</kbd></button>' : '<a class="btn-primary" href="#/resolver">Resolver um spot</a>'}</div>
-      <div class="side">${statsHtml}${histHtml}</div></div>`;
-    return;
-  }
-  const t = trainer, n = t.node;
-  let center = `${t.over ? trainerSetup() : ''}<div style="margin-top:16px">${seatsBar(t.over ? null : n.player)}</div><div class="cards" style="margin-top:18px">${n.board.map(c => cardEl(c, true)).join('')}</div>
-    <div class="pill">Pote <b>${num(n.pot)} bb</b> · ${t.spot}</div>
-    <div class="seat">Você: <b>${t.hero}</b> (${PLAYER_DESC[t.hero]})</div><div class="cards">${comboCards(t.heroCombo, true)}</div>`;
-  if (t.over) {
-    center += `<div class="seat">Vilão tinha</div><div class="cards">${comboCards(t.villainCombo, true)}</div>
-      <p class="pill">Fim da mão.</p><button class="btn-primary" onclick="startHand()">Próxima mão<kbd>Enter</kbd></button>`;
+    const msg = t?.over ? '<p class="pill">Fim da mão.</p>'
+      : '<p class="hint">' + (prefs.source === 'library' ? 'Cada mão sorteia um spot da Biblioteca e as cartas de cada jogador pelos ranges.'
+        : ready ? 'Cada mão começa na solução aberta: sua mão e a do vilão são sorteadas pelos ranges.'
+        : 'Ainda não há solução aberta. Resolva um spot ou treine com spots da Biblioteca.') + '</p>';
+    below = msg + trainerSetup() + '<div class="start">' + (canStart
+      ? '<button class="btn-primary" onclick="startHand()">' + (t ? 'Próxima mão' : 'Começar o treino') + '<kbd>Enter</kbd></button>'
+      : '<a class="btn-primary" href="#/resolver">Resolver um spot</a>') + '</div>';
   } else if (prefs.mode === 'freq') {
     const even = Math.round(100 / n.actions.length / 5) * 5;
-    center += `<div id="mix" class="mix">${n.actions.map((a, i) => `<label>${actionLabel(a)}
-      <input type="range" min="0" max="100" step="5" value="${even}" oninput="mixInput(this)"><b>${even}%</b></label>`).join('')}
-      <small id="mixSum">Soma: ${even * n.actions.length}%</small>
-      <button class="btn-primary" onclick="submitMix()">Confirmar mix<kbd>Enter</kbd></button></div>`;
+    below = '<div id="mix" class="mix">' + n.actions.map(a => '<label>' + actionLabel(a) +
+      '<input type="range" min="0" max="100" step="5" value="' + even + '" oninput="mixInput(this)"><b>' + even + '%</b></label>').join('') +
+      '<small id="mixSum">Soma: ' + even * n.actions.length + '%</small><button class="btn-primary" onclick="submitMix()">Confirmar mix<kbd>Enter</kbd></button></div>';
   } else {
     const colors = actionColors(n.actions);
-    center += `${prefs.mode === 'rng' ? `<div class="rng">RNG <b>${t.rng}</b></div>` : ''}
-      <div class="actions" style="justify-content:center;margin-top:16px">${n.actions.map((a, i) =>
-      `<button style="--c:${colors[i]}" onclick="heroAct(${i})">${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}${actionLabel(a)}</button>`).join('')}</div>`;
+    below = (prefs.mode === 'rng' ? '<div class="rng">RNG <b>' + t.rng + '</b></div>' : '') +
+      '<div class="actions play-actions">' + n.actions.map((a, i) => '<button style="--c:' + colors[i] + '" onclick="heroAct(' + i + ')">' +
+      (i < 9 ? '<kbd>' + (i + 1) + '</kbd>' : '') + actionLabel(a) + '</button>').join('') + '</div>';
   }
-  if (t.feedback) {
+  if (t?.feedback) {
     const f = t.feedback, [, label, cls] = gradeOf(f.g);
-    const yours = (i) => f.mix ? ` · você: ${pct(f.mix[i])}` : i === f.chosen ? ' ← sua escolha' : '';
-    center += `<div class="feedback"><div class="grade ${cls}">${label}${f.loss > 0.005 ? ` · −${num(f.loss)} bb` : ''}</div>
-      ${f.rng != null ? `<div>RNG ${f.rng} pedia <b>${actionLabel(f.actions[f.rngA])}</b>.</div>` : ''}
-      ${f.mix ? `<div>Distância do mix GTO: ${pct(f.dist)}. A ação sorteada do seu mix foi <b>${actionLabel(f.actions[f.chosen])}</b>.</div>` : ''}
-      <div class="summary" style="margin:8px 0">${mixBar(f.freqs, f.colors)}</div>
-      ${f.actions.map((a, i) => `<div>${i === f.chosen && !f.mix ? '<b>' : ''}${actionLabel(a)}: GTO ${pct(f.freqs[i])} · EV ${num(f.evs[i])}${yours(i)}${i === f.chosen && !f.mix ? '</b>' : ''}</div>`).join('')}
-      <a href="${studyHash(f.at)}">Ver este spot no Estudar</a></div>`;
+    const yours = (i) => f.mix ? ' · você: ' + pct(f.mix[i]) : i === f.chosen ? ' ← sua escolha' : '';
+    below += '<div class="feedback"><div class="grade ' + cls + '">' + label + (f.loss > 0.005 ? ' · −' + num(f.loss) + ' bb' : '') + '</div>' +
+      (f.rng != null ? '<div>RNG ' + f.rng + ' pedia <b>' + actionLabel(f.actions[f.rngA]) + '</b>.</div>' : '') +
+      (f.mix ? '<div>Distância do mix GTO: ' + pct(f.dist) + '. A ação sorteada do seu mix foi <b>' + actionLabel(f.actions[f.chosen]) + '</b>.</div>' : '') +
+      '<div class="summary" style="margin:8px 0">' + mixBar(f.freqs, f.colors) + '</div>' +
+      f.actions.map((a, i) => '<div>' + (i === f.chosen && !f.mix ? '<b>' : '') + actionLabel(a) + ': GTO ' + pct(f.freqs[i]) + ' · EV ' + num(f.evs[i]) + yours(i) + (i === f.chosen && !f.mix ? '</b>' : '') + '</div>').join('') +
+      '<a href="' + studyHash(f.at) + '">Ver este spot no Estudar</a></div>';
   }
-  el.innerHTML = `${drillBanner()}<div class="trainer"><div class="panel table">${center}</div><div class="side">${statsHtml}
-    <div class="panel"><h4>Esta mão</h4><ol class="log">${t.log.map(l => `<li>${l}</li>`).join('')}</ol></div>${histHtml}</div></div>`;
+  const logHtml = t ? '<div class="panel"><h4>Esta mão</h4><ol class="log">' + t.log.map(l => '<li>' + l + '</li>').join('') + '</ol></div>' : '';
+  el.innerHTML = crumb('Jogar mãos') + drillBanner() + '<div class="play"><aside class="panel play-drills">' + drillsSide() + '</aside>' +
+    '<div class="panel table">' + pokerTable(t) + below + '</div><div class="side">' + statsHtml + logHtml + histHtml + '</div></div>';
 }
 
 async function startHand() {
@@ -1554,7 +1659,7 @@ function startDrill(i, custom) {
   store.set('gto-treino-prefs', prefs);
   drill = { name: d.name, target: d.hands, since: Date.now() };
   trainer = null;
-  location.hash = '#/treinar';
+  location.hash = '#/treinar/jogar';
   startHand();
 }
 function saveDrill() {
@@ -1575,16 +1680,15 @@ function deleteDrill(i) {
 function drillsView() {
   const mine = store.get('gto-drills', []);
   const results = store.get('gto-drills-resultados', []).slice(-10).reverse();
-  const card = (d, i, custom) => `<div class="lib-item drill-item"><b>${d.name}</b><small>${d.desc}</small>
-    <small>${d.hands} mãos · ${describePrefs(d.prefs)}</small>
-    <div><button class="btn-primary" onclick="startDrill(${i}, ${custom})">Começar</button>${custom ? ` <button onclick="deleteDrill(${i})">Apagar</button>` : ''}</div></div>`;
-  $('#trainer').innerHTML = `<div class="lib-grid">${DRILLS.map((d, i) => card(d, i, false)).join('')}</div>
-    <h4 style="margin-top:24px">Meus drills</h4>
-    ${mine.length ? `<div class="lib-grid">${mine.map((d, i) => card(d, i, true)).join('')}</div>` : ''}
-    <div class="panel" style="margin-top:10px"><p class="hint" style="margin-top:0">Salva a configuração atual de "Jogar mãos" (${describePrefs(prefs)}) como um drill.</p>
-      <div class="row-inline"><input id="drillName" placeholder="Nome do drill"><input id="drillHands" type="number" min="1" value="20" style="width:90px"><button onclick="saveDrill()">Salvar drill</button></div></div>
-    ${results.length ? `<h4 style="margin-top:24px">Últimos resultados</h4><ol class="hist panel">${results.map(r => `<li><b>${r.name}</b><span>${r.hands} mãos</span>
-      <span>acerto ${r.acerto == null ? '—' : pct(r.acerto)}</span><span class="ev">−${num(r.ev)} bb</span><small>${new Date(r.t).toLocaleString('pt-BR')}</small></li>`).join('')}</ol>` : ''}`;
+  const card = (d, i, custom) => '<div class="lib-item drill-item"><b>' + d.name + '</b><small>' + d.desc + '</small>' +
+    '<small>' + d.hands + ' mãos · ' + describePrefs(d.prefs) + '</small>' +
+    '<div><button class="btn-primary" onclick="startDrill(' + i + ', ' + custom + ')">Começar</button>' + (custom ? ' <button onclick="deleteDrill(' + i + ')">Apagar</button>' : '') + '</div></div>';
+  $('#trainer').innerHTML = crumb('Drills') + '<h4>Drills prontos</h4><div class="lib-grid">' + DRILLS.map((d, i) => card(d, i, false)).join('') + '</div>' +
+    '<h4 style="margin-top:24px">Meus drills</h4>' + (mine.length ? '<div class="lib-grid">' + mine.map((d, i) => card(d, i, true)).join('') + '</div>' : '') +
+    '<div class="panel" style="margin-top:10px"><p class="hint" style="margin-top:0">Novo drill: salva a configuração atual de "Jogar mãos" (' + describePrefs(prefs) + '). Para mudar a configuração, ajuste em <a href="#/treinar/jogar">Jogar mãos</a>.</p>' +
+    '<div class="row-inline"><input id="drillName" placeholder="Nome do drill"><input id="drillHands" type="number" min="1" value="20" style="width:90px"><button onclick="saveDrill()">Salvar drill</button></div></div>' +
+    (results.length ? '<h4 style="margin-top:24px">Últimos resultados</h4><ol class="hist panel">' + results.map(r => '<li><b>' + r.name + '</b><span>' + r.hands + ' mãos</span>' +
+      '<span>acerto ' + (r.acerto == null ? '—' : pct(r.acerto)) + '</span><span class="ev">−' + num(r.ev) + ' bb</span><small>' + new Date(r.t).toLocaleString('pt-BR') + '</small></li>').join('') + '</ol>' : '');
 }
 
 // ---------- construtor de ranges ----------
@@ -1594,10 +1698,10 @@ let painting = false;
 window.addEventListener('pointerup', () => painting = false);
 
 async function newBuilder() {
-  $('#trainer').innerHTML = '<div class="empty"><p>Preparando o spot…</p></div>';
+  $('#trainer').innerHTML = crumb('Construtor de ranges') + '<div class="empty"><p>Preparando o spot…</p></div>';
   try {
     if (prefs.source === 'library') await randomSpot();
-    else if (status?.state !== 'done') { $('#trainer').innerHTML = '<div class="empty"><p>Abra uma solução ou use spots da Biblioteca no Treinar.</p></div>'; return; }
+    else if (status?.state !== 'done') { $('#trainer').innerHTML = crumb('Construtor de ranges') + '<div class="empty"><p>Abra uma solução ou escolha spots da Biblioteca.</p></div>'; return; }
     const root = await api('/api/node', { history: [] });
     const check = root.actions.findIndex(a => a.kind === 'Check');
     const history = check >= 0 && Math.random() < .5 ? [check] : [];
@@ -1605,7 +1709,7 @@ async function newBuilder() {
     if (n.type !== 'action') throw new Error('Este spot não tem decisão para montar.');
     builder = { node: n, history, spot: spot?.label || 'Solução aberta', brush: Math.min(1, n.actions.length - 1), paint: n.grid.map(() => 0), checked: false };
     builderView();
-  } catch (err) { $('#trainer').innerHTML = `<div class="error">${err.message}</div>`; }
+  } catch (err) { $('#trainer').innerHTML = crumb('Construtor de ranges') + '<div class="error">' + err.message + '</div>'; }
 }
 
 function builderScore() {
@@ -1626,33 +1730,40 @@ function paintCell(i) {
 }
 
 function builderView() {
-  if (!builder) return newBuilder();
+  if (!builder) {
+    const seg = (label, key, opts) => '<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">' + label + '</span>' +
+      opts.map(([v, l]) => '<button class="' + (prefs[key] === v ? 'on' : '') + '" onclick="setPref(\'' + key + '\',\'' + v + '\');builderView()">' + l + '</button>').join('') + '</div>';
+    $('#trainer').innerHTML = crumb('Construtor de ranges') + '<div class="panel start-card"><div class="mini-grid">' + Array.from({ length: 169 }, (_, i) =>
+      '<i style="background:' + ['var(--check)', 'var(--bet1)', 'var(--bet2)', 'var(--empty)'][(i * 7 + (i >> 3)) % 4] + '"></i>').join('') + '</div>' +
+      '<p>Um spot é sorteado e você pinta cada mão do range com a ação que faria. Depois compara com o GTO.</p><div class="setup">' +
+      (BACKEND === 'wasm' ? seg('Spots', 'source', [['library', 'Aleatórios da Biblioteca'], ['open', 'Solução aberta']]) : '') +
+      (prefs.source === 'library' ? seg('Formato', 'format', [['all', 'Todos'], ['mtt', 'Torneio'], ['cash', 'Cash']]) : '') + '</div>' +
+      '<div class="start"><button class="btn-primary" onclick="newBuilder()">Começar a construir</button></div></div>';
+    return;
+  }
   const n = builder.node, colors = actionColors(n.actions);
   const share = (freqOf) => {
     const t = n.grid.reduce((s, c) => s + c.weight, 0) || 1;
     return n.actions.map((_, a) => n.grid.reduce((s, c, i) => s + c.weight * freqOf(c, i, a), 0) / t);
   };
   const mineShare = share((c, i, a) => builder.paint[i] === a ? 1 : 0), gtoShare = share((c, i, a) => c.freqs[a]);
-  const myGrid = `<div class="grid builder" id="bgrid" onpointerdown="painting=true;paintAt(event)" onpointermove="if(painting)paintAt(event)">${n.grid.map((c, i) =>
-      `<div class="cell ${c.weight > 0 ? '' : 'dead'}" data-i="${i}" style="${c.weight > 0 ? `background:${colors[builder.paint[i]]}` : ''}" title="${c.hand}"><span class="lbl">${c.hand}</span></div>`).join('')}</div>`;
-  const gtoGrid = `<div class="grid">${n.grid.map((c, i) => {
+  const myGrid = '<div class="grid builder" id="bgrid" onpointerdown="painting=true;paintAt(event)" onpointermove="if(painting)paintAt(event)">' + n.grid.map((c, i) =>
+    '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + '" data-i="' + i + '" style="' + (c.weight > 0 ? 'background:' + colors[builder.paint[i]] : '') + '" title="' + c.hand + '"><span class="lbl">' + c.hand + '</span></div>').join('') + '</div>';
+  const gtoGrid = '<div class="grid">' + n.grid.map((c, i) => {
     const miss = c.weight > 0 && c.freqs[builder.paint[i]] < 0.5;
-    return `<div class="cell ${c.weight > 0 ? '' : 'dead'} ${miss ? 'miss' : ''}" title="${c.hand}: ${n.actions.map((a, k) => `${actionLabel(a)} ${pct(c.freqs[k])}`).join(' · ')}">
-      <div class="fill" style="height:100%">${c.weight > 0 ? mixBar(c.freqs, colors) : ''}</div><span class="lbl">${c.hand}</span></div>`;
-  }).join('')}</div>`;
-  const shares = (s) => n.actions.map((a, k) => `<span><i style="background:${colors[k]}"></i>${actionLabel(a)} ${pct(s[k])}</span>`).join('');
-  $('#trainer').innerHTML = `<div class="panel">
-    <div class="spotbar"><div class="cards">${n.board.map(c => cardEl(c)).join('')}</div><span class="pill">${builder.spot}</span>
-      <span class="pill">Vez do <b>${n.player}</b> (${PLAYER_DESC[n.player]})${builder.history.length ? ' depois do check do OOP' : ''} · pote ${num(n.pot)} bb</span></div>
-    <p>Pinte cada mão do range com a ação que você faria. Clique ou arraste sobre a grade.</p>
-    <div class="actions">${n.actions.map((a, k) => `<button style="--c:${colors[k]}" class="${builder.brush === k ? 'on' : ''}" ${builder.checked ? 'disabled' : ''}
-      onclick="builder.brush=${k};builderView()">${actionLabel(a)}</button>`).join('')}</div>
-    <div class="ranges" style="margin-top:12px"><div><h4>Seu range</h4>${myGrid}<div class="keys">${shares(mineShare)}</div></div>
-      ${builder.checked ? `<div><h4>GTO</h4>${gtoGrid}<div class="keys">${shares(gtoShare)}</div><p class="hint">Contorno vermelho: mãos em que o GTO usa a sua ação menos de 50% das vezes.</p></div>` : ''}</div>
-    <div class="run" style="margin-top:14px">${builder.checked
-      ? `<div class="grade ${builderScore() >= .8 ? 'g-best' : builderScore() >= .6 ? 'g-inacc' : 'g-blunder'}">Acerto ${pct(builderScore())}</div><button class="btn-primary" onclick="builder=null;builderView()">Novo spot</button>`
-      : `<button class="btn-primary" onclick="builder.checked=true;builderView()">Conferir com o GTO</button>`}</div>
-    <p class="hint">Acerto: em média, com que frequência o GTO faz a ação que você pintou, pesando cada mão pelos combos no range. Usa os filtros de "Jogar mãos" (formato e spot).</p></div>`;
+    return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + ' ' + (miss ? 'miss' : '') + '" title="' + c.hand + ': ' + n.actions.map((a, k) => actionLabel(a) + ' ' + pct(c.freqs[k])).join(' · ') + '">' +
+      '<div class="fill" style="height:100%">' + (c.weight > 0 ? mixBar(c.freqs, colors) : '') + '</div><span class="lbl">' + c.hand + '</span></div>';
+  }).join('') + '</div>';
+  const score = builderScore();
+  const right = '<div class="overview"><span class="pill">Vez do <b>' + n.player + '</b> (' + PLAYER_DESC[n.player] + ')' + (builder.history.length ? ' depois do check do OOP' : '') + '</span><span class="pill">Pote <b>' + num(n.pot) + ' bb</b></span></div>' +
+    '<h4>Pincel</h4><div class="act-cards">' + n.actions.map((a, k) => '<button class="act-card ' + (builder.brush === k ? 'on' : '') + '" style="--c:' + colors[k] + '" ' + (builder.checked ? 'disabled' : '') +
+      ' onclick="builder.brush=' + k + ';builderView()"><b>' + actionLabel(a) + '</b><strong>' + pct(mineShare[k]) + '</strong><small>' + (builder.checked ? 'GTO ' + pct(gtoShare[k]) : 'do seu range') + '</small></button>').join('') + '</div>' +
+    (builder.checked
+      ? '<div class="grade ' + (score >= .8 ? 'g-best' : score >= .6 ? 'g-inacc' : 'g-blunder') + '" style="margin:10px 0">Acerto ' + pct(score) + '</div><h4>GTO</h4>' + gtoGrid +
+        '<p class="hint">Contorno vermelho: mãos em que o GTO usa a sua ação menos de 50% das vezes.</p><div class="start"><button class="btn-primary" onclick="newBuilder()">Próximo spot</button> <button onclick="builder=null;builderView()">Trocar spots</button></div>'
+      : '<p class="hint">Escolha o pincel e clique ou arraste sobre a grade.</p><div class="start"><button class="btn-primary" onclick="builder.checked=true;builderView()">Conferir com o GTO</button></div>') +
+    '<p class="hint">Acerto: em média, com que frequência o GTO faz a ação que você pintou, pesando cada mão pelos combos no range.</p>';
+  $('#trainer').innerHTML = crumb('Construtor de ranges') + actionLine(n, { nav: false }) + '<div class="study-body"><div><h4>Seu range</h4>' + myGrid + '</div><div class="study-right">' + right + '</div></div>';
 }
 
 // ---------- calculadoras ----------
@@ -1747,11 +1858,8 @@ async function reportsView() {
 // ---------- início ----------
 function homeView() {
   syncPanel();
-  const all = summarize(handLog), week = summarize(handLog.filter(x => x.t > Date.now() - 7 * 864e5));
-  $('#homeStats').innerHTML = all.hands ? `<h4 style="margin-top:24px">Seu treino (neste aparelho)</h4><div class="machine" style="margin-top:0">${[
-    ['Mãos treinadas', all.hands], ['Acerto', all.decisions ? pct(all.good / all.decisions) : '—'],
-    ['EV perdido por mão', `${num(all.evLost / all.hands)} bb`], ['Mãos nos últimos 7 dias', week.hands],
-  ].map(([l, v]) => `<a class="panel stat" href="#/treinar" style="text-decoration:none"><small>${l}</small><b>${v}</b></a>`).join('')}</div>` : '';
+  const all = summarize(handLog);
+  $('#homeStats').innerHTML = '<div class="card-head"><h3>Estatísticas dos treinos</h3><a href="#/treinar/historico" title="Ver histórico">›</a></div>' + statsBlock(all);
 }
 
 // ---------- atalhos de teclado ----------
@@ -1769,7 +1877,7 @@ document.addEventListener('keydown', (e) => {
     if (!pfQuiz.answer && (e.key === '1' || e.key === '2')) return pfAnswer(e.key === '1');
     if (pfQuiz.answer && (e.key === 'Enter' || e.key === ' ') && !['BUTTON', 'A'].includes(e.target.tagName)) { e.preventDefault(); pfQuiz = null; return pfTrainView(); }
   }
-  if (curPage === 'treinar' && !sub) {
+  if (curPage === 'treinar' && sub === 'jogar') {
     if (d != null && prefs.mode !== 'freq' && trainer && !trainer.over && d < trainer.node.actions.length) return heroAct(d);
     // Enter/Espaço num botão focado já clicam nele; só trata quando o foco está fora.
     if ((e.key === 'Enter' || e.key === ' ') && !['BUTTON', 'A'].includes(e.target.tagName)) {
@@ -1896,28 +2004,33 @@ async function pushfoldView() {
   const s = pfScenario(), pos = PF_POS.slice(9 - s.n);
   const r = pfRun(s);
   const caller = r.callers.find(c => c.pos === pfPrefs.caller) || r.callers.at(-1);
-  const modeBtn = (v, l) => `<button class="${pfPrefs.mode === v ? 'on' : ''}" onclick="setPf('mode', '${v}')">${l}</button>`;
-  el.innerHTML = `<div class="panel pf-setup">
-      <div class="row3">
-        <div><label>Jogadores na mesa</label><select onchange="setPf('n', Number(this.value))">${[2, 3, 4, 5, 6, 7, 8, 9].map(n => `<option ${n === s.n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
-        <div><label>Stack de todos (bb)</label><input type="number" min="1" max="40" step="0.5" value="${pfPrefs.stack}" onchange="setPf('stack', Math.max(1, parseFloat(this.value) || 10))"></div>
-        <div><label>Ante pago pelo BB (bb)</label><input type="number" min="0" max="5" step="0.125" value="${pfPrefs.ante}" onchange="setPf('ante', Math.max(0, parseFloat(this.value) || 0))"></div>
-      </div>
-      <label>Cálculo</label><div class="seg">${modeBtn('chips', 'Fichas (Nash)')}${modeBtn('icm', 'ICM (premiação)')}</div>
-      ${pfPrefs.mode === 'icm' ? `<div class="row2"><div><label>Stacks de ${pos[0]} até BB (bb, um por linha; vazio = todos iguais)</label>
-        <textarea onchange="setPf('stacks', this.value)" placeholder="${pos.map(() => pfPrefs.stack).join('&#10;')}">${esc(pfPrefs.stacks)}</textarea></div>
-        <div><label>Prêmios que faltam pagar (um por linha)</label><textarea onchange="setPf('prizes', this.value)">${esc(pfPrefs.prizes)}</textarea></div></div>
-        <p class="hint">Com ICM as decisões são em dinheiro: quem paga fica mais apertado e o shove fica mais largo, principalmente perto da bolha e na mesa final.</p>` : ''}
-    </div>
-    <div class="pf-pos"><span class="pill">Shove de</span>${pos.slice(0, -1).map(p => `<button class="${p === s.pusher ? 'on' : ''}" onclick="setPf('pusher', '${p}')">${p}</button>`).join('')}</div>
-    <div class="ranges">
-      <div><div class="range-head"><b>${s.pusher}: shove ${pct(r.pushPct)}</b><span class="pill">todos foldaram até ele</span></div>${pfGrid(r.push, r.pushEv, r.money)}</div>
-      <div><div class="range-head"><b>${caller.pos}: call ${pct(caller.pct)}</b>
-        <select style="width:auto" onchange="setPf('caller', this.value)">${r.callers.map(c => `<option ${c === caller ? 'selected' : ''} value="${c.pos}">${c.pos} paga ${pct(c.pct)}</option>`).join('')}</select></div>
-        ${pfGrid(caller.call, caller.ev, r.money)}</div>
-    </div>
-    <p class="hint">Vermelho: shove (ou call) sempre; claro: fold; intermediário: mix. Toque ou passe o mouse numa mão para ver o EV contra o fold${r.money ? ' (em dinheiro, pela premiação)' : ' (em bb)'}.
-    Simplificações: só o primeiro a pagar entra no pote e o resto folda; o ante é o do BB, formato atual dos torneios.</p>`;
+  const pi = pos.indexOf(s.pusher);
+  const modeBtn = (v, l) => '<button class="mini-btn ' + (pfPrefs.mode === v ? 'on' : '') + '" onclick="setPf(\'mode\', \'' + v + '\')">' + l + '</button>';
+  const settings = '<div class="al-col al-spot pf-set"><b>Mesa</b>' +
+    '<label>Jogadores <select onchange="setPf(\'n\', Number(this.value))">' + [2, 3, 4, 5, 6, 7, 8, 9].map(n => '<option ' + (n === s.n ? 'selected' : '') + '>' + n + '</option>').join('') + '</select></label>' +
+    '<label>Stack (bb) <input type="number" min="1" max="40" step="0.5" value="' + pfPrefs.stack + '" onchange="setPf(\'stack\', Math.max(1, parseFloat(this.value) || 10))"></label>' +
+    '<label>Ante no BB <input type="number" min="0" max="5" step="0.125" value="' + pfPrefs.ante + '" onchange="setPf(\'ante\', Math.max(0, parseFloat(this.value) || 0))"></label>' +
+    '<div class="row-inline">' + modeBtn('chips', 'Fichas') + modeBtn('icm', 'ICM') + '</div></div>';
+  const seats = pos.map((p, i) => {
+    const stack = num(s.stacks[i], 1);
+    if (i < pi) return '<div class="al-col out past" onclick="setPf(\'pusher\', \'' + p + '\')" title="Ver o shove do ' + p + '"><header>' + p + '<span>' + stack + '</span></header><div>Fold</div></div>';
+    if (i === pi) return '<div class="al-col now"><header>' + p + '<span>' + stack + '</span></header><div class="on">Shove ' + pct(r.pushPct) + '</div></div>';
+    const c = r.callers.find(x => x.pos === p);
+    return '<div class="al-col past ' + (c === caller ? 'sel' : '') + '" onclick="setPf(\'caller\', \'' + p + '\')" title="Ver o call do ' + p + '"><header>' + p + '<span>' + stack + '</span></header><div class="' + (c === caller ? 'on' : '') + '">Call ' + pct(c.pct) + '</div>' +
+      (p !== 'BB' ? '<button onclick="event.stopPropagation();setPf(\'pusher\', \'' + p + '\')">shove daqui</button>' : '') + '</div>';
+  }).join('');
+  const icmPanel = pfPrefs.mode === 'icm' ? '<div class="panel pf-icm"><div class="row2"><div><label>Stacks de ' + pos[0] + ' até BB (bb, um por linha; vazio = todos iguais)</label>' +
+    '<textarea onchange="setPf(\'stacks\', this.value)" placeholder="' + pos.map(() => pfPrefs.stack).join('&#10;') + '">' + esc(pfPrefs.stacks) + '</textarea></div>' +
+    '<div><label>Prêmios que faltam pagar (um por linha)</label><textarea onchange="setPf(\'prizes\', this.value)">' + esc(pfPrefs.prizes) + '</textarea></div></div>' +
+    '<p class="hint">Com ICM as decisões são em dinheiro: quem paga fica mais apertado e o shove fica mais largo, principalmente perto da bolha e na mesa final.</p></div>' : '';
+  const callCards = '<div class="act-cards">' + r.callers.map(c => '<button class="act-card ' + (c === caller ? 'on' : '') + '" style="--c:' + (c === caller ? 'var(--allin)' : 'var(--fold)') + '" onclick="setPf(\'caller\', \'' + c.pos + '\')">' +
+    '<b>' + c.pos + '</b><strong>' + pct(c.pct) + '</strong><small>paga</small></button>').join('') + '</div>';
+  el.innerHTML = '<div class="actionline">' + settings + seats + '</div>' + icmPanel +
+    '<div class="study-body"><div><div class="range-head"><b>' + s.pusher + ': shove ' + pct(r.pushPct) + '</b><span class="pill">todos foldaram até ele</span></div>' + pfGrid(r.push, r.pushEv, r.money) + '</div>' +
+    '<div class="study-right"><h4>Quem paga o shove do ' + s.pusher + '</h4>' + callCards +
+    '<div class="range-head"><b>' + caller.pos + ': call ' + pct(caller.pct) + '</b></div>' + pfGrid(caller.call, caller.ev, r.money) + '</div></div>' +
+    '<p class="hint">Vermelho: shove (ou call) sempre; claro: fold; intermediário: mix. Toque ou passe o mouse numa mão para ver o EV contra o fold' + (r.money ? ' (em dinheiro, pela premiação)' : ' (em bb)') + '. ' +
+    'Clique numa posição no topo para ver o call dela, ou em "shove daqui" para mudar quem dá o shove. Simplificações: só o primeiro a pagar entra no pote; o ante é o do BB.</p>';
 }
 
 // Treino: decisão de shove ou de call com mão sorteada, stack de 5 a 20 bb e posição aleatória (cálculo em fichas).
@@ -2050,7 +2163,7 @@ async function syncNow() {
     await syncCall('sync_put', { code, payload: merged });
     syncState = `Sincronizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`;
     if (curPage === '') homeView();
-    if (curPage === 'treinar' && !sub && (!trainer || trainer.over)) trainerView();
+    if (curPage === 'treinar' && sub === 'jogar' && (!trainer || trainer.over)) trainerView();
   } catch (err) {
     syncing = false;
     syncState = `Não deu para sincronizar agora (${err.message}). Tento de novo na próxima mão.`;
@@ -2087,6 +2200,116 @@ function syncLeave() {
   try { localStorage.removeItem('gto-sync-code'); } catch {}
   syncState = '';
   syncPanel();
+}
+
+// ---------- layout compartilhado ----------
+let sideTab = 'hand';            // Estudar, painel da direita: hand | filters
+let libPreset = null, libGroups = [];
+let drillTab = 'ready';
+
+// Linha de ação no topo, lida da esquerda para a direita: spot, lugares e ação pré-flop, board e cada decisão.
+// Com nav, as decisões passadas voltam para aquele ponto e as ações da decisão atual seguem a árvore.
+function actionLine(n, { tools = '', nav = false } = {}) {
+  const t = spot && TABLES[spot.preset];
+  const seatOf = (p) => t ? (p === 'OOP' ? t.oopSeat : t.ipSeat) + ' <span>' + p + '</span>' : p;
+  const col = (cls, head, body, click) => '<div class="al-col ' + cls + '"' + (nav && click ? ' onclick="' + click + '"' : '') + '><header>' + head + '</header>' + body + '</div>';
+  let html = '<div class="al-col al-spot"><b>' + (spot?.label || 'Solução aberta') + '</b>' + tools + '</div>';
+  if (t) {
+    const acts = Object.fromEntries(SEATS.map(s => [s, []]));
+    t.pre.forEach(([s, a]) => acts[s].push(a));
+    html += SEATS.map(s => {
+      const live = s === t.oopSeat || s === t.ipSeat;
+      return col(live ? '' : 'out', s + '<span>' + (live ? num(spot.stack, 1) : t.depth) + '</span>', (live ? acts[s] : ['Fold']).map(a => '<div class="on">' + a + '</div>').join(''));
+    }).join('');
+  }
+  const dealt = n.path.filter(s => s.card).map(s => s.card);
+  const first = n.board.filter(c => !dealt.includes(c));
+  const streetName = (len) => ['FLOP', 'TURN', 'RIVER'][len - 3] || 'BOARD';
+  const boardCol = (label, cards, click) => '<div class="al-col al-board' + (nav && click ? ' past' : '') + '"' + (nav && click ? ' onclick="' + click + '"' : '') + '><header>' + label + '</header><div class="cards">' + cards.map(c => cardEl(c)).join('') + '</div></div>';
+  html += boardCol(streetName(first.length), first);
+  let shown = first.length;
+  n.path.forEach((s, i) => {
+    if (s.card) { shown++; html += boardCol(streetName(shown), [s.card], 'jump(' + i + ')'); return; }
+    html += col('past', seatOf(s.player), '<div class="on">' + actionLabel(s.action) + '</div>', 'jump(' + i + ')');
+  });
+  if (n.type === 'action') {
+    html += '<div class="al-col now"><header>' + seatOf(n.player) + '</header>' + n.actions.map((a, i) => nav
+      ? '<button onclick="go(' + i + ')">' + actionLabel(a) + '</button>' : '<div>' + actionLabel(a) + '</div>').join('') + '</div>';
+  } else if (n.type === 'chance') {
+    html += '<div class="al-col now al-board"><header>' + streetName(n.board.length + 1) + '</header><div>escolha a carta</div></div>';
+  } else {
+    html += '<div class="al-col now"><header>Fim</header><div>fold ou showdown</div></div>';
+  }
+  return '<div class="actionline">' + html + '</div>';
+}
+
+const crumb = (title) => '<div class="crumb"><a href="#/treinar">Treinar</a> › <b>' + title + '</b></div>';
+
+// Números e barras por nota, usados no Início, no Treinar e no Histórico.
+function statsBlock(s) {
+  const errs = (s.grades.mistake || 0) + (s.grades.blunder || 0);
+  const max = Math.max(1, ...GRADES.map(([k]) => s.grades[k] || 0));
+  return '<div class="statgrid"><div class="nums">' +
+    '<div><small>Mãos</small><b>' + s.hands + '</b></div><div><small>Decisões</small><b>' + s.decisions + '</b></div>' +
+    '<div><small>Erros</small><b>' + errs + '</b></div><div><small>Acerto</small><b>' + (s.decisions ? pct(s.good / s.decisions) : '—') + '</b></div></div>' +
+    '<div class="gbars">' + GRADES.map(([k, l, cls]) => '<div class="gbar ' + cls + '"><span>' + l + '</span><div class="track"><div style="width:' + (100 * (s.grades[k] || 0) / max) + '%"></div></div><span>' + (s.grades[k] || 0) + '</span></div>').join('') + '</div></div>';
+}
+
+const histItem = (x) => '<li title="' + new Date(x.t).toLocaleString('pt-BR') + '"><b>' + comboText(x.combo) + '</b><span>' + x.hero + '</span>' +
+  '<span>' + x.grades.map(g => '<i class="dot ' + gradeOf(g)[2] + '" title="' + gradeOf(g)[1] + '"></i>').join('') + '</span>' +
+  '<span class="ev">' + (x.ev > 0.005 ? '−' + num(x.ev) + ' bb' : 'sem perda') + '</span><small>' + x.spot + '</small></li>';
+
+const ICON_LINKS = {
+  jogar: ['#/treinar/jogar', '◎', 'Jogar mãos', 'Mãos contra o GTO, com nota em cada decisão'],
+  construtor: ['#/treinar/construtor', '▧', 'Construtor de ranges', 'Pinte o range e compare com o GTO'],
+  drills: ['#/treinar/drills', '☰', 'Drills', 'Séries de mãos prontas e as suas'],
+  pushfold: ['#/pushfold/treinar', '⇪', 'Push/fold', 'Shove ou fold com stack curto'],
+  historico: ['#/treinar/historico', '↺', 'Histórico', 'Mãos jogadas e resultados'],
+  calculadoras: ['#/calculadoras', '∑', 'Calculadoras', 'Equity e ICM'],
+};
+const iconLink = ([href, ico, title, desc]) => '<a href="' + href + '"><i class="ico-box">' + ico + '</i><span><b>' + title + '</b><small>' + desc + '</small></span></a>';
+
+function trainHub() {
+  $('#trainer').innerHTML = '<h2>Treinar</h2><p class="sub">Jogue contra a estratégia GTO, monte ranges e acompanhe a sua evolução.</p>' +
+    '<div class="hub">' + ['jogar', 'construtor', 'drills', 'pushfold', 'historico', 'calculadoras'].map(k => iconLink(ICON_LINKS[k])).join('') + '</div>' +
+    '<div class="panel"><div class="card-head"><h3>Estatísticas dos treinos</h3><a href="#/treinar/historico" title="Ver histórico">›</a></div>' + statsBlock(summarize(handLog)) + '</div>';
+}
+
+function historyView() {
+  const rows = handLog.slice(-100).reverse();
+  $('#trainer').innerHTML = crumb('Histórico') + '<div class="panel">' + statsBlock(summarize(handLog)) + '</div>' +
+    '<div class="panel" style="margin-top:16px"><div class="card-head"><h3>Últimas mãos</h3>' + (handLog.length ? '<a href="javascript:clearHistory()" style="font-size:13px">limpar</a>' : '') + '</div>' +
+    (rows.length ? '<ol class="hist">' + rows.map(histItem).join('') + '</ol>' : '<p class="hint">Nenhuma mão ainda. Comece em <a href="#/treinar/jogar">Jogar mãos</a>.</p>') + '</div>';
+}
+
+function drillsSide() {
+  const mine = store.get('gto-drills', []);
+  const item = (d, i, custom) => '<button class="drill-row" onclick="startDrill(' + i + ', ' + custom + ')"><b>' + d.name + '</b><small>' + d.hands + ' mãos · ' + describePrefs(d.prefs) + '</small></button>';
+  return '<h4>Drills</h4><div class="seg small"><button class="' + (drillTab === 'mine' ? 'on' : '') + '" onclick="drillTab=\'mine\';trainerView()">Meus</button>' +
+    '<button class="' + (drillTab !== 'mine' ? 'on' : '') + '" onclick="drillTab=\'ready\';trainerView()">Prontos</button></div><div class="drill-list">' +
+    (drillTab === 'mine' ? (mine.length ? mine.map((d, i) => item(d, i, true)).join('') : '<p class="hint">Você ainda não criou drills.</p>') : DRILLS.map((d, i) => item(d, i, false)).join('')) +
+    '</div><div class="drill-foot"><a href="#/treinar/drills">＋ Novo drill</a><a href="#/treinar/drills">Gerenciar</a></div>';
+}
+
+// Mesa oval: lugares em volta, board e pote no meio, suas cartas embaixo do board.
+const SEAT_XY = { UTG: [27, 95], HJ: [5, 50], CO: [27, 5], BTN: [73, 5], SB: [95, 50], BB: [73, 95] };
+function pokerTable(t) {
+  const n = t?.node, tb = spot && TABLES[spot.preset];
+  const playerAt = (s) => !tb ? s : s === tb.oopSeat ? 'OOP' : s === tb.ipSeat ? 'IP' : null;
+  const seats = tb ? SEATS : ['OOP', 'IP'];
+  const xy = tb ? SEAT_XY : { OOP: [50, 95], IP: [50, 5] };
+  const toAct = t && !t.over && n?.type === 'action' ? n.player : null;
+  const felt = n
+    ? '<div class="cards">' + n.board.map(c => cardEl(c, true)).join('') + '</div><div class="pill">Pote <b>' + num(n.pot) + ' bb</b></div><div class="cards">' + comboCards(t.heroCombo, true) + '</div>'
+    : '<div class="pill">' + (spot?.label || 'Escolha os spots e comece') + '</div>';
+  return '<div class="ptable"><div class="felt">' + felt + '</div>' + seats.map(s => {
+    const p = playerAt(s), live = !!p;
+    const stack = tb ? (live ? num(spot.stack, 1) : tb.depth) + ' bb' : '';
+    const last = p && t?.last?.[p];
+    const reveal = t?.over && p && p !== t.hero ? '<span class="act">' + comboText(t.villainCombo) + '</span>' : '';
+    return '<div class="pseat ' + (live ? '' : 'out') + ' ' + (t && p === t.hero ? 'hero' : '') + ' ' + (p && p === toAct ? 'turn' : '') + '" style="left:' + xy[s][0] + '%;top:' + xy[s][1] + '%">' +
+      '<b>' + (t && p === t.hero ? 'Você · ' : '') + s + '</b><span>' + stack + '</span>' + (last ? '<span class="act">' + last + '</span>' : '') + reveal + '</div>';
+  }).join('') + '</div>';
 }
 
 // ---------- instalar como app ----------
