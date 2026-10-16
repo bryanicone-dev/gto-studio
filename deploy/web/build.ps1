@@ -26,7 +26,9 @@ $html = [IO.File]::ReadAllText("$project\static\index.html")
 $marker = "const BACKEND = 'server';"
 if (-not $html.Contains($marker)) { throw "Marcador '$marker' não encontrado em static\index.html" }
 [IO.File]::WriteAllText("$dist\index.html", $html.Replace($marker, "const BACKEND = 'wasm';"), [Text.UTF8Encoding]::new($false))
-Copy-Item "$project\static\worker.js" $dist
+foreach ($f in 'worker.js', 'sw.js', 'manifest.json', 'icon.svg') { Copy-Item "$project\static\$f" $dist }
+# Tabela de equity do Push/fold (gerada por: node deploy/pushfold/equity.mjs pushfold/equity.bin)
+if (Test-Path "$project\pushfold\equity.bin") { Copy-Item "$project\pushfold\equity.bin" "$dist\pushfold-equity.bin" }
 # Spots já resolvidos (gerados por: cargo run --release --bin library -- deploy/library/spots.json library)
 if (Test-Path "$project\library\index.json") { Copy-Item "$project\library" "$dist\library" -Recurse }
 
