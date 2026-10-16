@@ -1,4 +1,5 @@
-# Faz tudo na nuvem a cada push na main (ou manualmente em Actions > Publicar site > Run workflow):
+# Faz tudo na nuvem a cada push na main (ou manualmente em Actions > Publicar site > Run workflow).
+# Em pull requests roda tudo e guarda o site como artefato "site", mas não publica:
 #   1. roda os testes;
 #   2. resolve os spots da biblioteca, um preset por máquina, em paralelo (com cache: só
 #      recalcula o que ainda não existe; para refazer tudo, aumente "version" em spots.json);
@@ -9,10 +10,11 @@ name: Publicar site
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 concurrency:
-  group: publicar
+  group: publicar-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -106,11 +108,19 @@ jobs:
           key: cargo-web-${{ hashFiles('web/Cargo.lock', 'Cargo.lock') }}
       - run: bash deploy/web/build.sh
       - run: cp deploy/huggingface/README.md dist/README.md
-      - uses: actions/setup-python@v5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: dist
+          retention-days: 3
+      - if: github.event_name != 'pull_request'
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install --quiet huggingface_hub
+      - if: github.event_name != 'pull_request'
+        run: pip install --quiet huggingface_hub
       - name: Publicar no Hugging Face
+        if: github.event_name != 'pull_request'
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python deploy/huggingface/upload.py

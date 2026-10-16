@@ -7,7 +7,23 @@ pub const MADE: [&str; 14] = [
     "Straight flush", "Quads", "Full house", "Flush", "Straight", "Set", "Trips", "Two pair",
     "Overpair", "Top pair", "Middle pair", "Weak pair", "Ace high", "No made hand",
 ];
-pub const DRAWS: [&str; 5] = ["Flush draw", "OESD", "Gutshot", "Backdoor flush draw", "Overcards"];
+pub const DRAWS: [&str; 6] = [
+    "Flush draw", "OESD", "Gutshot", "Backdoor flush draw", "Backdoor straight draw", "Overcards",
+];
+
+/// Equity buckets (simple and advanced), as (name, lower bound inclusive).
+pub const EQ_SIMPLE: [(&str, f64); 4] = [
+    ("Equity 75–100%", 0.75), ("Equity 50–75%", 0.50), ("Equity 33–50%", 0.33), ("Equity 0–33%", 0.0),
+];
+pub const EQ_ADVANCED: [(&str, f64); 7] = [
+    ("Equity 90–100%", 0.90), ("Equity 80–90%", 0.80), ("Equity 70–80%", 0.70), ("Equity 60–70%", 0.60),
+    ("Equity 50–60%", 0.50), ("Equity 25–50%", 0.25), ("Equity 0–25%", 0.0),
+];
+
+/// Name of the bucket an equity (0..1) falls into.
+pub fn eq_bucket(buckets: &[(&'static str, f64)], equity: f64) -> &'static str {
+    buckets.iter().find(|(_, lo)| equity >= *lo).map_or(buckets[buckets.len() - 1].0, |(name, _)| *name)
+}
 
 const ACE: usize = 12;
 
@@ -93,6 +109,14 @@ pub fn made_hand(hole: [Card; 2], board: &[Card]) -> &'static str {
     if r1 == ACE || r2 == ACE { "Ace high" } else { "No made hand" }
 }
 
+/// Whether two more cards (turn and river) can complete a straight that needs a hole card.
+fn backdoor_straight(m_all: u16, m_board: u16) -> bool {
+    (0..13).any(|a| (a + 1..13).any(|b| {
+        let extra = 1u16 << a | 1 << b;
+        m_all & extra != extra && straight_high(m_all | extra) > straight_high(m_board | extra)
+    }))
+}
+
 /// Draws still live with cards to come (none on the river).
 pub fn draws(hole: [Card; 2], board: &[Card], made: &str) -> Vec<&'static str> {
     let mut out = vec![];
@@ -118,6 +142,7 @@ pub fn draws(hole: [Card; 2], board: &[Card], made: &str) -> Vec<&'static str> {
             .filter(|&r| straight_high(m_all | 1 << r) > straight_high(m_board | 1 << r))
             .count();
         match outs {
+            0 if board.len() == 3 && backdoor_straight(m_all, m_board) => out.push("Backdoor straight draw"),
             0 => {}
             1 => out.push("Gutshot"),
             _ => out.push("OESD"),
@@ -145,6 +170,15 @@ mod tests {
     }
 
     #[test]
+    fn equity_buckets() {
+        assert_eq!(eq_bucket(&EQ_SIMPLE, 0.80), "Equity 75–100%");
+        assert_eq!(eq_bucket(&EQ_SIMPLE, 0.50), "Equity 50–75%");
+        assert_eq!(eq_bucket(&EQ_SIMPLE, 0.10), "Equity 0–33%");
+        assert_eq!(eq_bucket(&EQ_ADVANCED, 0.95), "Equity 90–100%");
+        assert_eq!(eq_bucket(&EQ_ADVANCED, 0.30), "Equity 25–50%");
+    }
+
+    #[test]
     fn made_hands() {
         assert_eq!(cat("AsAh", "Ks7d2c").0, "Overpair");
         assert_eq!(cat("7s7h", "Ks7d2c").0, "Set");
@@ -166,7 +200,9 @@ mod tests {
         assert_eq!(cat("AhTh", "Kh7h2c").1, vec!["Flush draw"]);
         assert_eq!(cat("9s8s", "Ts7c2h").1, vec!["Backdoor flush draw", "OESD"]);
         assert_eq!(cat("9c5d", "8h7s2d").1, vec!["Gutshot"]);
-        assert_eq!(cat("AcQd", "9h7s2d").1, vec!["Overcards"]);
+        assert_eq!(cat("AcQd", "9h7s2d").1, vec!["Backdoor straight draw", "Overcards"]);
+        assert_eq!(cat("9c8d", "Kh7s2d").1, vec!["Backdoor straight draw"]);
+        assert!(cat("KcKd", "8h4s2c").1.is_empty());
         assert!(cat("AhTh", "Kh7h2c3d4s").1.is_empty()); // river: no draws
     }
 }

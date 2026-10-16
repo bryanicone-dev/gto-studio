@@ -188,6 +188,13 @@ impl Agg {
     }
 }
 
+fn category_kind(name: &str) -> &'static str {
+    if hands::MADE.contains(&name) { "made" }
+    else if hands::DRAWS.contains(&name) { "draw" }
+    else if hands::EQ_SIMPLE.iter().any(|(n, _)| *n == name) { "eq" }
+    else { "eq_advanced" }
+}
+
 /// Range of one player at the current node: combos, 13x13 grid and average equity.
 fn range_json(g: &PostFlopGame, p: usize) -> Value {
     let (hands, reach, w, eq) = (g.private_cards(p), g.weights(p), g.normalized_weights(p), g.equity(p));
@@ -289,7 +296,9 @@ pub fn node_json(g: &mut PostFlopGame, history: &[usize]) -> Result<Value, Strin
     let reach = g.weights(player);
 
     let mut cells: Vec<(Agg, Vec<Value>)> = (0..169).map(|_| (Agg::new(n_act), vec![])).collect();
-    let names: Vec<&str> = hands::MADE.iter().chain(hands::DRAWS.iter()).copied().collect();
+    let names: Vec<&str> = hands::MADE.iter().chain(hands::DRAWS.iter()).copied()
+        .chain(hands::EQ_SIMPLE.iter().chain(hands::EQ_ADVANCED.iter()).map(|(name, _)| *name))
+        .collect();
     let mut categories: Vec<Agg> = names.iter().map(|_| Agg::new(n_act)).collect();
     let mut total = Agg::new(n_act);
     for k in 0..n {
@@ -302,9 +311,10 @@ pub fn node_json(g: &mut PostFlopGame, history: &[usize]) -> Result<Value, Strin
         let (combos, ev_k, eq_k) = (reach[k] as f64, ev[k] as f64 / CHIPS, eq[k] as f64);
         let made = hands::made_hand([c1, c2], &board_cards);
         let draws = hands::draws([c1, c2], &board_cards, made);
+        let buckets = [hands::eq_bucket(&hands::EQ_SIMPLE, eq_k), hands::eq_bucket(&hands::EQ_ADVANCED, eq_k)];
 
         total.add(w, combos, &freqs, &evs, ev_k, eq_k);
-        for name in std::iter::once(made).chain(draws.iter().copied()) {
+        for name in std::iter::once(made).chain(draws.iter().copied()).chain(buckets) {
             let i = names.iter().position(|&x| x == name).unwrap();
             categories[i].add(w, combos, &freqs, &evs, ev_k, eq_k);
         }
@@ -312,7 +322,7 @@ pub fn node_json(g: &mut PostFlopGame, history: &[usize]) -> Result<Value, Strin
         cell.0.add(w, combos, &freqs, &evs, ev_k, eq_k);
         cell.1.push(json!({
             "combo": format!("{}{}", card_str(c2), card_str(c1)), "weight": combos,
-            "freqs": freqs, "evs": evs, "ev": ev_k, "equity": eq_k, "made": made, "draws": draws,
+            "freqs": freqs, "evs": evs, "ev": ev_k, "equity": eq_k, "made": made, "draws": draws, "buckets": buckets,
         }));
     }
     let grid: Vec<Value> = cells.into_iter().enumerate().map(|(i, (agg, combos))| {
@@ -321,7 +331,7 @@ pub fn node_json(g: &mut PostFlopGame, history: &[usize]) -> Result<Value, Strin
     let categories: Vec<Value> = names.iter().zip(&categories)
         .filter(|(_, agg)| agg.w > 0.0)
         .map(|(name, agg)| merge(agg.json(), json!({
-            "name": name, "kind": if hands::MADE.contains(name) { "made" } else { "draw" },
+            "name": name, "kind": category_kind(name),
         })))
         .collect();
     let summary = total.json();
@@ -479,6 +489,12 @@ mod tests {
         let made: f64 = v["categories"].as_array().unwrap().iter()
             .filter(|c| c["kind"] == "made").map(|c| c["weight"].as_f64().unwrap()).sum();
         assert!((made - v["total_combos"].as_f64().unwrap()).abs() < 1e-6);
+        // Each equity bucket family also partitions the range.
+        for kind in ["eq", "eq_advanced"] {
+            let sum: f64 = v["categories"].as_array().unwrap().iter()
+                .filter(|c| c["kind"] == kind).map(|c| c["weight"].as_f64().unwrap()).sum();
+            assert!((sum - v["total_combos"].as_f64().unwrap()).abs() < 1e-6, "{kind}: {sum}");
+        }
         assert_eq!(v["ranges"].as_array().unwrap().len(), 2);
         assert_eq!(v["summary_evs"].as_array().unwrap().len(), v["actions"].as_array().unwrap().len());
 
