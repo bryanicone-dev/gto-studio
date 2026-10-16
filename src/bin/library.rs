@@ -4,6 +4,7 @@
 //! Usage: cargo run --release --bin library -- deploy/library/spots.json library ["preset name"]
 //! With a preset name only that preset is solved (CI runs one preset per machine).
 //! Spots already present in the output folder are skipped, so the build can be resumed.
+//! With LIBRARY_ONLY_CACHED=1 (pull requests) missing spots are not solved, only listed.
 
 use gto_studio::engine::{self, SolveRequest, StreetSizes};
 use gto_studio::postflop_solver::{compute_exploitability, finalize, solve_step};
@@ -62,6 +63,7 @@ fn main() -> Result<(), String> {
     let spec: Spec = serde_json::from_str(&fs::read_to_string(&spec_path).map_err(|e| e.to_string())?)
         .map_err(|e| format!("spots.json inválido: {e}"))?;
     let html = include_str!("../../static/index.html");
+    let only_cached = env::var("LIBRARY_ONLY_CACHED").is_ok_and(|v| v == "1");
     fs::create_dir_all(&out).map_err(|e| e.to_string())?;
     let index_path = format!("{out}/index.json");
     let mut index: Vec<Value> = fs::read_to_string(&index_path).ok()
@@ -82,6 +84,10 @@ fn main() -> Result<(), String> {
                     fs::write(&index_path, serde_json::to_string_pretty(&index).unwrap()).map_err(|e| e.to_string())?;
                 }
                 println!("já existe: {id}");
+                continue;
+            }
+            if only_cached {
+                println!("sem cache, fica para a publicação: {id}");
                 continue;
             }
             let sizes = || StreetSizes { oop_bet: spec.bet.clone(), oop_raise: spec.raise.clone(), ip_bet: spec.bet.clone(), ip_raise: spec.raise.clone() };

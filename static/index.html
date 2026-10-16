@@ -384,6 +384,12 @@
     .act-card strong { font-size: 20px; }
   }
   dialog.sheet { width: min(420px, 92vw); }
+  .rv-table { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; margin: 6px 0 16px; }
+  .rv-table small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .rv-table b { font-size: 20px; }
+  .rv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .rv-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .rv-item small { display: block; color: var(--muted); margin-top: 4px; }
   .sheet-links { display: grid; gap: 2px; margin-bottom: 14px; }
 </style>
 </head>
@@ -396,6 +402,7 @@
     <a href="#/estudar" data-route="estudar">Estudar</a>
     <a href="#/treinar" data-route="treinar">Treinar</a>
     <a href="#/pushfold" data-route="pushfold">Push/fold</a>
+    <a href="#/analisar" data-route="analisar">Analisar</a>
     <a href="#/biblioteca" data-route="biblioteca">Biblioteca</a>
     <a href="#/calculadoras" data-route="calculadoras">Calculadoras</a>
   </nav>
@@ -416,6 +423,7 @@
     <a href="#/treinar/drills"><i class="ico-box">☰</i><span><b>Drills</b><small>Séries de mãos prontas e as suas</small></span></a>
     <a href="#/pushfold"><i class="ico-box">⇪</i><span><b>Push/fold</b><small>Stack curto: Nash e ICM</small></span></a>
     <a href="#/calculadoras"><i class="ico-box">∑</i><span><b>Calculadoras</b><small>Equity e ICM</small></span></a>
+    <a href="#/analisar"><i class="ico-box">⌕</i><span><b>Analisar mão</b><small>Nota de cada decisão de uma mão sua</small></span></a>
     <a href="#/treinar/historico"><i class="ico-box">↺</i><span><b>Histórico</b><small>Mãos jogadas e resultados</small></span></a>
     <a href="javascript:$('#keys').showModal()"><i class="ico-box">?</i><span><b>Atalhos</b><small>Teclas do Estudar e do Treinar</small></span></a>
   </div></div>
@@ -517,6 +525,13 @@
   <div id="pf"></div>
 </section>
 
+<!-- Analisar -->
+<section class="page" data-page="analisar" hidden>
+  <h2>Analisar mão</h2>
+  <p class="sub">Digite uma mão que você jogou e veja a nota de cada decisão sua do flop em diante, comparada com o GTO.</p>
+  <div id="review"></div>
+</section>
+
 <!-- Calculadoras -->
 <section class="page" data-page="calculadoras" hidden>
   <h2>Calculadoras</h2>
@@ -540,6 +555,7 @@
   <a href="#/biblioteca"><i class="ico-box">❒</i><span><b>Biblioteca</b><small>Spots prontos e busca pelo flop</small></span></a>
   <a href="#/biblioteca/relatorios"><i class="ico-box">▤</i><span><b>Relatórios</b><small>Bet e check em cada flop</small></span></a>
   <a href="#/calculadoras"><i class="ico-box">∑</i><span><b>Calculadoras</b><small>Equity e ICM</small></span></a>
+  <a href="#/analisar"><i class="ico-box">⌕</i><span><b>Analisar mão</b><small>Nota de cada decisão de uma mão sua</small></span></a>
   <a href="#/treinar/historico"><i class="ico-box">↺</i><span><b>Histórico</b><small>Mãos jogadas e resultados</small></span></a>
 </div><form method="dialog"><button class="btn-primary">Fechar</button></form></dialog>
 
@@ -605,6 +621,36 @@ const PRESETS = [
   { group: MTT, name: '15bb · BTN open 2 vs BB call', pot: 5.5, stack: 13,
     oop: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K7o,QJs-Q4s,QJo-Q9o,J6s+,J9o+,T6s+,T9o,96s+,98o,85s+,75s+,64s+,54s',
     ip: '22+,A2s+,A7o+,K5s+,K9o+,Q7s+,QTo+,J8s+,JTo,T8s+,98s,87s,76s' },
+  { group: MTT, name: '60bb · BTN open 2,2 vs BB call', pot: 5.9, stack: 57.8,
+    oop: 'TT-22,AJs-A2s,AJo-A4o,KJs-K2s,KJo-K6o,QJs-Q3s,QJo-Q8o,J4s+,J8o+,T5s+,T8o+,95s+,97o+,84s+,87o,74s+,76o,63s+,65o,53s+,43s',
+    ip: '22+,A2s+,A3o+,K2s+,K8o+,Q5s+,Q9o+,J7s+,J9o+,T7s+,T9o,96s+,98o,85s+,75s+,64s+,54s' },
+  { group: MTT, name: '60bb · CO open 2,2 vs BB call', pot: 5.9, stack: 57.8,
+    oop: 'TT-22,AJs-A2s,AJo-A7o,KJs-K3s,KJo-K9o,QJs-Q6s,QJo-Q9o,J7s+,J9o+,T7s+,T9o,96s+,98o,85s+,75s+,64s+,54s',
+    ip: '22+,A2s+,A8o+,K6s+,KTo+,Q8s+,QTo+,J8s+,JTo,T7s+,97s+,86s+,76s,65s,54s' },
+  { group: MTT, name: '60bb · UTG open 2,2 vs BB call', pot: 5.9, stack: 57.8,
+    oop: 'TT-22,AJs-A2s,AJo-A9o,KJs-K6s,KQo-KTo,QJs-Q8s,QJo,J8s+,T8s+,97s+,86s+,75s+,65s,54s',
+    ip: '22+,A2s+,A9o+,K9s+,KTo+,Q9s+,QJo,J9s+,T9s,98s,87s,76s,65s' },
+  { group: MTT, name: '40bb · UTG open 2,2 vs BB call', pot: 5.9, stack: 37.8,
+    oop: 'TT-22,AJs-A2s,AJo-A9o,KJs-K6s,KQo-KTo,QJs-Q8s,QJo,J8s+,T8s+,97s+,86s+,75s+,65s,54s',
+    ip: '22+,A2s+,A9o+,K9s+,KTo+,Q9s+,QJo,J9s+,T9s,98s,87s,76s,65s' },
+  { group: MTT, name: '40bb · CO open 2,2 vs BTN call', pot: 6.9, stack: 37.8,
+    oop: 'TT-22,AJs-A2s,AJo-A8o,KJs-K7s,KJo-KTo,QJs-Q8s,QJo-QTo,J8s+,JTo,T8s+,97s+,87s,76s,65s',
+    ip: 'JJ-22,AQs-A9s,A5s-A4s,AQo-AJo,KTs+,KQo,QTs+,JTs,T9s,98s,87s,76s' },
+  { group: MTT, name: '30bb · BTN open 2 vs BB call', pot: 5.5, stack: 28,
+    oop: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K5o,QJs-Q2s,QJo-Q8o,J4s+,J8o+,T5s+,T8o+,95s+,97o+,84s+,87o,74s+,76o,63s+,65o,53s+,43s',
+    ip: '22+,A2s+,A2o+,K2s+,K8o+,Q5s+,Q9o+,J7s+,J9o+,T7s+,T9o,96s+,86s+,75s+,65s,54s' },
+  { group: MTT, name: '30bb · CO open 2 vs BB call', pot: 5.5, stack: 28,
+    oop: 'TT-22,AJs-A2s,AJo-A5o,KJs-K2s,KJo-K8o,QJs-Q5s,QJo-Q9o,J6s+,J9o+,T6s+,T9o,95s+,98o,85s+,87o,74s+,76o,63s+,65o,53s+,43s',
+    ip: '22+,A2s+,A8o+,K7s+,KTo+,Q8s+,QTo+,J8s+,JTo,T8s+,97s+,86s+,76s,65s' },
+  { group: MTT, name: '20bb · BTN open 2 vs BB call', pot: 5.5, stack: 18,
+    oop: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K6o,QJs-Q4s,QJo-Q9o,J6s+,J9o+,T6s+,T9o,96s+,98o,85s+,75s+,64s+,54s',
+    ip: '22+,A2s+,A2o+,K2s+,K7o+,Q5s+,Q9o+,J7s+,J9o+,T7s+,T9o,96s+,86s+,75s+,65s,54s' },
+  { group: MTT, name: '20bb · SB open 2 vs BB call', pot: 5, stack: 18,
+    oop: '22+,A2s+,A2o+,K2s+,K7o+,Q4s+,Q9o+,J6s+,J9o+,T6s+,T8o+,95s+,98o,85s+,74s+,64s+,53s+',
+    ip: 'TT-22,AJs-A2s,AJo-A2o,KJs-K2s,KJo-K4o,Q2s+,Q7o+,J4s+,J8o+,T5s+,T8o+,95s+,97o+,84s+,87o,74s+,76o,63s+,65o,53s+,43s' },
+  { group: MTT, name: '20bb · CO open 2 vs BB call', pot: 5.5, stack: 18,
+    oop: 'TT-22,AJs-A2s,AJo-A7o,KJs-K4s,KJo-K9o,QJs-Q6s,QJo-QTo,J7s+,JTo,T7s+,96s+,86s+,75s+,65s,54s',
+    ip: '22+,A2s+,A9o+,K8s+,KTo+,Q9s+,QJo,J9s+,T9s,98s,87s,76s' },
 ];
 
 // Mesa de cada preset: profundidade, quem está fora de posição / em posição e a ação pré-flop.
@@ -622,6 +668,16 @@ const TABLES = {
   '25bb · BTN open 2 vs BB call': { depth: 25, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2'], ['BB', 'Call']] },
   '25bb · SB open 2 vs BB call': { depth: 25, oopSeat: 'SB', ipSeat: 'BB', pre: [['SB', 'Raise 2'], ['BB', 'Call']] },
   '15bb · BTN open 2 vs BB call': { depth: 15, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2'], ['BB', 'Call']] },
+  '60bb · BTN open 2,2 vs BB call': { depth: 60, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2,2'], ['BB', 'Call']] },
+  '60bb · CO open 2,2 vs BB call': { depth: 60, oopSeat: 'BB', ipSeat: 'CO', pre: [['CO', 'Raise 2,2'], ['BB', 'Call']] },
+  '60bb · UTG open 2,2 vs BB call': { depth: 60, oopSeat: 'BB', ipSeat: 'UTG', pre: [['UTG', 'Raise 2,2'], ['BB', 'Call']] },
+  '40bb · UTG open 2,2 vs BB call': { depth: 40, oopSeat: 'BB', ipSeat: 'UTG', pre: [['UTG', 'Raise 2,2'], ['BB', 'Call']] },
+  '40bb · CO open 2,2 vs BTN call': { depth: 40, oopSeat: 'CO', ipSeat: 'BTN', pre: [['CO', 'Raise 2,2'], ['BTN', 'Call']] },
+  '30bb · BTN open 2 vs BB call': { depth: 30, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2'], ['BB', 'Call']] },
+  '30bb · CO open 2 vs BB call': { depth: 30, oopSeat: 'BB', ipSeat: 'CO', pre: [['CO', 'Raise 2'], ['BB', 'Call']] },
+  '20bb · BTN open 2 vs BB call': { depth: 20, oopSeat: 'BB', ipSeat: 'BTN', pre: [['BTN', 'Raise 2'], ['BB', 'Call']] },
+  '20bb · SB open 2 vs BB call': { depth: 20, oopSeat: 'SB', ipSeat: 'BB', pre: [['SB', 'Raise 2'], ['BB', 'Call']] },
+  '20bb · CO open 2 vs BB call': { depth: 20, oopSeat: 'BB', ipSeat: 'CO', pre: [['CO', 'Raise 2'], ['BB', 'Call']] },
 };
 let spot = null; // { preset, stack } da solução aberta, para a barra da mesa
 
@@ -654,12 +710,12 @@ const subTabs = (base, items) => `<div class="tabs">${items.map(([k, l]) =>
   `<button class="${sub === k ? 'on' : ''}" onclick="location.hash='${base}${k ? '/' + k : ''}'">${l}</button>`).join('')}</div>`;
 function route() {
   const [page0, hist] = location.hash.replace(/^#\/?/, '').split('/');
-  const page = ['', 'resolver', 'estudar', 'treinar', 'pushfold', 'biblioteca', 'calculadoras'].includes(page0) ? page0 : '';
+  const page = ['', 'resolver', 'estudar', 'treinar', 'pushfold', 'analisar', 'biblioteca', 'calculadoras'].includes(page0) ? page0 : '';
   curPage = page;
   sub = page === 'estudar' ? '' : hist || '';
   document.querySelectorAll('[data-page]').forEach(s => s.hidden = s.dataset.page !== page);
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.route === page));
-  $('#moreTab').classList.toggle('on', ['resolver', 'biblioteca', 'calculadoras'].includes(page));
+  $('#moreTab').classList.toggle('on', ['resolver', 'analisar', 'biblioteca', 'calculadoras'].includes(page));
   if (page === 'estudar') {
     history = hist ? hist.split('.').map(Number).filter(Number.isInteger) : [];
     load();
@@ -680,6 +736,7 @@ function route() {
     $('#pfTabs').innerHTML = subTabs('#/pushfold', [['', 'Tabelas'], ['treinar', 'Treinar']]);
     pushfoldView();
   }
+  if (page === 'analisar') reviewView();
   if (page === 'calculadoras') {
     $('#calcTabs').innerHTML = subTabs('#/calculadoras', [['', 'Equity'], ['icm', 'ICM']]);
     if (sub === 'icm') icmView(); else equityView();
@@ -1969,7 +2026,8 @@ function pfSolve(s, iterations = 400) {
 }
 
 
-const pfPrefs = { n: 9, stack: 10, ante: 1, mode: 'chips', stacks: '', prizes: '30\n20\n14\n10\n8\n6\n5\n4\n3', pusher: 'BTN', caller: 'BB', ...store.get('gto-pushfold', {}) };
+const pfPrefs = { n: 9, stack: 10, ante: 1, mode: 'chips', stacks: '', prizes: '30\n20\n14\n10\n8\n6\n5\n4\n3', pusher: 'BTN', caller: 'BB', tStacks: 'equal', tCalc: 'chips', ...store.get('gto-pushfold', {}) };
+const pfScenarioPrizes = () => pfPrefs.prizes.split(/[\n;]+/).map(x => parseFloat(x.replace(/\./g, '').replace(',', '.'))).filter(x => x >= 0);
 const pfCache = new Map();
 function pfScenario() {
   const p = pfPrefs, pos = PF_POS.slice(9 - p.n);
@@ -2038,10 +2096,14 @@ let pfQuiz = null;
 async function pfNewQuiz() {
   await pfLoad();
   const n = pfPrefs.n, pos = PF_POS.slice(9 - n);
-  const stack = 5 + Math.floor(Math.random() * 16);
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  // Stacks iguais (5–20 bb) ou um stack diferente por lugar (5–30 bb).
+  const even = rand(5, 20);
+  const stacks = pos.map(() => pfPrefs.tStacks === 'mixed' ? rand(5, 30) : even);
+  const prizes = pfPrefs.tCalc === 'icm' ? pfScenarioPrizes().slice(0, n) : null;
   const pusher = pos[Math.floor(Math.random() * (pos.length - 1))];
-  const s = { n, stacks: pos.map(() => stack), ante: pfPrefs.ante, prizes: null, pusher };
-  const r = pfRun(s);
+  const s = { n, stacks, ante: pfPrefs.ante, prizes: prizes?.length ? prizes : null, pusher };
+  const r = pfSolve(s, 300);
   const caller = Math.random() < 0.4 ? r.callers[Math.floor(Math.random() * r.callers.length)] : null;
   // Duas cartas sorteadas e a classe delas na grade (linha/coluna 0 = A; acima da diagonal suited).
   const a = Math.floor(Math.random() * 52);
@@ -2049,19 +2111,22 @@ async function pfNewQuiz() {
   const hi = Math.max(a >> 2, b >> 2), lo = Math.min(a >> 2, b >> 2), row = 12 - hi, col = 12 - lo;
   const k = hi === lo ? row * 13 + row : (a & 3) === (b & 3) ? row * 13 + col : col * 13 + row;
   const combo = [a, b].sort((x, y) => y - x).map(cardName).join('');
-  pfQuiz = { s, r, caller, k, combo, stack, answer: null };
+  // Com ICM o EV vem em dinheiro; para a nota e o histórico, converte para bb pelo valor médio da ficha.
+  const chipValue = s.prizes ? s.prizes.reduce((x, y) => x + y, 0) / stacks.reduce((x, y) => x + y, 0) : 1;
+  pfQuiz = { s, r, caller, k, combo, chipValue, answer: null };
   pfTrainView();
 }
 function pfAnswer(go) {
   const q = pfQuiz;
   if (!q || q.answer) return;
   const freq = q.caller ? q.caller.call[q.k] : q.r.push[q.k];
-  const ev = q.caller ? q.caller.ev[q.k] : q.r.pushEv[q.k];   // EV de ir (shove/call) menos o de foldar, em bb
-  const loss = go ? Math.max(0, -ev) : Math.max(0, ev);
+  const ev = q.caller ? q.caller.ev[q.k] : q.r.pushEv[q.k];   // EV de ir (shove/call) menos o de foldar (bb ou dinheiro)
+  const loss = (go ? Math.max(0, -ev) : Math.max(0, ev)) / q.chipValue;
   const g = (go ? freq >= 0.5 : freq < 0.5) ? 'best' : freq > 0.1 && freq < 0.9 ? 'correct' : loss < 0.1 ? 'inacc' : loss < 0.5 ? 'mistake' : 'blunder';
   q.answer = { g, loss, freq, ev };
-  const where = q.caller ? `${q.caller.pos} vs shove do ${q.s.pusher}` : `shove do ${q.s.pusher}`;
-  handLog = [...handLog, { t: Date.now(), spot: `Push/fold · ${where} · ${q.stack} bb`, hero: q.caller ? q.caller.pos : q.s.pusher, combo: q.combo, villain: '', grades: [g], ev: loss }].slice(-500);
+  const pos = q.r.pos, hero = q.caller ? q.caller.pos : q.s.pusher, heroStack = q.s.stacks[pos.indexOf(hero)];
+  const where = q.caller ? q.caller.pos + ' vs shove do ' + q.s.pusher : 'shove do ' + q.s.pusher;
+  handLog = [...handLog, { t: Date.now(), spot: 'Push/fold · ' + where + ' · ' + heroStack + ' bb' + (q.s.prizes ? ' · ICM' : ''), hero, combo: q.combo, villain: '', grades: [g], ev: loss }].slice(-500);
   store.set('gto-treino-historico', handLog);
   pfTrainView();
 }
@@ -2070,36 +2135,47 @@ async function pfTrainView() {
   const el = $('#pf');
   if (!pfQuiz) {
     el.innerHTML = '<div class="empty"><p>Sorteando uma mão…</p></div>';
+    await new Promise(r => setTimeout(r, 20));
     try { await pfNewQuiz(); } catch { el.innerHTML = '<div class="error">Não foi possível carregar a tabela de equity pré-flop.</div>'; }
     return;
   }
-  const q = pfQuiz;
+  const q = pfQuiz, pos = q.r.pos, money = !!q.s.prizes;
   const mine = handLog.filter(x => x.spot.startsWith('Push/fold'));
   const st = summarize(mine.filter(x => x.t >= sessionStart)), all = summarize(mine);
   const goLabel = q.caller ? 'Call' : 'Shove';
+  const hero = q.caller ? q.caller.pos : q.s.pusher;
+  const pi = pos.indexOf(q.s.pusher);
+  const seats = pos.map((p, i) => {
+    const what = i < pi ? 'Fold' : i === pi ? (q.caller ? 'All-in' : '?') : p === hero ? '?' : q.caller && i < pos.indexOf(hero) ? 'Fold' : '';
+    return '<div class="al-col ' + (p === hero ? 'now' : i < pi || what === 'Fold' ? 'out' : '') + '"><header>' + (p === hero ? 'Você · ' : '') + p + '<span>' + q.s.stacks[i] + '</span></header><div class="' + (what === 'All-in' ? 'on' : '') + '">' + (what || '&nbsp;') + '</div></div>';
+  }).join('');
+  const opt = (key, v, l) => '<button class="' + (pfPrefs[key] === v ? 'on' : '') + '" onclick="setPf(\'' + key + '\', \'' + v + '\');pfQuiz=null;pfTrainView()">' + l + '</button>';
   const situation = q.caller
-    ? `O <b>${q.s.pusher}</b> deu all-in de ${q.stack} bb e os outros foldaram. Você está no <b>${q.caller.pos}</b>.`
-    : `Todos foldaram até você no <b>${q.s.pusher}</b>.`;
-  let html = `<div class="trainer"><div class="panel table">
-    <div class="pill">${q.s.n} jogadores · todos com <b>${q.stack} bb</b> · ante ${num(q.s.ante)} bb no BB · cálculo em fichas</div>
-    <p style="margin:16px 0 6px">${situation}</p><div class="cards">${comboCards(q.combo, true)}</div>
-    <div class="actions" style="justify-content:center;margin-top:14px">
-      <button style="--c:var(--allin)" onclick="pfAnswer(true)" ${q.answer ? 'disabled' : ''}><kbd>1</kbd>${goLabel}</button>
-      <button style="--c:var(--fold)" onclick="pfAnswer(false)" ${q.answer ? 'disabled' : ''}><kbd>2</kbd>Fold</button></div>`;
+    ? 'O <b>' + q.s.pusher + '</b> deu all-in e os outros foldaram até você no <b>' + q.caller.pos + '</b>.'
+    : 'Todos foldaram até você no <b>' + q.s.pusher + '</b>.';
+  const evText = (x) => money ? sign(x) + ' (≈ ' + sign(x / q.chipValue) + ' bb)' : sign(x) + ' bb';
+  let html = '<div class="trainer"><div class="panel table"><div class="actionline">' + seats + '</div>' +
+    '<div class="pill">' + q.s.n + ' jogadores · stacks em bb · ante ' + num(q.s.ante) + ' bb no BB · ' + (money ? 'ICM pela premiação da aba Tabelas' : 'cálculo em fichas') + '</div>' +
+    '<p style="margin:16px 0 6px">' + situation + '</p><div class="cards">' + comboCards(q.combo, true) + '</div>' +
+    '<div class="actions" style="justify-content:center;margin-top:14px">' +
+    '<button style="--c:var(--allin)" onclick="pfAnswer(true)" ' + (q.answer ? 'disabled' : '') + '><kbd>1</kbd>' + goLabel + '</button>' +
+    '<button style="--c:var(--fold)" onclick="pfAnswer(false)" ' + (q.answer ? 'disabled' : '') + '><kbd>2</kbd>Fold</button></div>';
   if (q.answer) {
     const a = q.answer, [, label, cls] = gradeOf(a.g);
-    html += `<div class="feedback"><div class="grade ${cls}">${label}${a.loss > 0.005 ? ` · −${num(a.loss)} bb` : ''}</div>
-      <div>Nash: ${goLabel.toLowerCase()} com ${PF_HANDS[q.k]} em ${pct(a.freq)} das vezes · EV do ${goLabel.toLowerCase()} contra o fold: ${sign(a.ev)} bb.</div>
-      <div style="margin-top:10px">${pfGrid(q.caller ? q.caller.call : q.r.push, q.caller ? q.caller.ev : q.r.pushEv, false, q.k)}</div></div>
-      <button class="btn-primary" style="margin-top:12px" onclick="pfQuiz=null;pfTrainView()">Próxima mão<kbd>Enter</kbd></button>`;
+    html += '<div class="feedback"><div class="grade ' + cls + '">' + label + (a.loss > 0.005 ? ' · −' + num(a.loss) + ' bb' + (money ? ' equivalentes' : '') : '') + '</div>' +
+      '<div>' + (money ? 'ICM' : 'Nash') + ': ' + goLabel.toLowerCase() + ' com ' + PF_HANDS[q.k] + ' em ' + pct(a.freq) + ' das vezes · EV do ' + goLabel.toLowerCase() + ' contra o fold: ' + evText(a.ev) + '.</div>' +
+      '<div style="margin-top:10px">' + pfGrid(q.caller ? q.caller.call : q.r.push, q.caller ? q.caller.ev : q.r.pushEv, money, q.k) + '</div></div>' +
+      '<button class="btn-primary" style="margin-top:12px" onclick="pfQuiz=null;pfTrainView()">Próxima mão<kbd>Enter</kbd></button>';
   }
-  html += `</div><div class="side"><div class="panel"><h4>Push/fold</h4><div class="stats three">
-    <span></span><span><b>Sessão</b></span><span><b>Geral</b></span>
-    <span>Mãos</span><span>${st.hands}</span><span>${all.hands}</span>
-    <span>Acerto</span><span>${st.decisions ? pct(st.good / st.decisions) : '—'}</span><span>${all.decisions ? pct(all.good / all.decisions) : '—'}</span>
-    <span>EV perdido</span><span>${num(st.evLost)} bb</span><span>${num(all.evLost)} bb</span></div>
-    <p class="hint">Mesa e ante vêm da aba Tabelas (${pfPrefs.n} jogadores, ante ${num(pfPrefs.ante)} bb). O stack é sorteado entre 5 e 20 bb.
-    Melhor: a ação do Nash. Correta: mão em mix. Errando, a nota depende do EV perdido (imprecisa &lt; 0,1 bb, erro &lt; 0,5 bb).</p></div></div></div>`;
+  html += '</div><div class="side"><div class="panel"><h4>Treino</h4>' +
+    '<label>Stacks</label><div class="seg">' + opt('tStacks', 'equal', 'Iguais') + opt('tStacks', 'mixed', 'Diferentes') + '</div>' +
+    '<label>Cálculo</label><div class="seg">' + opt('tCalc', 'chips', 'Fichas') + opt('tCalc', 'icm', 'ICM') + '</div>' +
+    '<p class="hint">Iguais: todos com 5 a 20 bb. Diferentes: cada lugar com 5 a 30 bb. ICM usa a premiação da aba Tabelas (' + pfScenarioPrizes().length + ' prêmios). Mesa: ' + pfPrefs.n + ' jogadores, ante ' + num(pfPrefs.ante) + ' bb.</p></div>' +
+    '<div class="panel"><h4>Resultados</h4><div class="stats three"><span></span><span><b>Sessão</b></span><span><b>Geral</b></span>' +
+    '<span>Mãos</span><span>' + st.hands + '</span><span>' + all.hands + '</span>' +
+    '<span>Acerto</span><span>' + (st.decisions ? pct(st.good / st.decisions) : '—') + '</span><span>' + (all.decisions ? pct(all.good / all.decisions) : '—') + '</span>' +
+    '<span>EV perdido</span><span>' + num(st.evLost) + ' bb</span><span>' + num(all.evLost) + ' bb</span></div>' +
+    '<p class="hint">Melhor: a ação do equilíbrio. Correta: mão em mix. Errando, a nota depende do EV perdido (imprecisa &lt; 0,1 bb, erro &lt; 0,5 bb; com ICM, em bb equivalentes).</p></div></div></div>';
   el.innerHTML = html;
 }
 
@@ -2310,6 +2386,192 @@ function pokerTable(t) {
     return '<div class="pseat ' + (live ? '' : 'out') + ' ' + (t && p === t.hero ? 'hero' : '') + ' ' + (p && p === toAct ? 'turn' : '') + '" style="left:' + xy[s][0] + '%;top:' + xy[s][1] + '%">' +
       '<b>' + (t && p === t.hero ? 'Você · ' : '') + s + '</b><span>' + stack + '</span>' + (last ? '<span class="act">' + last + '</span>' : '') + reveal + '</div>';
   }).join('') + '</div>';
+}
+
+// ---------- analisar uma mão ----------
+// O jogador digita uma mão real (situação, posição, cartas, board) e repete as ações do flop em diante.
+// Cada decisão dele recebe nota contra a estratégia GTO do spot. Flops da Biblioteca valem por isomorfismo de
+// naipes: as cartas são traduzidas para os naipes do spot salvo.
+let review = null;
+const reviewForm = { preset: '', hero: 'OOP', cards: '', flop: '', turn: '', river: '', ...store.get('gto-analise', {}) };
+const setReview = (key, value) => { reviewForm[key] = value; store.set('gto-analise', reviewForm); };
+
+function suitPerm(user, lib) {
+  const S = [...'cdhs'];
+  const permute = (rest, cur = []) => rest.length ? rest.flatMap((x, i) => permute([...rest.slice(0, i), ...rest.slice(i + 1)], [...cur, x])) : [cur];
+  const target = new Set(lib.match(/../g));
+  for (const p of permute(S)) {
+    const m = Object.fromEntries(S.map((s, i) => [s, p[i]]));
+    if (user.match(/../g).every(c => target.has(c[0] + m[c[1]]))) return m;
+  }
+  return null;
+}
+const streetOf = (n) => ['Flop', 'Turn', 'River'][n.board.length - 3];
+
+async function reviewView() {
+  const el = $('#review');
+  if (BACKEND === 'wasm' && !libraryIndex) {
+    try { libraryIndex = await (await fetch('library/index.json')).json(); } catch {}
+  }
+  if (!review) return reviewFormView(el);
+  const r = review, n = r.node;
+  const shown = r.userBoard.slice(0, n.board.length);
+  let step = '';
+  if (r.needCard) {
+    step = '<p>A mão chegou ao <b>' + r.needCard + '</b>. Qual foi a carta?</p><div class="row-inline"><input id="rvCard" placeholder="ex.: 5d" style="max-width:120px"><button class="btn-primary" onclick="reviewCard()">Continuar</button></div>';
+  } else if (r.done) {
+    step = '<p class="pill">Fim da revisão.</p>' + (r.msg ? '<p class="hint">' + r.msg + '</p>' : '');
+  } else {
+    const mine = n.player === r.heroP, who = mine ? 'Você' : r.seats[n.player];
+    const colors = actionColors(n.actions);
+    step = '<p><b>' + streetOf(n) + '</b> · ' + (mine ? 'Sua vez: o que você fez?' : 'O que o ' + who + ' fez?') + '</p>' +
+      '<div class="actions">' + n.actions.map((a, i) => '<button style="--c:' + colors[i] + '" onclick="reviewAct(' + i + ')">' + actionLabel(a) + '</button>').join('') + '</div>';
+  }
+  const graded = r.decisions.filter(d => d.g);
+  const lost = graded.reduce((s, d) => s + d.loss, 0);
+  const decisions = r.decisions.length ? r.decisions.map(d => {
+    if (!d.g) return '<li class="rv-item"><b>' + d.street + ': ' + d.action + '</b><small>' + d.note + '</small></li>';
+    const [, label, cls] = gradeOf(d.g), colors = actionColors(d.actions);
+    return '<li class="rv-item"><div class="card-head" style="margin:0"><b>' + d.street + ': ' + d.action + '</b><span class="grade ' + cls + '" style="font-size:13px">' + label + (d.loss > 0.005 ? ' · −' + num(d.loss) + ' bb' : '') + '</span></div>' +
+      '<div class="summary" style="margin:6px 0">' + mixBar(d.freqs, colors) + '</div><small>' + d.actions.map((a, i) => (i === d.chosen ? '<b>' : '') + actionLabel(a) + ' ' + pct(d.freqs[i]) + ' (EV ' + num(d.evs[i]) + ')' + (i === d.chosen ? '</b>' : '')).join(' · ') + '</small>' +
+      '<small><a href="' + studyHash(d.at) + '">Ver este ponto no Estudar</a></small></li>';
+  }).join('') : '<p class="hint">As suas decisões aparecem aqui conforme você repete a mão.</p>';
+  el.innerHTML = '<div class="study-body"><div class="panel">' +
+    '<div class="overview"><span class="pill"><b>' + r.label + '</b></span><span class="pill">Você: <b>' + r.seats[r.heroP] + '</b> (' + r.heroP + ')</span></div>' +
+    '<div class="rv-table"><div><small>Board</small><div class="cards">' + shown.map(c => cardEl(c, true)).join('') + '</div></div>' +
+    '<div><small>Suas cartas</small><div class="cards">' + r.userCards.map(c => cardEl(c, true)).join('') + '</div></div>' +
+    '<div><small>Pote</small><b>' + num(n.pot) + ' bb</b></div></div>' + step +
+    (r.approx ? '<p class="hint">' + r.approx + '</p>' : '') +
+    '<div class="start" style="justify-content:flex-start"><button onclick="review=null;reviewView()">Nova mão</button>' + (r.history.length ? '<button onclick="reviewUndo()">Desfazer última ação</button>' : '') + '</div></div>' +
+    '<div class="panel"><div class="card-head"><h3>Suas decisões</h3>' + (graded.length ? '<span class="pill">EV perdido <b>' + num(lost) + ' bb</b></span>' : '') + '</div><ol class="rv-list">' + decisions + '</ol>' +
+    '<p class="hint">A nota segue a do Treinar: melhor (ação mais usada pelo GTO), correta (usada em 5% ou mais) ou, abaixo disso, pelo EV perdido. A estratégia é a do spot escolhido, com o bet size dele; se na mão real o tamanho foi outro, escolha a ação mais parecida.</p></div></div>';
+}
+
+function reviewFormView(el) {
+  const presets = libraryIndex ? [...new Set(libraryIndex.map(s => s.preset))] : [];
+  const open = status?.state === 'done';
+  if (!reviewForm.preset || (reviewForm.preset !== 'open' && !presets.includes(reviewForm.preset))) reviewForm.preset = presets[0] || 'open';
+  const t = TABLES[reviewForm.preset];
+  const seat = (p) => t ? (p === 'OOP' ? t.oopSeat : t.ipSeat) + ' (' + p + ')' : p;
+  const group = (g, l) => { const ps = presets.filter(p => PRESETS.find(x => x.name === p)?.group === g); return ps.length ? '<optgroup label="' + l + '">' + ps.map(p => '<option ' + (p === reviewForm.preset ? 'selected' : '') + '>' + p + '</option>').join('') + '</optgroup>' : ''; };
+  const input = (key, label, ph) => '<div><label>' + label + '</label><input value="' + esc(reviewForm[key]) + '" placeholder="' + ph + '" onchange="setReview(\'' + key + '\', this.value)"></div>';
+  el.innerHTML = '<div class="study-body"><div class="panel">' +
+    '<label style="margin-top:0">Situação</label><select onchange="setReview(\'preset\', this.value);reviewView()">' + group(MTT, 'Torneio') + group(CASH, 'Cash 100bb') +
+    (open ? '<option value="open" ' + (reviewForm.preset === 'open' ? 'selected' : '') + '>Solução aberta (Resolver)</option>' : '') + '</select>' +
+    '<label>Você jogou como</label><div class="seg">' + ['OOP', 'IP'].map(p => '<button class="' + (reviewForm.hero === p ? 'on' : '') + '" onclick="setReview(\'hero\', \'' + p + '\');reviewView()">' + seat(p) + '</button>').join('') + '</div>' +
+    '<div class="row2">' + input('cards', 'Suas cartas', 'ex.: AhQh') + input('flop', 'Flop', 'ex.: Tc8d3s') + '</div>' +
+    '<div class="row2">' + input('turn', 'Turn (se chegou)', 'ex.: 5d') + input('river', 'River (se chegou)', 'ex.: Kc') + '</div>' +
+    '<div class="start" style="justify-content:flex-start"><button class="btn-primary" onclick="startReview()">Começar a revisão</button></div><div id="rvError"></div></div>' +
+    '<div class="panel"><h3 style="margin-top:0">Como funciona</h3><ol class="log" style="font-size:13px;line-height:1.7">' +
+    '<li>Escolha a situação pré-flop mais parecida com a mão e a sua posição.</li>' +
+    '<li>Digite as suas cartas e o board. Se o flop não estiver na Biblioteca, dá para resolver o flop exato antes.</li>' +
+    '<li>Repita as ações da mão clicando no que cada jogador fez.</li>' +
+    '<li>Cada decisão sua recebe nota, com o mix do GTO e o EV perdido.</li></ol>' +
+    '<p class="hint">Revisar mãos depois de jogar é estudo. Usar durante a partida é proibido nos sites e nos torneios ao vivo.</p></div></div>';
+}
+
+async function startReview() {
+  const f = reviewForm, err = (m) => { $('#rvError').innerHTML = '<div class="error">' + m + '</div>'; };
+  const cards = parseCards(f.cards), flop = parseCards(f.flop);
+  const turn = f.turn.trim() ? parseCards(f.turn) : [], river = f.river.trim() ? parseCards(f.river) : [];
+  if (!cards || cards.length !== 2) return err('Digite as suas 2 cartas, por exemplo AhQh.');
+  if (!flop || flop.length !== 3) return err('Digite as 3 cartas do flop, por exemplo Tc8d3s.');
+  if (!turn || turn.length > 1 || !river || river.length > 1) return err('Turn e river têm uma carta cada (ou ficam vazios).');
+  if (river.length && !turn.length) return err('Para informar o river, informe também o turn.');
+  const all = [...cards, ...flop, ...turn, ...river];
+  if (new Set(all).size !== all.length) return err('Há cartas repetidas.');
+  const userBoard = [...flop, ...turn, ...river].map(cardName), board = flop.map(cardName).join('');
+  let map = { c: 'c', d: 'd', h: 'h', s: 's' }, label, seats;
+  try {
+    if (f.preset === 'open') {
+      const root = await api('/api/node', { history: [] });
+      if (root.board.length !== 3 || flopKey(root.board.join('')) !== flopKey(board)) return err('A solução aberta é de outro flop (' + root.board.join(' ') + ').');
+      map = suitPerm(board, root.board.join(''));
+      label = spot?.label || 'Solução aberta';
+    } else {
+      const spots = libraryIndex.filter(s => s.preset === f.preset);
+      const hit = spots.find(s => flopKey(s.board) === flopKey(board));
+      if (!hit) {
+        return err('Este flop não está na Biblioteca para esta situação. <a href="javascript:solveExact(reviewForm.preset, \'' + board + '\')">Resolver ' + board + '</a> e depois escolha "Solução aberta" aqui.');
+      }
+      toast('Abrindo o spot…');
+      try { await loadSpot(hit); } finally { toast(null); }
+      map = suitPerm(board, hit.board);
+      label = hit.preset;
+    }
+  } catch (e) { return err(e.message); }
+  const t = TABLES[f.preset];
+  seats = t ? { OOP: t.oopSeat, IP: t.ipSeat } : { OOP: 'OOP', IP: 'IP' };
+  const tr = (c) => c[0] + map[c[1]];
+  const combo = cards.map(cardName).map(tr).map(parseCard).sort((a, b) => b - a).map(cardName).join('');
+  review = { heroP: f.hero, seats, label, userCards: cards.map(cardName), userBoard, combo,
+    turn: turn.length ? tr(cardName(turn[0])) : null, river: river.length ? tr(cardName(river[0])) : null, map, history: [], decisions: [], node: null };
+  const root = await api('/api/node', { history: [] });
+  const range = root.ranges.find(x => x.player === f.hero);
+  if (!range?.combos.some(k => k.combo === combo && k.weight > 0)) {
+    review.approx = 'Atenção: pelos ranges desta situação o GTO não chegaria ao flop com essa mão nessa posição. As decisões aparecem, mas sem nota.';
+  }
+  await reviewStep();
+}
+
+async function reviewStep() {
+  const r = review;
+  r.needCard = null;
+  for (;;) {
+    const n = await api('/api/node', { history: r.history });
+    r.node = n;
+    if (n.type === 'terminal') { r.done = true; break; }
+    if (n.type === 'chance') {
+      const want = n.board.length === 3 ? r.turn : r.river;
+      if (!want) { r.needCard = n.board.length === 3 ? 'turn' : 'river'; break; }
+      const c = n.cards.find(x => x.card === want);
+      if (!c || !c.possible) { r.done = true; r.msg = 'A carta ' + want + ' não é possível aqui.'; break; }
+      r.history.push(c.id);
+      continue;
+    }
+    break;
+  }
+  reviewView();
+}
+
+function reviewCard() {
+  const c = parseCards($('#rvCard').value);
+  if (!c || c.length !== 1) return;
+  const name = cardName(c[0]);
+  if (review.userBoard.includes(name) || review.userCards.includes(name)) return;
+  review.userBoard.push(name);
+  const t = name[0] + review.map[name[1]];
+  if (review.needCard === 'turn') review.turn = t; else review.river = t;
+  reviewStep();
+}
+
+async function reviewAct(a) {
+  const r = review, n = r.node;
+  if (n.player === r.heroP) {
+    const k = findCombo(n, r.combo);
+    const base = { street: streetOf(n), action: actionLabel(n.actions[a]), at: [...r.history] };
+    if (k) r.decisions.push({ ...base, ...grade(k, a, n.pot), freqs: k.freqs, evs: k.evs, actions: n.actions, chosen: a });
+    else r.decisions.push({ ...base, g: null, note: 'Sem nota: a sua mão já não está na linha do GTO neste ponto.' });
+  }
+  r.history.push(a);
+  await reviewStep();
+}
+
+async function reviewUndo() {
+  const r = review;
+  // volta até a última ação de jogador (cartas dealt pelo próprio fluxo também saem)
+  while (r.history.length) {
+    r.history.pop();
+    const n = await api('/api/node', { history: r.history });
+    if (n.type === 'action') {
+      if (n.player === r.heroP && r.decisions.length && r.decisions.at(-1).at.length === r.history.length) r.decisions.pop();
+      break;
+    }
+  }
+  r.done = false; r.msg = null;
+  r.node = await api('/api/node', { history: r.history });
+  r.needCard = null;
+  reviewView();
 }
 
 // ---------- instalar como app ----------
