@@ -1993,7 +1993,8 @@ async function pfTrainView() {
 // ---------- sincronização entre aparelhos ----------
 // Um código aleatório liga os aparelhos, sem login. O Supabase guarda os dados pelo hash do código
 // (deploy/supabase/sync.sql). Histórico e resultados se juntam; os drills ficam com a versão mais nova.
-const SYNC = { url: '', key: '' };
+// Projeto Supabase do GTO Studio; a chave publishable é pública por natureza e só chama sync_get/sync_put.
+const SYNC = { url: 'https://maqfbjjfurikflhodbzo.supabase.co', key: 'sb_publishable_UyLcLs_tfnGyzLAnruKPbw_hscvYYuH' };
 const SYNC_KEYS = ['gto-treino-historico', 'gto-drills', 'gto-drills-resultados', 'gto-historico-limpo'];
 let syncTimer = null, syncing = false, syncState = '';
 const syncCode = () => SYNC.url ? store.get('gto-sync-code', null) : null;
