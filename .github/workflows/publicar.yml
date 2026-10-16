@@ -3,7 +3,7 @@
 #   1. roda os testes;
 #   2. resolve os spots da biblioteca, um preset por máquina, em paralelo (com cache: só
 #      recalcula o que ainda não existe; para refazer tudo, aumente "version" em spots.json);
-#   3. compila o site (WebAssembly) e publica no Hugging Face Space.
+#   3. gera a tabela de equity pré-flop do Push/fold (com cache), compila o site (WebAssembly) e publica no Hugging Face Space.
 # Requer o secret HF_TOKEN (token "Write" do Hugging Face) em Settings > Secrets and variables > Actions.
 name: Publicar site
 
@@ -93,6 +93,12 @@ jobs:
           pattern: spots-*
           path: partes
       - run: node deploy/library/merge.mjs partes library
+      - uses: actions/cache@v4
+        with:
+          path: pushfold
+          key: pushfold-${{ hashFiles('deploy/pushfold/equity.mjs') }}
+      - name: Tabela de equity do Push/fold
+        run: test -f pushfold/equity.bin || node deploy/pushfold/equity.mjs pushfold/equity.bin 20000
       - name: Ferramentas WebAssembly
         run: |
           rustup target add wasm32-unknown-unknown

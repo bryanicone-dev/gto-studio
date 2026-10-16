@@ -10,6 +10,7 @@ rm -rf dist
 wasm-bindgen --target web --no-typescript --out-dir dist/pkg web/target/wasm32-unknown-unknown/release/gto_studio_web.wasm
 sed "s/const BACKEND = 'server';/const BACKEND = 'wasm';/" static/index.html > dist/index.html
 grep -q "const BACKEND = 'wasm';" dist/index.html || { echo "marcador BACKEND não encontrado" >&2; exit 1; }
-cp static/worker.js dist/
+cp static/worker.js static/sw.js static/manifest.json static/icon.svg dist/
+if [ -f pushfold/equity.bin ]; then cp pushfold/equity.bin dist/pushfold-equity.bin; fi
 if [ -f library/index.json ]; then cp -r library dist/library; fi
 echo "Pronto: dist/ ($(du -sh dist | cut -f1))"

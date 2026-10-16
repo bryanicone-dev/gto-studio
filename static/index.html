@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GTO Studio</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#d42a3c">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
   :root {
     --bg: #f6f6f7; --panel: #ffffff; --ink: #1d1f24; --muted: #6c707a; --line: #e2e3e7;
@@ -227,6 +232,13 @@
   .report .summary { margin: 0; min-width: 110px; }
   .report tr[onclick] { cursor: pointer; }
   .report tr[onclick]:hover { background: var(--empty); }
+  .pf-pos { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 16px 0; }
+  .pf-pos button.on { border-color: var(--primary); color: var(--primary); }
+  .pf-setup .seg { margin-top: 2px; }
+  .grid.pf .cell { cursor: default; }
+  .install-btn { margin-left: 8px; font-size: 12px; padding: 4px 10px; border-color: var(--primary); color: var(--primary); white-space: nowrap; }
+  .search { margin-bottom: 18px; }
+  .search .row-inline select { width: auto; max-width: 100%; }
   @media (max-width: 640px) { .report th:nth-child(2), .report td:nth-child(2) { display: none; } .row3 { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -238,11 +250,13 @@
     <a href="#/resolver" data-route="resolver">Resolver</a>
     <a href="#/estudar" data-route="estudar">Estudar</a>
     <a href="#/treinar" data-route="treinar">Treinar</a>
+    <a href="#/pushfold" data-route="pushfold">Push/fold</a>
     <a href="#/biblioteca" data-route="biblioteca">Biblioteca</a>
     <a href="#/calculadoras" data-route="calculadoras">Calculadoras</a>
   </nav>
   <a class="status" id="statusPill" href="#/resolver">Solver livre</a>
   <button class="keys-btn" onclick="$('#keys').showModal()" title="Atalhos de teclado">?</button>
+  <button class="install-btn" id="installBtn" hidden onclick="installApp()">Instalar app</button>
 </header>
 
 <!-- Início -->
@@ -275,6 +289,11 @@
       <h3>Biblioteca</h3>
       <p>Spots de torneio já resolvidos: abrem na hora. O turn e o river são calculados quando você escolhe a carta.</p>
     </a>
+    <a class="tile" href="#/pushfold">
+      <span class="ico">⇪</span><span class="tag ok">Disponível</span>
+      <h3>Push/fold</h3>
+      <p>Stack curto em torneio: quando dar all-in e quando pagar, pelo Nash em fichas ou com ICM. Com treino.</p>
+    </a>
     <a class="tile" href="#/treinar/drills">
       <span class="ico">☰</span><span class="tag ok">Disponível</span>
       <h3>Drills</h3>
@@ -298,6 +317,7 @@
     <div class="tile soon"><span class="ico">⌕</span><span class="tag">Em breve</span><h3>Analisar mãos</h3><p>Importe seu hand history e compare suas jogadas com a estratégia GTO.</p></div>
   </div>
   <div id="homeStats"></div>
+  <p class="hint" id="iosHint" hidden>Para usar como app no iPhone: no Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".</p>
   <div class="machine">
     <div class="panel stat"><small id="mTotalLabel">Memória total</small><b id="mTotal">—</b></div>
     <div class="panel stat"><small id="mFreeLabel">Livre para o solver</small><b id="mFree">—</b></div>
@@ -384,6 +404,14 @@
   <div id="library"></div>
 </section>
 
+<!-- Push/fold -->
+<section class="page" data-page="pushfold" hidden>
+  <h2>Push/fold</h2>
+  <p class="sub">Stack curto em torneio: quando dar all-in e quando pagar o all-in, pelo equilíbrio de Nash em fichas ou com ICM.</p>
+  <div id="pfTabs"></div>
+  <div id="pf"></div>
+</section>
+
 <!-- Calculadoras -->
 <section class="page" data-page="calculadoras" hidden>
   <h2>Calculadoras</h2>
@@ -400,6 +428,7 @@
   <tr><td><kbd>R</kbd></td><td>Estudar: alternar Estratégia e Ranges</td></tr>
   <tr><td><kbd>Esc</kbd></td><td>Estudar: limpar filtros e a mão selecionada</td></tr>
   <tr><td><kbd>Enter</kbd> <kbd>Espaço</kbd></td><td>Treinar: começar, próxima mão ou confirmar o mix</td></tr>
+  <tr><td><kbd>1</kbd> <kbd>2</kbd></td><td>Push/fold: shove ou call · fold</td></tr>
   <tr><td><kbd>?</kbd></td><td>Mostrar esta lista</td></tr>
 </table><form method="dialog"><button class="btn-primary">Fechar</button></form></dialog>
 
@@ -507,7 +536,7 @@ const subTabs = (base, items) => `<div class="tabs">${items.map(([k, l]) =>
   `<button class="${sub === k ? 'on' : ''}" onclick="location.hash='${base}${k ? '/' + k : ''}'">${l}</button>`).join('')}</div>`;
 function route() {
   const [page0, hist] = location.hash.replace(/^#\/?/, '').split('/');
-  const page = ['', 'resolver', 'estudar', 'treinar', 'biblioteca', 'calculadoras'].includes(page0) ? page0 : '';
+  const page = ['', 'resolver', 'estudar', 'treinar', 'pushfold', 'biblioteca', 'calculadoras'].includes(page0) ? page0 : '';
   curPage = page;
   sub = page === 'estudar' ? '' : hist || '';
   document.querySelectorAll('[data-page]').forEach(s => s.hidden = s.dataset.page !== page);
@@ -524,6 +553,10 @@ function route() {
   if (page === 'biblioteca') {
     $('#libTabs').innerHTML = subTabs('#/biblioteca', [['', 'Spots'], ['relatorios', 'Relatórios']]);
     if (sub === 'relatorios') reportsView(); else libraryView();
+  }
+  if (page === 'pushfold') {
+    $('#pfTabs').innerHTML = subTabs('#/pushfold', [['', 'Tabelas'], ['treinar', 'Treinar']]);
+    pushfoldView();
   }
   if (page === 'calculadoras') {
     $('#calcTabs').innerHTML = subTabs('#/calculadoras', [['', 'Equity'], ['icm', 'ICM']]);
@@ -954,7 +987,7 @@ async function libraryView() {
     return;
   }
   const groups = [...new Set(libraryIndex.map(s => s.preset))];
-  el.innerHTML = groups.map(g => `<div class="lib-group"><h4>${g}</h4><div class="lib-grid">${libraryIndex
+  el.innerHTML = searchHtml(groups) + groups.map(g => `<div class="lib-group"><h4>${g}</h4><div class="lib-grid">${libraryIndex
     .filter(s => s.preset === g)
     .map(s => `<button class="lib-item" onclick="openSpot('${s.id}')">
       <div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div>
@@ -971,6 +1004,50 @@ async function loadSpot(s) {
     memory_gb: s.bytes / 2 ** 30, compressed: true, cancelled: false, error: '',
   });
   status = await api('/api/status');
+}
+
+// Flops iguais a menos da troca de naipes têm a mesma estratégia; sem um igual, sugere os de textura mais próxima.
+function flopKey(board) {
+  const cards = board.match(/../g).map(c => ({ r: RANK_CH.indexOf(c[0].toUpperCase()), s: c[1].toLowerCase() }));
+  return [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]].map(p => p.map(i => cards[i]))
+    .filter(p => p[0].r >= p[1].r && p[1].r >= p[2].r)
+    .map(p => { const m = {}; return p.map(c => RANK_CH[c.r] + (m[c.s] ??= 'xyz'[Object.keys(m).length])).join(''); })
+    .sort()[0];
+}
+function flopDistance(a, b) {
+  const f = (board) => {
+    const cards = board.match(/../g), r = cards.map(c => RANK_CH.indexOf(c[0].toUpperCase())).sort((x, y) => y - x);
+    return { r, suits: new Set(cards.map(c => c[1].toLowerCase())).size, paired: new Set(r).size < 3 };
+  };
+  const A = f(a), B = f(b);
+  return 2 * Math.abs(A.r[0] - B.r[0]) + Math.abs(A.r[1] - B.r[1]) + Math.abs(A.r[2] - B.r[2]) + 6 * (A.suits !== B.suits) + 10 * (A.paired !== B.paired);
+}
+let findPreset = null;
+function searchHtml(groups) {
+  findPreset ??= groups[0];
+  return `<div class="panel search"><h4>Achar o flop de uma mão sua</h4><div class="row-inline">
+    <select id="findPreset" onchange="findPreset=this.value">${groups.map(g => `<option ${g === findPreset ? 'selected' : ''}>${g}</option>`).join('')}</select>
+    <input id="findBoard" placeholder="Flop, ex.: Tc8d3s" onkeydown="if(event.key==='Enter')findFlop()"><button class="btn-primary" onclick="findFlop()">Buscar</button></div>
+    <div id="findOut"></div></div>`;
+}
+function findFlop() {
+  const cards = parseCards($('#findBoard').value), preset = $('#findPreset').value;
+  if (!cards || cards.length !== 3) { $('#findOut').innerHTML = '<div class="error">Digite as 3 cartas do flop, por exemplo Tc8d3s.</div>'; return; }
+  const board = cards.map(cardName).join(''), key = flopKey(board);
+  const spots = libraryIndex.filter(s => s.preset === preset);
+  const exact = spots.find(s => flopKey(s.board) === key);
+  const near = exact ? [] : spots.map(s => ({ s, d: flopDistance(board, s.board) })).sort((a, b) => a.d - b.d).slice(0, 3).map(x => x.s);
+  const item = (s) => `<button class="lib-item" onclick="openSpot('${s.id}')"><div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div><small>${texture(s.board)}</small></button>`;
+  $('#findOut').innerHTML = (exact
+    ? `<p>Este flop está na Biblioteca${exact.board === board ? '' : ' (mesma estratégia, só muda o naipe)'}:</p><div class="lib-grid">${item(exact)}</div>`
+    : `<p>Este flop exato não está na Biblioteca. Os mais parecidos (aproximação):</p><div class="lib-grid">${near.map(item).join('')}</div>`)
+    + `<p class="hint">Quer o flop exato? <a href="javascript:solveExact(${JSON.stringify(preset).replace(/"/g, '&quot;')}, '${board}')">Resolver ${board} neste spot</a> — no navegador, de alguns segundos a poucos minutos.</p>`;
+}
+function solveExact(presetName, board) {
+  const i = PRESETS.findIndex(p => p.name === presetName);
+  if (i >= 0) { $('#preset').value = i; applyPreset(i); }
+  $('#form').board.value = board;
+  location.hash = '#/resolver';
 }
 
 async function openSpot(id) {
@@ -1684,6 +1761,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { selected = null; return clearFilters(); }
     if ((e.key === 'r' || e.key === 'R') && node.type === 'action') return setTab(tab === 'ranges' ? 'strategy' : 'ranges');
   }
+  if (curPage === 'pushfold' && sub === 'treinar' && pfQuiz) {
+    if (!pfQuiz.answer && (e.key === '1' || e.key === '2')) return pfAnswer(e.key === '1');
+    if (pfQuiz.answer && (e.key === 'Enter' || e.key === ' ') && !['BUTTON', 'A'].includes(e.target.tagName)) { e.preventDefault(); pfQuiz = null; return pfTrainView(); }
+  }
   if (curPage === 'treinar' && !sub) {
     if (d != null && prefs.mode !== 'freq' && trainer && !trainer.over && d < trainer.node.actions.length) return heroAct(d);
     // Enter/Espaço num botão focado já clicam nele; só trata quando o foco está fora.
@@ -1693,6 +1774,224 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// ---------- push/fold ----------
+// Equilíbrio de shove/fold pré-flop com stacks curtos: quem abre só dá all-in ou fold; quem está atrás paga ou
+// folda. Simplificações: só o primeiro a pagar entra (sem overcall) e, se o shover foldar, o BB leva o pote.
+// A equity entre classes vem de pushfold-equity.bin (gerado no CI por deploy/pushfold/equity.mjs).
+const PF_POS = ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+const PF_HANDS = Array.from({ length: 169 }, (_, k) => {
+  const R = 'AKQJT98765432', r = Math.floor(k / 13), c = k % 13;
+  return r === c ? R[r] + R[r] : r < c ? R[r] + R[c] + 's' : R[c] + R[r] + 'o';
+});
+const pfCombosOf = (k) => {
+  const r = Math.floor(k / 13), c = k % 13, hi = 12 - Math.min(r, c), lo = 12 - Math.max(r, c), out = [];
+  for (let s1 = 0; s1 < 4; s1++) for (let s2 = 0; s2 < 4; s2++) {
+    if (r === c ? s2 <= s1 : r < c ? s1 !== s2 : s1 === s2) continue;
+    out.push([hi * 4 + s1, lo * 4 + s2]);
+  }
+  return out;
+};
+let pfEq = null, pfPairs = null;
+
+async function pfLoad() {
+  if (pfEq) return;
+  const buf = await (await fetch('pushfold-equity.bin')).arrayBuffer();
+  pfEq = Float32Array.from(new Uint16Array(buf), x => x / 65535);
+  // Quantos pares de combos sem carta repetida existem entre duas classes (efeito de remoção de cartas).
+  const combos = PF_HANDS.map((_, k) => pfCombosOf(k));
+  pfPairs = new Float32Array(169 * 169);
+  for (let i = 0; i < 169; i++) for (let j = 0; j < 169; j++) {
+    let n = 0;
+    for (const a of combos[i]) for (const b of combos[j]) if (a[0] !== b[0] && a[0] !== b[1] && a[1] !== b[0] && a[1] !== b[1]) n++;
+    pfPairs[i * 169 + j] = n;
+  }
+}
+
+// s: { n, stacks (bb, na ordem das posições), ante (bb, pago pelo BB), prizes (null = fichas), pusher }
+function pfSolve(s, iterations = 400) {
+  const pos = PF_POS.slice(9 - s.n);
+  const p = pos.indexOf(s.pusher), bb = pos.length - 1, sb = pos.length - 2;
+  const live = pos.map((_, i) => i === bb ? 1 : i === sb ? 0.5 : 0);
+  const cap = s.stacks.map((x, i) => i === bb ? x - s.ante : x);          // fichas que entram em jogo
+  const base = cap.map((x, i) => x - live[i]);                            // fichas atrás depois dos blinds
+  const pot0 = 1.5 + s.ante;
+  const value = (stacks, i) => s.prizes ? icm(stacks, s.prizes)[i] : stacks[i];
+  const after = (f) => { const v = [...base]; f(v); return v; };
+  const steal = after(v => v[p] += pot0);
+  const pFold = value(after(v => v[bb] += pot0), p), pSteal = value(steal, p);
+  const callers = pos.map((_, q) => q).filter(q => q > p).map(q => {
+    const eff = Math.min(cap[p], cap[q]), pot = pot0 + (eff - live[p]) + (eff - live[q]);
+    const pWins = after(v => { v[p] += pot - (eff - live[p]); v[q] -= eff - live[q]; });
+    const qWins = after(v => { v[q] += pot - (eff - live[q]); v[p] -= eff - live[p]; });
+    return { q, pWin: value(pWins, p), pLose: value(qWins, p), qWin: value(qWins, q), qLose: value(pWins, q), qFold: value(steal, q), call: new Float64Array(169).fill(0.5), ev: new Float64Array(169) };
+  });
+  const push = new Float64Array(169).fill(0.5), pushEv = new Float64Array(169);
+  const E = pfEq, N = pfPairs;
+  for (let t = 1; t <= iterations; t++) {
+    const w = 1 / (t + 1);
+    // Quem está atrás responde ao range de shove atual.
+    for (const c of callers) for (let h = 0; h < 169; h++) {
+      let num = 0, den = 0;
+      for (let j = 0; j < 169; j++) { const x = push[j] * N[h * 169 + j]; num += x * E[h * 169 + j]; den += x; }
+      const eq = den ? num / den : 0;
+      c.ev[h] = eq * c.qWin + (1 - eq) * c.qLose - c.qFold;
+      c.call[h] += ((c.ev[h] > 0 ? 1 : 0) - c.call[h]) * w;
+    }
+    // O shover responde aos ranges de call.
+    for (let h = 0; h < 169; h++) {
+      let reach = 1, ev = 0;
+      for (const c of callers) {
+        let num = 0, den = 0, all = 0;
+        for (let j = 0; j < 169; j++) { const n = N[h * 169 + j], x = c.call[j] * n; num += x * E[h * 169 + j]; den += x; all += n; }
+        const pc = all ? den / all : 0, eq = den ? num / den : 0;
+        ev += reach * pc * (eq * c.pWin + (1 - eq) * c.pLose);
+        reach *= 1 - pc;
+      }
+      pushEv[h] = ev + reach * pSteal - pFold;
+      push[h] += ((pushEv[h] > 0 ? 1 : 0) - push[h]) * w;
+    }
+  }
+  const share = (r) => PF_HANDS.reduce((sum, _, k) => sum + r[k] * pfCombosOf(k).length, 0) / 1326;
+  return { pos, push, pushEv, pushPct: share(push), callers: callers.map(c => ({ pos: pos[c.q], call: c.call, ev: c.ev, pct: share(c.call) })), money: !!s.prizes };
+}
+
+
+const pfPrefs = { n: 9, stack: 10, ante: 1, mode: 'chips', stacks: '', prizes: '30\n20\n14\n10\n8\n6\n5\n4\n3', pusher: 'BTN', caller: 'BB', ...store.get('gto-pushfold', {}) };
+const pfCache = new Map();
+function pfScenario() {
+  const p = pfPrefs, pos = PF_POS.slice(9 - p.n);
+  let stacks = pos.map(() => p.stack);
+  if (p.mode === 'icm') {
+    const custom = p.stacks.split(/[\n;]+/).map(x => parseFloat(x.replace(',', '.'))).filter(x => x > 0);
+    if (custom.length === p.n) stacks = custom;
+  }
+  const prizes = p.mode === 'icm' ? p.prizes.split(/[\n;]+/).map(x => parseFloat(x.replace(/\./g, '').replace(',', '.'))).filter(x => x >= 0) : null;
+  return { n: p.n, stacks, ante: p.ante, prizes: prizes?.length ? prizes : null, pusher: pos.includes(p.pusher) && p.pusher !== 'BB' ? p.pusher : pos[pos.length - 2] };
+}
+function pfRun(s) {
+  const key = JSON.stringify(s);
+  if (!pfCache.has(key)) { pfCache.set(key, pfSolve(s)); if (pfCache.size > 40) pfCache.delete(pfCache.keys().next().value); }
+  return pfCache.get(key);
+}
+
+function pfGrid(freqs, evs, money, mark) {
+  const unit = money ? '' : ' bb';
+  return `<div class="grid pf">${PF_HANDS.map((h, k) => `<div class="cell ${mark === k ? 'sel' : ''}" title="${h}: ${pct(freqs[k])} · EV ${sign(evs[k])}${unit} contra o fold">
+    <div class="fill" style="height:100%;background:color-mix(in srgb, var(--primary) ${Math.round(100 * freqs[k])}%, var(--empty))"></div><span class="lbl">${h}</span></div>`).join('')}</div>`;
+}
+
+function setPf(key, value) { pfPrefs[key] = value; store.set('gto-pushfold', pfPrefs); pushfoldView(); }
+
+async function pushfoldView() {
+  if (sub === 'treinar') return pfTrainView();
+  const el = $('#pf');
+  el.innerHTML = '<div class="empty"><p>Calculando…</p></div>';
+  try { await pfLoad(); } catch { el.innerHTML = '<div class="error">Não foi possível carregar a tabela de equity pré-flop.</div>'; return; }
+  await new Promise(r => setTimeout(r, 20));
+  const s = pfScenario(), pos = PF_POS.slice(9 - s.n);
+  const r = pfRun(s);
+  const caller = r.callers.find(c => c.pos === pfPrefs.caller) || r.callers.at(-1);
+  const modeBtn = (v, l) => `<button class="${pfPrefs.mode === v ? 'on' : ''}" onclick="setPf('mode', '${v}')">${l}</button>`;
+  el.innerHTML = `<div class="panel pf-setup">
+      <div class="row3">
+        <div><label>Jogadores na mesa</label><select onchange="setPf('n', Number(this.value))">${[2, 3, 4, 5, 6, 7, 8, 9].map(n => `<option ${n === s.n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div><label>Stack de todos (bb)</label><input type="number" min="1" max="40" step="0.5" value="${pfPrefs.stack}" onchange="setPf('stack', Math.max(1, parseFloat(this.value) || 10))"></div>
+        <div><label>Ante pago pelo BB (bb)</label><input type="number" min="0" max="5" step="0.125" value="${pfPrefs.ante}" onchange="setPf('ante', Math.max(0, parseFloat(this.value) || 0))"></div>
+      </div>
+      <label>Cálculo</label><div class="seg">${modeBtn('chips', 'Fichas (Nash)')}${modeBtn('icm', 'ICM (premiação)')}</div>
+      ${pfPrefs.mode === 'icm' ? `<div class="row2"><div><label>Stacks de ${pos[0]} até BB (bb, um por linha; vazio = todos iguais)</label>
+        <textarea onchange="setPf('stacks', this.value)" placeholder="${pos.map(() => pfPrefs.stack).join('&#10;')}">${esc(pfPrefs.stacks)}</textarea></div>
+        <div><label>Prêmios que faltam pagar (um por linha)</label><textarea onchange="setPf('prizes', this.value)">${esc(pfPrefs.prizes)}</textarea></div></div>
+        <p class="hint">Com ICM as decisões são em dinheiro: quem paga fica mais apertado e o shove fica mais largo, principalmente perto da bolha e na mesa final.</p>` : ''}
+    </div>
+    <div class="pf-pos"><span class="pill">Shove de</span>${pos.slice(0, -1).map(p => `<button class="${p === s.pusher ? 'on' : ''}" onclick="setPf('pusher', '${p}')">${p}</button>`).join('')}</div>
+    <div class="ranges">
+      <div><div class="range-head"><b>${s.pusher}: shove ${pct(r.pushPct)}</b><span class="pill">todos foldaram até ele</span></div>${pfGrid(r.push, r.pushEv, r.money)}</div>
+      <div><div class="range-head"><b>${caller.pos}: call ${pct(caller.pct)}</b>
+        <select style="width:auto" onchange="setPf('caller', this.value)">${r.callers.map(c => `<option ${c === caller ? 'selected' : ''} value="${c.pos}">${c.pos} paga ${pct(c.pct)}</option>`).join('')}</select></div>
+        ${pfGrid(caller.call, caller.ev, r.money)}</div>
+    </div>
+    <p class="hint">Vermelho: shove (ou call) sempre; claro: fold; intermediário: mix. Toque ou passe o mouse numa mão para ver o EV contra o fold${r.money ? ' (em dinheiro, pela premiação)' : ' (em bb)'}.
+    Simplificações: só o primeiro a pagar entra no pote e o resto folda; o ante é o do BB, formato atual dos torneios.</p>`;
+}
+
+// Treino: decisão de shove ou de call com mão sorteada, stack de 5 a 20 bb e posição aleatória (cálculo em fichas).
+let pfQuiz = null;
+async function pfNewQuiz() {
+  await pfLoad();
+  const n = pfPrefs.n, pos = PF_POS.slice(9 - n);
+  const stack = 5 + Math.floor(Math.random() * 16);
+  const pusher = pos[Math.floor(Math.random() * (pos.length - 1))];
+  const s = { n, stacks: pos.map(() => stack), ante: pfPrefs.ante, prizes: null, pusher };
+  const r = pfRun(s);
+  const caller = Math.random() < 0.4 ? r.callers[Math.floor(Math.random() * r.callers.length)] : null;
+  // Duas cartas sorteadas e a classe delas na grade (linha/coluna 0 = A; acima da diagonal suited).
+  const a = Math.floor(Math.random() * 52);
+  let b = Math.floor(Math.random() * 51); if (b >= a) b++;
+  const hi = Math.max(a >> 2, b >> 2), lo = Math.min(a >> 2, b >> 2), row = 12 - hi, col = 12 - lo;
+  const k = hi === lo ? row * 13 + row : (a & 3) === (b & 3) ? row * 13 + col : col * 13 + row;
+  const combo = [a, b].sort((x, y) => y - x).map(cardName).join('');
+  pfQuiz = { s, r, caller, k, combo, stack, answer: null };
+  pfTrainView();
+}
+function pfAnswer(go) {
+  const q = pfQuiz;
+  if (!q || q.answer) return;
+  const freq = q.caller ? q.caller.call[q.k] : q.r.push[q.k];
+  const ev = q.caller ? q.caller.ev[q.k] : q.r.pushEv[q.k];   // EV de ir (shove/call) menos o de foldar, em bb
+  const loss = go ? Math.max(0, -ev) : Math.max(0, ev);
+  const g = (go ? freq >= 0.5 : freq < 0.5) ? 'best' : freq > 0.1 && freq < 0.9 ? 'correct' : loss < 0.1 ? 'inacc' : loss < 0.5 ? 'mistake' : 'blunder';
+  q.answer = { g, loss, freq, ev };
+  const where = q.caller ? `${q.caller.pos} vs shove do ${q.s.pusher}` : `shove do ${q.s.pusher}`;
+  handLog = [...handLog, { t: Date.now(), spot: `Push/fold · ${where} · ${q.stack} bb`, hero: q.caller ? q.caller.pos : q.s.pusher, combo: q.combo, villain: '', grades: [g], ev: loss }].slice(-500);
+  store.set('gto-treino-historico', handLog);
+  pfTrainView();
+}
+
+async function pfTrainView() {
+  const el = $('#pf');
+  if (!pfQuiz) {
+    el.innerHTML = '<div class="empty"><p>Sorteando uma mão…</p></div>';
+    try { await pfNewQuiz(); } catch { el.innerHTML = '<div class="error">Não foi possível carregar a tabela de equity pré-flop.</div>'; }
+    return;
+  }
+  const q = pfQuiz;
+  const mine = handLog.filter(x => x.spot.startsWith('Push/fold'));
+  const st = summarize(mine.filter(x => x.t >= sessionStart)), all = summarize(mine);
+  const goLabel = q.caller ? 'Call' : 'Shove';
+  const situation = q.caller
+    ? `O <b>${q.s.pusher}</b> deu all-in de ${q.stack} bb e os outros foldaram. Você está no <b>${q.caller.pos}</b>.`
+    : `Todos foldaram até você no <b>${q.s.pusher}</b>.`;
+  let html = `<div class="trainer"><div class="panel table">
+    <div class="pill">${q.s.n} jogadores · todos com <b>${q.stack} bb</b> · ante ${num(q.s.ante)} bb no BB · cálculo em fichas</div>
+    <p style="margin:16px 0 6px">${situation}</p><div class="cards">${comboCards(q.combo, true)}</div>
+    <div class="actions" style="justify-content:center;margin-top:14px">
+      <button style="--c:var(--allin)" onclick="pfAnswer(true)" ${q.answer ? 'disabled' : ''}><kbd>1</kbd>${goLabel}</button>
+      <button style="--c:var(--fold)" onclick="pfAnswer(false)" ${q.answer ? 'disabled' : ''}><kbd>2</kbd>Fold</button></div>`;
+  if (q.answer) {
+    const a = q.answer, [, label, cls] = gradeOf(a.g);
+    html += `<div class="feedback"><div class="grade ${cls}">${label}${a.loss > 0.005 ? ` · −${num(a.loss)} bb` : ''}</div>
+      <div>Nash: ${goLabel.toLowerCase()} com ${PF_HANDS[q.k]} em ${pct(a.freq)} das vezes · EV do ${goLabel.toLowerCase()} contra o fold: ${sign(a.ev)} bb.</div>
+      <div style="margin-top:10px">${pfGrid(q.caller ? q.caller.call : q.r.push, q.caller ? q.caller.ev : q.r.pushEv, false, q.k)}</div></div>
+      <button class="btn-primary" style="margin-top:12px" onclick="pfQuiz=null;pfTrainView()">Próxima mão<kbd>Enter</kbd></button>`;
+  }
+  html += `</div><div class="side"><div class="panel"><h4>Push/fold</h4><div class="stats three">
+    <span></span><span><b>Sessão</b></span><span><b>Geral</b></span>
+    <span>Mãos</span><span>${st.hands}</span><span>${all.hands}</span>
+    <span>Acerto</span><span>${st.decisions ? pct(st.good / st.decisions) : '—'}</span><span>${all.decisions ? pct(all.good / all.decisions) : '—'}</span>
+    <span>EV perdido</span><span>${num(st.evLost)} bb</span><span>${num(all.evLost)} bb</span></div>
+    <p class="hint">Mesa e ante vêm da aba Tabelas (${pfPrefs.n} jogadores, ante ${num(pfPrefs.ante)} bb). O stack é sorteado entre 5 e 20 bb.
+    Melhor: a ação do Nash. Correta: mão em mix. Errando, a nota depende do EV perdido (imprecisa &lt; 0,1 bb, erro &lt; 0,5 bb).</p></div></div></div>`;
+  el.innerHTML = html;
+}
+
+// ---------- instalar como app ----------
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('#installBtn').hidden = false; });
+function installApp() { installPrompt?.prompt(); installPrompt = null; $('#installBtn').hidden = true; }
+if (BACKEND === 'wasm' && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+$('#iosHint').hidden = !(/iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone);
 
 if (BACKEND === 'wasm') {
   $('#mTotalLabel').textContent = 'Memória do aparelho';

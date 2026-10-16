@@ -18,5 +18,5 @@
     "BB 3-bet vs BTN call (pote 3-bet)",
     "BTN 3-bet vs CO call (pote 3-bet)"
   ],
-  "boards": ["As7d2c", "Kh9s4d", "QsJs4h", "9h8h7c", "7s7d2c", "6h4h2h"]
+  "boards": ["As7d2c", "AhKd5c", "AdQs9s", "Ac5d3h", "Kh9s4d", "KsQd7h", "Kd8d3c", "KcTh9s", "KhKc8d", "KsTs5s", "QsJs4h", "QhTd8c", "Qc6c2d", "JdTc4s", "Js8h6h", "JhJd5c", "Jc9c7c", "Th7c3d", "Ts6s2d", "9h8h7c", "9d9s4h", "8c5d3s", "7s7d2c", "7h6d4c", "6h4h2h"]
 }

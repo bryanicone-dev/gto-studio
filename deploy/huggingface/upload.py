@@ -16,7 +16,7 @@ HfApi(token=token).upload_folder(
     repo_id=os.environ["HF_SPACE"],
     repo_type="space",
     folder_path="dist",
-    delete_patterns=["*.html", "*.js", "pkg/**", "library/**"],
+    delete_patterns=["*.html", "*.js", "*.json", "*.svg", "*.bin", "pkg/**", "library/**"],
     commit_message=f"Publicar GTO Studio ({os.environ.get('GITHUB_SHA', 'local')[:7]})",
 )
 print(f"Publicado em https://huggingface.co/spaces/{os.environ['HF_SPACE']}")
