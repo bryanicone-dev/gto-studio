@@ -451,6 +451,49 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }
+
+  /* Treino no arranjo do Wizard: drills | mesa | ícones e painéis; durante a mão, controles à esquerda */
+  .play2 { display: grid; grid-template-columns: 240px minmax(0, 1fr) auto; gap: 16px; align-items: start; }
+  .play2.playing { grid-template-columns: 54px minmax(0, 1fr) auto; }
+  .drills-side { padding: 12px; position: sticky; top: 72px; }
+  .rail { display: flex; flex-direction: column; gap: 6px; padding: 7px; position: sticky; top: 72px; }
+  .rail button, .rail a { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; border: 1px solid transparent; background: none; color: var(--muted); font-size: 16px; text-decoration: none; padding: 0; }
+  .rail button:hover, .rail a:hover { background: var(--empty); color: var(--ink); }
+  .rail .on { color: var(--primary); background: var(--primary-soft); }
+  .side-wrap { display: flex; gap: 10px; align-items: flex-start; position: sticky; top: 72px; }
+  .side-panel { width: 290px; animation: fade-up .2s ease-out; }
+  .side-panel .card-head a { font-size: 22px; }
+  .play-center { min-width: 0; }
+  .big-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 4px 0 12px; }
+  .big-actions button { min-width: 170px; padding: 15px 18px; border: none; border-radius: 8px; background: var(--c); color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; text-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+  .big-actions button:hover { filter: brightness(1.08); }
+  .big-actions kbd { color: #fff; border-color: rgba(255, 255, 255, .6); }
+  .setup-compact { display: grid; gap: 12px; justify-items: center; text-align: center; }
+  .setup-compact .seg { flex-wrap: wrap; justify-content: center; }
+  .setup-compact label.cap { font-size: 12px; color: var(--muted); margin: 0 0 5px; }
+  .all-settings { margin: 0; }
+  .all-settings summary { color: var(--primary); font-weight: 600; font-size: 13px; list-style: none; }
+  .all-settings summary::-webkit-details-marker { display: none; }
+  .tag-line { font-size: 12px; color: var(--muted); max-width: 70%; text-align: center; }
+  .pseat .hole { position: absolute; top: 50%; left: 100%; transform: translate(8px, -50%); display: flex; gap: 3px; }
+  .pseat .hole.left { left: auto; right: 100%; transform: translate(-8px, -50%); }
+  .pseat .hole .card { width: 36px; height: 50px; font-size: 17px; border-radius: 6px; }
+  @media (max-width: 1100px) {
+    .play2, .play2.playing { grid-template-columns: minmax(0, 1fr); }
+    .play2 > .drills-side { order: 3; position: static; }
+    .rail { flex-direction: row; position: static; justify-content: center; }
+    .side-wrap { position: static; flex-direction: column-reverse; align-items: stretch; }
+    .side-wrap .rail { align-self: center; }
+    .side-panel { width: auto; }
+  }
+  @media (max-width: 640px) {
+    .big-actions button { min-width: 0; flex: 1; padding: 13px 8px; }
+    .pseat .hole { left: 50%; right: auto; top: 100%; transform: translate(-50%, 4px); }
+    .pseat .hole.left { left: auto; right: 0; transform: translate(0, 4px); }
+    .pseat .hole.up { top: auto; bottom: 100%; transform: translate(-50%, -4px); }
+    .pseat .hole.left.up { transform: translate(0, -4px); }
+    .pseat .hole .card { width: 26px; height: 36px; font-size: 13px; }
+  }
 </style>
 </head>
 <body>
@@ -1659,21 +1702,23 @@ function summarize(hands) {
 }
 
 function trainerSetup() {
-  const seg = (label, key, opts) => `<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">${label}</span>
-    ${opts.map(([v, l]) => `<button class="${prefs[key] === v ? 'on' : ''}" onclick="setPref('${key}','${v}')">${l}</button>`).join('')}</div>`;
-  const presetSelect = libraryIndex ? `<div class="seg"><span class="pill" style="align-self:center;margin-right:6px">Spot</span>
-    <select style="width:auto;max-width:100%" onchange="setPref('preset', this.value)"><option value="all">Qualquer um do formato</option>${[...new Set(libraryIndex.map(s => s.preset))]
-      .map(p => `<option ${prefs.preset === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>` : '';
-  return `<div class="setup">
-    ${BACKEND === 'wasm' ? seg('Spots', 'source', [['library', 'Aleatórios da Biblioteca'], ['open', 'Solução aberta']]) : ''}
-    ${prefs.source === 'library' ? seg('Formato', 'format', [['all', 'Todos'], ['mtt', 'Torneio'], ['cash', 'Cash']]) + presetSelect : ''}
-    ${seg('Começar no', 'start', [['flop', 'Flop'], ['turn', 'Turn'], ['river', 'River']])}
-    ${seg('Jogar', 'depth', [['street', 'Só uma street'], ['full', 'Até o fim']])}
-    ${seg('Modo', 'mode', [['normal', 'Normal'], ['rng', 'RNG'], ['freq', 'Frequência']])}
-    ${seg('Você joga como', 'hero', [['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']])}</div>
-    ${prefs.start !== 'flop' ? '<p class="hint">Começando no turn ou no river, as streets anteriores são jogadas pelo GTO e o navegador calcula cada nova street (alguns segundos).</p>' : ''}
-    ${prefs.mode === 'rng' ? '<p class="hint">RNG: um número de 1 a 100 decide qual parte do mix jogar. Ex.: bet 30% e check 70% → 1–30 é bet, 31–100 é check.</p>' : ''}
-    ${prefs.mode === 'freq' ? '<p class="hint">Frequência: em vez de uma ação, diga com que frequência faria cada uma. A nota compara o seu mix com o do GTO.</p>' : ''}`;
+  const seg = (key, opts) => '<div class="seg">' + opts.map(([v, l]) => '<button class="' + (prefs[key] === v ? 'on' : '') + '" onclick="setPref(\'' + key + '\',\'' + v + '\')">' + l + '</button>').join('') + '</div>';
+  const row = (label, body) => '<div><label class="cap">' + label + '</label>' + body + '</div>';
+  const presetSelect = libraryIndex ? '<select style="width:auto;max-width:100%;margin-top:6px" onchange="setPref(\'preset\', this.value)"><option value="all">Qualquer spot do formato</option>' +
+    [...new Set(libraryIndex.map(s => s.preset))].map(p => '<option ' + (prefs.preset === p ? 'selected' : '') + '>' + p + '</option>').join('') + '</select>' : '';
+  // Como no Wizard: as escolhas principais à vista e o resto em "Todas as configurações".
+  return '<div class="setup-compact">' +
+    (BACKEND === 'wasm' ? row('Spots', seg('source', [['library', 'Aleatórios da Biblioteca'], ['open', 'Solução aberta']])) : '') +
+    (prefs.source === 'library' ? row('Formato', seg('format', [['all', 'Todos'], ['mtt', 'Torneio'], ['cash', 'Cash']]) + presetSelect) : '') +
+    row('Ponto de partida', seg('start', [['flop', 'Flop'], ['turn', 'Turn'], ['river', 'River']])) +
+    '<details class="all-settings"' + (setupOpen ? ' open' : '') + ' ontoggle="setupOpen=this.open"><summary>⚙ Todas as configurações</summary><div class="setup-compact" style="margin-top:10px">' +
+    row('Jogar', seg('depth', [['street', 'Só uma street'], ['full', 'Até o fim']])) +
+    row('Modo', seg('mode', [['normal', 'Normal'], ['rng', 'RNG'], ['freq', 'Frequência']])) +
+    row('Você joga como', seg('hero', [['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']])) +
+    (prefs.start !== 'flop' ? '<p class="hint">Começando no turn ou no river, as streets anteriores são jogadas pelo GTO e o navegador calcula cada nova street (alguns segundos).</p>' : '') +
+    (prefs.mode === 'rng' ? '<p class="hint">RNG: um número de 1 a 100 decide qual parte do mix jogar. Ex.: bet 30% e check 70% → 1–30 é bet, 31–100 é check.</p>' : '') +
+    (prefs.mode === 'freq' ? '<p class="hint">Frequência: em vez de uma ação, diga com que frequência faria cada uma. A nota compara o seu mix com o do GTO.</p>' : '') +
+    '</div></details></div>';
 }
 
 function drillBanner() {
@@ -1697,37 +1742,57 @@ function endDrill() {
 }
 
 let libraryLoading = null;
+let setupOpen = false, sidePanel = null;
+function setSidePanel(k) { sidePanel = sidePanel === k ? null : k; trainerView(); }
+function stopTraining() {
+  if (trainer && !trainer.saved && trainer.grades.length) saveHand();
+  trainer = null;
+  trainerView();
+}
 function trainerView() {
   if (curPage === 'treinar' && sub !== 'jogar') return;
   if (BACKEND === 'wasm' && !libraryIndex && !libraryLoading) {
     libraryLoading = fetch('library/index.json').then(r => r.json()).then(x => { libraryIndex ??= x; trainerView(); }).catch(() => {});
   }
   const el = $('#trainer');
-  const current = trainer && !trainer.saved && trainer.reached ? [{ ev: trainer.evLost, grades: trainer.grades }] : [];
+  const t = trainer, n = t?.node;
+
+  // Painéis da direita (abrem pelos ícones, como no Wizard): resultados, esta mão e últimas mãos.
+  const current = t && !t.saved && t.reached ? [{ ev: t.evLost, grades: t.grades }] : [];
   const ses = summarize([...handLog.filter(x => x.t >= sessionStart), ...current]);
   const all = summarize([...handLog, ...current]);
   const row = (label, f) => '<span>' + label + '</span><span>' + f(ses) + '</span><span>' + f(all) + '</span>';
-  const statsHtml = '<div class="panel"><h4>Resultados</h4><div class="stats three"><span></span><span><b>Sessão</b></span><span><b>Geral</b></span>' +
-    row('Mãos', s => s.hands) + row('Decisões', s => s.decisions) + row('Acerto', s => s.decisions ? pct(s.good / s.decisions) : '—') +
-    GRADES.map(([key, label]) => row(label, s => s.grades[key] || 0)).join('') +
-    row('EV perdido', s => num(s.evLost) + ' bb') + row('Por mão', s => num(s.hands ? s.evLost / s.hands : 0) + ' bb') + '</div>' +
-    '<p class="hint">Melhor: a ação mais frequente do GTO. Correta: usada em 5% ou mais. Abaixo disso, a nota depende do EV perdido: imprecisa (&lt; 2% do pote), erro (&lt; 10%) ou erro grave.</p></div>';
-  const recent = handLog.slice(-8).reverse();
-  const histHtml = '<div class="panel"><div class="card-head"><h4 style="margin:0">Últimas mãos</h4><a href="#/treinar/historico" title="Histórico completo">›</a></div>' +
-    (recent.length ? '<ol class="hist">' + recent.map(histItem).join('') + '</ol>' : '<p class="hint">As mãos jogadas ficam salvas neste aparelho.</p>') + '</div>';
+  const panels = {
+    stats: ['▤', 'Resultados', '<div class="stats three"><span></span><span><b>Sessão</b></span><span><b>Geral</b></span>' +
+      row('Mãos', s => s.hands) + row('Decisões', s => s.decisions) + row('Acerto', s => s.decisions ? pct(s.good / s.decisions) : '—') +
+      GRADES.map(([key, label]) => row(label, s => s.grades[key] || 0)).join('') +
+      row('EV perdido', s => num(s.evLost) + ' bb') + row('Por mão', s => num(s.hands ? s.evLost / s.hands : 0) + ' bb') + '</div>' +
+      '<p class="hint">Melhor: a ação mais frequente do GTO. Correta: usada em 5% ou mais. Abaixo disso, a nota depende do EV perdido: imprecisa (&lt; 2% do pote), erro (&lt; 10%) ou erro grave.</p>'],
+    hand: ['☰', 'Esta mão', t ? '<ol class="log">' + t.log.map(l => '<li>' + l + '</li>').join('') + '</ol>' : '<p class="hint">Comece uma mão para ver as ações aqui.</p>'],
+    hist: ['↺', 'Últimas mãos', (handLog.length ? '<ol class="hist">' + handLog.slice(-10).reverse().map(histItem).join('') + '</ol>' : '<p class="hint">As mãos jogadas ficam salvas neste aparelho.</p>') +
+      '<p class="hint"><a href="#/treinar/historico">Histórico completo</a></p>'],
+  };
+  const right = '<div class="side-wrap">' + (sidePanel ? '<div class="side-panel panel"><div class="card-head"><h4 style="margin:0">' + panels[sidePanel][1] + '</h4><a href="javascript:setSidePanel(null)" title="Fechar">×</a></div>' + panels[sidePanel][2] + '</div>' : '') +
+    '<nav class="rail panel">' + Object.entries(panels).map(([k, [ico, title]]) => '<button class="' + (sidePanel === k ? 'on' : '') + '" title="' + title + '" onclick="setSidePanel(\'' + k + '\')">' + ico + '</button>').join('') + '</nav></div>';
 
-  const t = trainer, n = t?.node;
-  let below = '';
-  if (!t || t.over) {
+  // Antes de começar: drills à esquerda, mesa e configurações no meio.
+  if (!t) {
     const ready = status?.state === 'done';
     const canStart = prefs.source === 'library' || ready;
-    const msg = t?.over ? '<p class="pill">Fim da mão.</p>'
-      : '<p class="hint">' + (prefs.source === 'library' ? 'Cada mão sorteia um spot da Biblioteca e as cartas de cada jogador pelos ranges.'
-        : ready ? 'Cada mão começa na solução aberta: sua mão e a do vilão são sorteadas pelos ranges.'
-        : 'Ainda não há solução aberta. Resolva um spot ou treine com spots da Biblioteca.') + '</p>';
-    below = msg + trainerSetup() + '<div class="start">' + (canStart
-      ? '<button class="btn-primary" onclick="startHand()">' + (t ? 'Próxima mão' : 'Começar o treino') + '<kbd>Enter</kbd></button>'
-      : '<a class="btn-primary" href="#/resolver">Resolver um spot</a>') + '</div>';
+    const msg = prefs.source === 'library' ? 'Cada mão sorteia um spot da Biblioteca e as cartas de cada jogador pelos ranges.'
+      : ready ? 'Cada mão começa na solução aberta: sua mão e a do vilão são sorteadas pelos ranges.'
+      : 'Ainda não há solução aberta. Resolva um spot ou treine com spots da Biblioteca.';
+    el.innerHTML = crumb('Jogar mãos') + drillBanner() + '<div class="play2"><aside class="panel drills-side">' + drillsSide() + '</aside>' +
+      '<div class="panel table">' + pokerTable(null) + trainerSetup() + '<div class="start">' + (canStart
+        ? '<button class="btn-primary" onclick="startHand()">▶ Começar o treino<kbd>Enter</kbd></button>'
+        : '<a class="btn-primary" href="#/resolver">Resolver um spot</a>') + '</div><p class="hint" style="text-align:center">' + msg + '</p></div>' + right + '</div>';
+    return;
+  }
+
+  // Durante a mão: controles à esquerda, linha de ação no topo, mesa, botões grandes e a nota.
+  let below = '';
+  if (t.over) {
+    below = '<div class="big-actions"><button style="--c:var(--primary)" onclick="startHand()">Próxima mão<kbd>Enter</kbd></button></div>';
   } else if (prefs.mode === 'freq') {
     const even = Math.round(100 / n.actions.length / 5) * 5;
     below = '<div id="mix" class="mix">' + n.actions.map(a => '<label>' + actionLabel(a) +
@@ -1736,10 +1801,10 @@ function trainerView() {
   } else {
     const colors = actionColors(n.actions);
     below = (prefs.mode === 'rng' ? '<div class="rng">RNG <b>' + t.rng + '</b></div>' : '') +
-      '<div class="actions play-actions">' + n.actions.map((a, i) => '<button style="--c:' + colors[i] + '" onclick="heroAct(' + i + ')">' +
+      '<div class="big-actions">' + n.actions.map((a, i) => '<button style="--c:' + colors[i] + '" onclick="heroAct(' + i + ')">' +
       (i < 9 ? '<kbd>' + (i + 1) + '</kbd>' : '') + actionLabel(a) + '</button>').join('') + '</div>';
   }
-  if (t?.feedback) {
+  if (t.feedback) {
     const f = t.feedback, [, label, cls] = gradeOf(f.g);
     const yours = (i) => f.mix ? ' · você: ' + pct(f.mix[i]) : i === f.chosen ? ' ← sua escolha' : '';
     below += '<div class="feedback"><div class="grade ' + cls + '">' + label + (f.loss > 0.005 ? ' · −' + num(f.loss) + ' bb' : '') + '</div>' +
@@ -1749,9 +1814,13 @@ function trainerView() {
       f.actions.map((a, i) => '<div>' + (i === f.chosen && !f.mix ? '<b>' : '') + actionLabel(a) + ': GTO ' + pct(f.freqs[i]) + ' · EV ' + num(f.evs[i]) + yours(i) + (i === f.chosen && !f.mix ? '</b>' : '') + '</div>').join('') +
       '<a href="' + studyHash(f.at) + '">Ver este spot no Estudar</a></div>';
   }
-  const logHtml = t ? '<div class="panel"><h4>Esta mão</h4><ol class="log">' + t.log.map(l => '<li>' + l + '</li>').join('') + '</ol></div>' : '';
-  el.innerHTML = crumb('Jogar mãos') + drillBanner() + '<div class="play"><aside class="panel play-drills">' + drillsSide() + '</aside>' +
-    '<div class="panel table">' + pokerTable(t) + below + '</div><div class="side">' + statsHtml + logHtml + histHtml + '</div></div>';
+  const controls = '<nav class="rail panel">' +
+    '<button title="Encerrar e voltar às configurações" onclick="stopTraining()">■</button>' +
+    '<button title="Próxima mão" onclick="startHand()">⏭</button>' +
+    '<a title="Ver este spot no Estudar" href="' + studyHash(t.feedback?.at || []) + '">▦</a>' +
+    '<button title="Drills" onclick="stopTraining()">☰</button></nav>';
+  el.innerHTML = crumb('Jogar mãos') + drillBanner() + '<div class="play2 playing">' + controls +
+    '<div class="play-center">' + (n ? actionLine(n, { nav: false }) : '') + '<div class="panel table">' + pokerTable(t) + below + '</div></div>' + right + '</div>';
 }
 
 async function startHand() {
@@ -2010,7 +2079,7 @@ document.addEventListener('keydown', (e) => {
     // Enter/Espaço num botão focado já clicam nele; só trata quando o foco está fora.
     if ((e.key === 'Enter' || e.key === ' ') && !['BUTTON', 'A'].includes(e.target.tagName)) {
       if (trainer && !trainer.over && prefs.mode === 'freq') { e.preventDefault(); return submitMix(); }
-      if ((!trainer || trainer.over) && $('#trainer .btn-primary[onclick]')) { e.preventDefault(); return startHand(); }
+      if (trainer?.over || (!trainer && $('#trainer .btn-primary[onclick]'))) { e.preventDefault(); return startHand(); }
     }
   }
 });
@@ -2445,19 +2514,19 @@ let tableMemo = { hand: null, board: 0, pot: 0, acts: {}, over: false };
 function pokerTable(t) {
   const n = t?.node, tb = spot && TABLES[spot.preset];
   const playerAt = (s) => !tb ? s : s === tb.oopSeat ? 'OOP' : s === tb.ipSeat ? 'IP' : null;
-  const seats = tb ? SEATS : ['OOP', 'IP'];
-  const xy = tb ? SEAT_XY : { OOP: [50, 95], IP: [50, 5] };
+  const seats = tb || !t ? SEATS : ['OOP', 'IP'];
+  const xy = tb || !t ? SEAT_XY : { OOP: [50, 95], IP: [50, 5] };
   const toAct = t && !t.over && n?.type === 'action' ? n.player : null;
   const fresh = t && tableMemo.hand !== t;
   const memo = fresh ? { board: 0, pot: 0, acts: {}, over: false } : tableMemo;
   let chips = '';
   const felt = n
-    ? '<div class="cards">' + n.board.map((c, i) => cardEl(c, true, i >= memo.board ? 'flip' : '', i - memo.board)).join('') + '</div>' +
+    ? '<div class="tag-line">' + (t.spot || '') + '</div><div class="cards">' + n.board.map((c, i) => cardEl(c, true, i >= memo.board ? 'flip' : '', i - memo.board)).join('') + '</div>' +
       '<div class="pill">Pote <b class="' + (n.pot !== memo.pot && !fresh ? 'pot-bump' : '') + '"' + (n.pot !== memo.pot ? ' data-count="' + n.pot + '" data-from="' + memo.pot + '" data-fmt="bb"' : '') + '>' + num(n.pot) + ' bb</b></div>' +
-      '<div class="cards">' + comboCards(t.heroCombo, true, fresh ? 'deal' : '', 1) + '</div>'
+      ''
     : '<div class="pill">' + (spot?.label || 'Escolha os spots e comece') + '</div>';
   const html = '<div class="ptable"><div class="felt">' + felt + '</div>' + seats.map(s => {
-    const p = playerAt(s), live = !!p;
+    const p = tb || t ? playerAt(s) : null, live = !!p || (!t && !tb);
     const stack = tb ? (live ? num(spot.stack, 1) : tb.depth) + ' bb' : '';
     const last = p && t?.last?.[p];
     const changed = last && last !== memo.acts[p];
@@ -2465,7 +2534,8 @@ function pokerTable(t) {
     const reveal = t?.over && p && p !== t.hero
       ? '<span class="cards" style="justify-content:center;margin-top:4px">' + comboCards(t.villainCombo, false, memo.over ? '' : 'flip') + '</span>' : '';
     return '<div class="pseat ' + (live ? '' : 'out') + ' ' + (t && p === t.hero ? 'hero' : '') + ' ' + (p && p === toAct ? 'turn' : '') + '" style="left:' + xy[s][0] + '%;top:' + xy[s][1] + '%">' +
-      '<b>' + (t && p === t.hero ? 'Você · ' : '') + s + '</b><span>' + stack + '</span>' + (last ? '<span class="act' + (changed ? ' new' : '') + '">' + last + '</span>' : '') + reveal + '</div>';
+      '<b>' + (t && p === t.hero ? 'Você · ' : '') + s + '</b><span>' + stack + '</span>' + (last ? '<span class="act' + (changed ? ' new' : '') + '">' + last + '</span>' : '') + reveal +
+      (t && p === t.hero ? '<span class="hole' + (xy[s][0] > 80 ? ' left' : '') + (xy[s][1] > 60 ? ' up' : '') + '">' + comboCards(t.heroCombo, true, fresh ? 'deal' : '', 1) + '</span>' : '') + '</div>';
   }).join('') + chips + '</div>';
   if (t) { tableMemo = { hand: t, board: n?.board.length || 0, pot: n?.pot || 0, acts: { ...t.last }, over: !!t.over }; t.moves = []; }
   return html;
