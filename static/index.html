@@ -132,6 +132,8 @@
   .cat.on { border-color: var(--primary); background: var(--primary-soft); }
   .cat .mix { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--empty); }
   .cat .n { color: var(--muted); text-align: right; }
+  .seg.shape { flex-wrap: wrap; margin-bottom: 8px; }
+  .seg.shape button { padding: 4px 10px; font-size: 12px; }
   .cat-group { font-size: 11px; color: var(--muted); margin: 8px 0 2px; }
   .picker { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; max-width: 600px; }
   .picker button { padding: 7px 0; font-weight: 700; color: #fff; border: none; }
@@ -623,6 +625,13 @@ let node = null;
 let selected = null;  // índice na grade
 let tab = 'strategy'; // strategy | ranges
 let filter = null;    // nome da categoria
+let shape = 'all';    // all | pair | suited | offsuit
+let openingDefault = false;
+const SHAPES = { all: 'Todas', pair: 'Pares', suited: 'Suited', offsuit: 'Offsuit' };
+const shapeOk = (hand) => shape === 'all' || (shape === 'pair' ? hand.length === 2 : shape === 'suited' ? hand.endsWith('s') : hand.endsWith('o'));
+const comboHas = (k, f) => k.made === f || k.draws.includes(f) || (k.buckets || []).includes(f);
+// EQR: quanto da equity a mão realiza (EV ÷ (equity × pote)). Acima de 1 realiza mais que a equity.
+const eqr = (ev, eq) => eq > 0 && node.pot > 0 ? num(ev / (eq * node.pot)) : '—';
 
 function emptyState(el) {
   const solving = status && status.state === 'solving';
@@ -631,8 +640,22 @@ function emptyState(el) {
     : 'Ainda não há solução aberta.'}</p><a class="btn-primary" href="#/resolver">${solving ? 'Ver progresso' : 'Resolver um spot'}</a></div>`;
 }
 
+// Sem solução aberta na versão online: abre o primeiro spot da Biblioteca, como o Wizard abre uma solução pronta.
+async function openDefaultSpot() {
+  openingDefault = true;
+  $('#main').innerHTML = '<div class="empty"><p>Abrindo um spot de exemplo da Biblioteca…</p></div>';
+  try {
+    libraryIndex ??= await (await fetch('library/index.json')).json();
+    await openSpot(libraryIndex[0].id);
+  } catch { emptyState($('#main')); }
+  finally { openingDefault = false; }
+}
+
 async function load() {
-  if (status && status.state !== 'done') return emptyState($('#main'));
+  if (status && status.state !== 'done') {
+    if (BACKEND === 'wasm' && status.state === 'idle' && !openingDefault) return openDefaultSpot();
+    return emptyState($('#main'));
+  }
   try {
     node = await api('/api/node', { history });
     if (filter && !(node.categories || []).some(c => c.name === filter)) filter = null;
@@ -649,6 +672,8 @@ function jump(n) { selected = null; location.hash = studyHash(history.slice(0, n
 function pick(i) { selected = i; render(); }
 function setTab(t) { tab = t; render(); }
 function setFilter(name) { filter = filter === name ? null : name; render(); }
+function setShape(s) { shape = s; render(); }
+function clearFilters() { filter = null; shape = 'all'; render(); }
 function copyLink() { navigator.clipboard?.writeText(location.href); $('#copyBtn').textContent = 'Link copiado'; }
 
 function render() {
@@ -658,6 +683,7 @@ function render() {
   let html = `${seatsBar(node.type === 'action' ? node.player : null)}<div class="crumbs">${crumbs}</div>
     <div class="spotbar"><div class="cards">${node.board.map(c => cardEl(c)).join('')}</div>
     <span class="pill">Pote <b>${num(node.pot)} bb</b></span>
+    ${spot?.label ? `<span class="pill">Spot: <b>${spot.label}</b> · <a href="#/biblioteca">trocar</a></span>` : ''}
     ${node.type === 'action' ? `<span class="pill">Vez do <b>${node.player}</b> (${PLAYER_DESC[node.player]}) · ${num(node.total_combos, 1)} combos</span>` : ''}</div>`;
 
   if (node.type === 'terminal') {
@@ -679,7 +705,7 @@ function render() {
 
 function strategyHtml() {
   const colors = actionColors(node.actions);
-  const inFilter = (cell) => !filter || cell.combos.some(k => k.made === filter || k.draws.includes(filter));
+  const inFilter = (cell) => shapeOk(cell.hand) && (!filter || cell.combos.some(k => comboHas(k, filter)));
   let html = `<div class="actions">${node.actions.map((a, i) =>
     `<button style="--c:${colors[i]}" onclick="go(${i})">${actionLabel(a)} <small>${pct(node.summary[i])} · EV ${num(node.summary_evs[i])}</small></button>`
   ).join('')}</div>
@@ -698,11 +724,13 @@ function strategyHtml() {
 function categoriesHtml(colors) {
   const row = (c) => `<button class="cat ${filter === c.name ? 'on' : ''}" onclick="setFilter('${c.name}')" title="EV médio ${num(c.ev)} bb">
     <span>${c.name}</span><span class="mix">${mixBar(c.freqs, colors)}</span><span class="n">${num(c.weight, 1)}</span></button>`;
-  const made = node.categories.filter(c => c.kind === 'made');
-  const draws = node.categories.filter(c => c.kind === 'draw');
-  return `<h4>Filtrar por categoria${filter ? ` · <a href="javascript:setFilter(null)">limpar</a>` : ''}</h4><div class="cats">
-    <div class="cat-group">Made hands (combos)</div>${made.map(row).join('')}
-    ${draws.length ? `<div class="cat-group">Draws (combos)</div>${draws.map(row).join('')}` : ''}</div>`;
+  const group = (kind, label) => {
+    const cs = node.categories.filter(c => c.kind === kind);
+    return cs.length ? `<div class="cat-group">${label}</div>${cs.map(row).join('')}` : '';
+  };
+  return `<h4>Filtrar${filter || shape !== 'all' ? ` · <a href="javascript:clearFilters()">limpar</a>` : ''}</h4>
+    <div class="seg shape">${Object.entries(SHAPES).map(([k, l]) => `<button class="${shape === k ? 'on' : ''}" onclick="setShape('${k}')">${l}</button>`).join('')}</div>
+    <div class="cats">${group('made', 'Made hands (combos)')}${group('draw', 'Draws (combos)')}${group('eq', 'Equity simples (combos)')}${group('eq_advanced', 'Equity avançado (combos)')}</div>`;
 }
 
 function detailHtml(colors) {
@@ -710,18 +738,19 @@ function detailHtml(colors) {
   if (selected == null || node.grid[selected].weight <= 0) {
     if (!filter) return `<p class="pill">Clique numa mão da grade para ver frequências, EV por ação e cada combo. Use os filtros abaixo para destacar categorias.</p>`;
     const c = node.categories.find(x => x.name === filter);
-    return `<h3>${filter}</h3><div class="kv"><span>Combos</span><span>${num(c.weight, 1)}</span><span>EV médio</span><span>${num(c.ev)} bb</span><span>Equity</span><span>${pct(c.equity)}</span>
+    return `<h3>${filter}</h3><div class="kv"><span>Combos</span><span>${num(c.weight, 1)}</span><span>EV médio</span><span>${num(c.ev)} bb</span><span>Equity</span><span>${pct(c.equity)}</span><span title="EV ÷ (equity × pote)">EQR</span><span>${eqr(c.ev, c.equity)}</span>
       ${names.map((n, a) => `<span>${n}</span><span>${pct(c.freqs[a])} · EV ${num(c.evs[a])}</span>`).join('')}</div>`;
   }
   const c = node.grid[selected];
-  const combos = filter ? c.combos.filter(k => k.made === filter || k.draws.includes(filter)) : c.combos;
+  const combos = filter ? c.combos.filter(k => comboHas(k, filter)) : c.combos;
   return `<h3>${c.hand}</h3>
     <div class="kv"><span>Combos no range</span><span>${num(c.weight)}</span>
     <span>EV médio</span><span>${num(c.ev)} bb</span>
     <span>Equity</span><span>${pct(c.equity)}</span>
+    <span title="Quanto da equity a mão realiza: EV ÷ (equity × pote)">EQR</span><span>${eqr(c.ev, c.equity)}</span>
     ${names.map((n, a) => `<span>${n}</span><span>${pct(c.freqs[a])} · EV ${num(c.evs[a])}</span>`).join('')}</div>
     <table class="combos"><tr><th>Combo</th>${names.map(n => `<th>${n}</th>`).join('')}</tr>
-    ${combos.map(k => `<tr><td>${k.combo}<small>${[k.made, ...k.draws].join(' · ')}</small></td>${k.freqs.map((f, a) =>
+    ${combos.map(k => `<tr><td>${k.combo}<small>${[k.made, ...k.draws].join(' · ')}</small><small>Eq ${pct(k.equity)} · EQR ${eqr(k.ev, k.equity)}</small></td>${k.freqs.map((f, a) =>
       `<td>${pct(f)}<small>EV ${num(k.evs[a])}</small></td>`).join('')}</tr>`).join('')}
     </table>`;
 }
@@ -793,14 +822,14 @@ async function openSpot(id) {
     const bytes = await (await fetch('library/' + s.file)).arrayBuffer();
     await callWorker('load', { bytes });
     const preset = PRESETS.find(p => p.name === s.preset);
-    spot = preset ? { preset: s.preset, stack: preset.stack } : null;
+    spot = { preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
     Object.assign(local, {
       state: 'done', iteration: s.iterations, max_iterations: s.iterations, exploitability_pct: s.exploitability_pct,
       memory_gb: s.bytes / 2 ** 30, compressed: true, cancelled: false, error: '',
     });
     trainer = null;
     status = await api('/api/status');
-    location.hash = '#/estudar';
+    if (location.hash === '#/estudar') load(); else location.hash = '#/estudar';
   } catch (err) {
     $('#library').insertAdjacentHTML('afterbegin', `<div class="error">${err.message}</div>`);
   } finally { toast(null); }
