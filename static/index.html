@@ -391,6 +391,66 @@
   .rv-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
   .rv-item small { display: block; color: var(--muted); margin-top: 4px; }
   .sheet-links { display: grid; gap: 2px; margin-bottom: 14px; }
+
+  /* ---------- Animações ---------- */
+  @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pop-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+  @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes flip-in { from { opacity: 0; transform: perspective(500px) rotateY(90deg); } to { opacity: 1; transform: perspective(500px) rotateY(0); } }
+  @keyframes deal { from { opacity: 0; transform: translate(var(--dx, 0), var(--dy, -60px)) rotate(-12deg) scale(.7); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+  @keyframes chip-to-pot { 0% { opacity: 1; } 85% { opacity: 1; } 100% { left: 50%; top: 50%; opacity: 0; transform: translate(-50%, -50%) scale(.6); } }
+  @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  @keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-5px) rotate(-1deg); } 40% { transform: translateX(5px) rotate(1deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+  @keyframes bounce-in { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: none; } }
+  @keyframes ring { 0%, 100% { box-shadow: 0 0 0 2px var(--primary); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 25%, transparent); } }
+  @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+  .page.enter { animation: fade-up .28s ease-out; }
+  dialog[open] { animation: pop-in .18s ease-out; }
+  dialog::backdrop { background: rgba(0, 0, 0, .45); animation: fade-in .18s; }
+  .toast:not([hidden]) { animation: fade-up .22s ease-out; }
+  .empty p:only-child { animation: breathe 1.4s ease-in-out infinite; }
+
+  /* listas e cartões entram em sequência (--n é preenchido pelo script) */
+  .shortcuts > *, .hub > *, .lib-grid > *, .sheet-links > * { animation: fade-up .32s ease-out backwards; animation-delay: calc(var(--n, 0) * 28ms); }
+  .pseat .card { width: 22px; height: 30px; font-size: 12px; border-radius: 4px; }
+  .rv-list > li:last-child, .feedback { animation: fade-up .3s ease-out both; }
+  .lib-item, .hub a, .shortcuts a, .act-card, .drill-row, .al-col { transition: transform .15s ease, border-color .15s, background-color .15s, box-shadow .15s; }
+  .lib-item:hover, .hub a:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, .12); }
+  .act-card:active, .actions button:active, .btn-primary:active { transform: scale(.97); }
+
+  /* barras que enchem */
+  .gbar .track div, .calc .summary, .feedback .summary, .rv-item .summary, .report .summary { transform-origin: left; animation: grow-x .7s cubic-bezier(.2, .8, .2, 1) both; }
+  .anim .summary { transform-origin: left; animation: grow-x .6s cubic-bezier(.2, .8, .2, 1) both; }
+
+  /* Estudar: a grade cresce de baixo para cima em diagonal quando muda o ponto da árvore */
+  .anim .grid .fill { transform-origin: bottom; animation: grow-y .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--d, 0) * 14ms); }
+  .anim .act-card { animation: pop-in .3s ease-out backwards; }
+  .anim .al-col.now { animation: fade-up .3s ease-out; }
+
+  /* nota: acerto pula, erro balança */
+  .grade.g-best, .grade.g-correct { display: inline-block; animation: bounce-in .45s ease-out; }
+  .grade.g-mistake, .grade.g-blunder { display: inline-block; animation: shake .45s ease-in-out; }
+
+  /* Mesa: cartas distribuídas e viradas, fichas indo para o pote, vez do jogador pulsando */
+  .card.deal { animation: deal .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--n, 0) * 110ms); }
+  .card.flip { animation: flip-in .45s ease-out both; animation-delay: calc(var(--n, 0) * 120ms); }
+  .pseat.turn { animation: ring 1.4s ease-in-out infinite; }
+  .pseat .act.new { animation: bounce-in .4s ease-out; }
+  .chip-fly { position: absolute; z-index: 2; width: 16px; height: 16px; border-radius: 50%; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--bet1) 45%, #fff 46%, #fff 56%, var(--bet2) 57%); box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+    animation: chip-to-pot .6s cubic-bezier(.5, 0, .5, 1) forwards; pointer-events: none; }
+  .pot-bump { display: inline-block; animation: bump .4s ease-out .45s; }
+
+  /* Construtor: célula pintada e revelação do GTO */
+  .cell.pop { animation: bump .25s ease-out; }
+  .reveal .cell { animation: flip-in .4s ease-out both; animation-delay: calc(var(--d, 0) * 16ms); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -713,7 +773,11 @@ function route() {
   const page = ['', 'resolver', 'estudar', 'treinar', 'pushfold', 'analisar', 'biblioteca', 'calculadoras'].includes(page0) ? page0 : '';
   curPage = page;
   sub = page === 'estudar' ? '' : hist || '';
-  document.querySelectorAll('[data-page]').forEach(s => s.hidden = s.dataset.page !== page);
+  document.querySelectorAll('[data-page]').forEach(s => {
+    s.hidden = s.dataset.page !== page;
+    s.classList.remove('enter');
+    if (!s.hidden) { void s.offsetWidth; s.classList.add('enter'); }
+  });
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.route === page));
   $('#moreTab').classList.toggle('on', ['resolver', 'analisar', 'biblioteca', 'calculadoras'].includes(page));
   if (page === 'estudar') {
@@ -837,8 +901,8 @@ function toast(msg) {
 }
 
 // ---------- utilitários ----------
-const cardEl = (c, big) => `<div class="card s-${c[1]}${big ? ' big' : ''}">${c[0]}${SUIT[c[1]]}</div>`;
-const comboCards = (combo, big) => cardEl(combo.slice(0, 2), big) + cardEl(combo.slice(2, 4), big);
+const cardEl = (c, big, anim = '', n = 0) => `<div class="card s-${c[1]}${big ? ' big' : ''}${anim ? ' ' + anim : ''}"${anim ? ` style="--n:${n}"` : ''}>${c[0]}${SUIT[c[1]]}</div>`;
+const comboCards = (combo, big, anim = '', n = 0) => cardEl(combo.slice(0, 2), big, anim, n) + cardEl(combo.slice(2, 4), big, anim, n + 1);
 const actionLabel = (a) => a.amount == null ? ACTION_NAME[a.kind] : `${ACTION_NAME[a.kind]} ${a.amount.toLocaleString('pt-BR')} bb`;
 const stepLabel = (s) => s.card ? `${s.card[0]}${SUIT[s.card[1]]}` : `${s.player}: ${actionLabel(s.action)}`;
 const pct = (x) => (100 * x).toFixed(1).replace('.', ',') + '%';
@@ -993,7 +1057,9 @@ function setShape(s) { shape = s; render(); }
 function clearFilters() { filters = {}; shape = 'all'; render(); }
 function copyLink() { navigator.clipboard?.writeText(location.href); $('#copyBtn').textContent = 'Link copiado'; }
 
+let renderedNode = null, renderedTab = null, studyFresh = false;
 function render() {
+  studyFresh = node !== renderedNode || tab !== renderedTab;
   const tools = '<div class="row-inline"><a class="mini-btn" href="#/biblioteca">Trocar spot</a><button class="mini-btn" id="copyBtn" onclick="copyLink()">Copiar link</button></div>';
   let left = '', right = '';
   if (node.type === 'terminal') {
@@ -1013,6 +1079,8 @@ function render() {
     left = tabs + left;
   }
   $('#main').innerHTML = actionLine(node, { tools, nav: true }) + '<div class="study-body"><div>' + left + '</div><div class="study-right">' + right + '</div></div>';
+  $('#main').classList.toggle('anim', studyFresh);
+  renderedNode = node; renderedTab = tab;
 }
 
 function strategyParts() {
@@ -1022,13 +1090,13 @@ function strategyParts() {
     const h = Math.min(1, c.weight / maxCombos(c.hand));
     const off = c.weight > 0 && !inFilter(c);
     return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + ' ' + (off ? 'off' : '') + ' ' + (selected === i ? 'sel' : '') + '" onclick="pick(' + i + ')" title="' + c.hand + '">' +
-      '<div class="fill" style="height:' + (100 * h) + '%">' + (c.weight > 0 ? mixBar(c.freqs, colors) : '') + '</div><span class="lbl">' + c.hand + '</span></div>';
+      '<div class="fill" style="height:' + (100 * h) + '%;--d:' + ((i / 13 | 0) + i % 13) + '">' + (c.weight > 0 ? mixBar(c.freqs, colors) : '') + '</div><span class="lbl">' + c.hand + '</span></div>';
   }).join('') + '</div><div class="legend"><span>Cores: mix de ações da mão</span><span>Altura: quanto da mão ainda está no range</span><span>EV em bb</span></div>';
   const nFilters = Object.keys(filters).length + (shape !== 'all' ? 1 : 0);
   const right = '<div class="overview"><span class="pill">Pote <b>' + num(node.pot) + ' bb</b></span>' +
     '<span class="pill">Vez do <b>' + node.player + '</b> (' + PLAYER_DESC[node.player] + ')</span><span class="pill"><b>' + num(node.total_combos, 1) + '</b> combos</span></div>' +
     '<div class="act-cards">' + node.actions.map((a, i) => '<button class="act-card" style="--c:' + colors[i] + '" onclick="go(' + i + ')">' +
-      (i < 9 ? '<kbd>' + (i + 1) + '</kbd>' : '') + '<b>' + actionLabel(a) + '</b><strong>' + pct(node.summary[i]) + '</strong>' +
+      (i < 9 ? '<kbd>' + (i + 1) + '</kbd>' : '') + '<b>' + actionLabel(a) + '</b><strong' + (studyFresh ? ' data-count="' + node.summary[i] + '" data-fmt="pct"' : '') + '>' + pct(node.summary[i]) + '</strong>' +
       '<small>' + num(node.total_combos * node.summary[i], 1) + ' combos<br>EV ' + num(node.summary_evs[i]) + '</small></button>').join('') + '</div>' +
     '<div class="summary">' + mixBar(node.summary, colors) + '</div>' +
     '<div class="tabs"><button class="' + (sideTab === 'hand' ? 'on' : '') + '" onclick="sideTab=\'hand\';render()">Mão</button>' +
@@ -1114,10 +1182,10 @@ function blockersHtml(c) {
 
 function rangesParts() {
   const heat = (e) => 'color-mix(in srgb, var(--primary) ' + Math.round(100 * e) + '%, var(--fold))';
-  const grid = (r) => '<div class="grid">' + r.grid.map(c => {
+  const grid = (r) => '<div class="grid">' + r.grid.map((c, i) => {
     const h = Math.min(1, c.weight / maxCombos(c.hand));
     return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + '" title="' + c.hand + ': ' + num(c.weight, 2) + ' combos · equity ' + pct(c.equity) + '">' +
-      '<div class="fill" style="height:' + (100 * h) + '%;background:' + (c.weight > 0 ? heat(c.equity) : 'none') + '"></div><span class="lbl">' + c.hand + '</span></div>';
+      '<div class="fill" style="height:' + (100 * h) + '%;--d:' + ((i / 13 | 0) + i % 13) + ';background:' + (c.weight > 0 ? heat(c.equity) : 'none') + '"></div><span class="lbl">' + c.hand + '</span></div>';
   }).join('') + '</div>';
   const total = (r) => r.combos.reduce((s, k) => s + k.weight, 0);
   const left = '<div class="ranges">' + node.ranges.map(r => '<div><div class="range-head"><b>' + r.player + ' <span class="pill">(' + PLAYER_DESC[r.player] + ')</span></b>' +
@@ -1471,7 +1539,7 @@ async function newHand() {
     const villainCombo = weightedPick(theirs.combos.filter(k => !overlaps(k.combo, heroCombo)), k => k.weight).combo;
     trainer = {
       hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false,
-      grades: [], evLost: 0, spot: spot?.label || 'Solução aberta', reached: false, last: {},
+      grades: [], evLost: 0, spot: spot?.label || 'Solução aberta', reached: false, last: {}, moves: [],
     };
     await play();
     if (trainer.reached) break;
@@ -1513,6 +1581,7 @@ async function play() {
     const a = k ? weightedPick(n.actions.map((_, i) => i), i => k.freqs[i]) : 0;
     trainer.log.push(`${n.player} (${mine ? 'você, jogada automática' : 'vilão'}): ${actionLabel(n.actions[a])}`);
     trainer.last = { ...trainer.last, [n.player]: actionLabel(n.actions[a]) };
+    if (/Bet|Raise|Call|Allin/.test(n.actions[a].kind)) trainer.moves.push(n.player);
     trainer.history.push(a);
   }
 }
@@ -1558,6 +1627,7 @@ async function heroAct(a, mix) {
     trainer.feedback = { g, loss, chosen: a, mix, dist, rng: rngA == null ? null : trainer.rng, rngA, freqs: k.freqs, evs: k.evs, actions: n.actions, colors: actionColors(n.actions), at: [...trainer.history] };
     trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
     trainer.last = { ...trainer.last, [n.player]: actionLabel(n.actions[a]) };
+    if (/Bet|Raise|Call|Allin/.test(n.actions[a].kind)) trainer.moves.push(n.player);
     trainer.history.push(a);
     await advance();
   } finally { trainerBusy = false; }
@@ -1784,6 +1854,7 @@ function paintCell(i) {
   builder.paint[i] = builder.brush;
   const el = document.querySelector(`#bgrid [data-i="${i}"]`);
   el.style.background = actionColors(builder.node.actions)[builder.brush];
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
 }
 
 function builderView() {
@@ -1806,9 +1877,9 @@ function builderView() {
   const mineShare = share((c, i, a) => builder.paint[i] === a ? 1 : 0), gtoShare = share((c, i, a) => c.freqs[a]);
   const myGrid = '<div class="grid builder" id="bgrid" onpointerdown="painting=true;paintAt(event)" onpointermove="if(painting)paintAt(event)">' + n.grid.map((c, i) =>
     '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + '" data-i="' + i + '" style="' + (c.weight > 0 ? 'background:' + colors[builder.paint[i]] : '') + '" title="' + c.hand + '"><span class="lbl">' + c.hand + '</span></div>').join('') + '</div>';
-  const gtoGrid = '<div class="grid">' + n.grid.map((c, i) => {
+  const gtoGrid = '<div class="grid reveal">' + n.grid.map((c, i) => {
     const miss = c.weight > 0 && c.freqs[builder.paint[i]] < 0.5;
-    return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + ' ' + (miss ? 'miss' : '') + '" title="' + c.hand + ': ' + n.actions.map((a, k) => actionLabel(a) + ' ' + pct(c.freqs[k])).join(' · ') + '">' +
+    return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + ' ' + (miss ? 'miss' : '') + '" style="--d:' + ((i / 13 | 0) + i % 13) + '" title="' + c.hand + ': ' + n.actions.map((a, k) => actionLabel(a) + ' ' + pct(c.freqs[k])).join(' · ') + '">' +
       '<div class="fill" style="height:100%">' + (c.weight > 0 ? mixBar(c.freqs, colors) : '') + '</div><span class="lbl">' + c.hand + '</span></div>';
   }).join('') + '</div>';
   const score = builderScore();
@@ -1816,7 +1887,7 @@ function builderView() {
     '<h4>Pincel</h4><div class="act-cards">' + n.actions.map((a, k) => '<button class="act-card ' + (builder.brush === k ? 'on' : '') + '" style="--c:' + colors[k] + '" ' + (builder.checked ? 'disabled' : '') +
       ' onclick="builder.brush=' + k + ';builderView()"><b>' + actionLabel(a) + '</b><strong>' + pct(mineShare[k]) + '</strong><small>' + (builder.checked ? 'GTO ' + pct(gtoShare[k]) : 'do seu range') + '</small></button>').join('') + '</div>' +
     (builder.checked
-      ? '<div class="grade ' + (score >= .8 ? 'g-best' : score >= .6 ? 'g-inacc' : 'g-blunder') + '" style="margin:10px 0">Acerto ' + pct(score) + '</div><h4>GTO</h4>' + gtoGrid +
+      ? '<div class="grade ' + (score >= .8 ? 'g-best' : score >= .6 ? 'g-inacc' : 'g-blunder') + '" style="margin:10px 0">Acerto <span data-count="' + score + '" data-fmt="pct">' + pct(score) + '</span></div><h4>GTO</h4>' + gtoGrid +
         '<p class="hint">Contorno vermelho: mãos em que o GTO usa a sua ação menos de 50% das vezes.</p><div class="start"><button class="btn-primary" onclick="newBuilder()">Próximo spot</button> <button onclick="builder=null;builderView()">Trocar spots</button></div>'
       : '<p class="hint">Escolha o pincel e clique ou arraste sobre a grade.</p><div class="start"><button class="btn-primary" onclick="builder.checked=true;builderView()">Conferir com o GTO</button></div>') +
     '<p class="hint">Acerto: em média, com que frequência o GTO faz a ação que você pintou, pesando cada mão pelos combos no range.</p>';
@@ -1848,7 +1919,7 @@ function computeEquity() {
     const A = parseRange(a), B = parseRange(b);
     if (!A.length || !B.length) throw new Error('Preencha as duas mãos ou ranges.');
     const r = rangeEquity(A, B, board);
-    calcResult = `<div class="eq-result"><div><small>Você</small><b>${pct(r.equity)}</b></div><div><small>Vilão</small><b>${pct(1 - r.equity)}</b></div></div>
+    calcResult = `<div class="eq-result"><div><small>Você</small><b data-count="${r.equity}" data-fmt="pct">${pct(r.equity)}</b></div><div><small>Vilão</small><b data-count="${1 - r.equity}" data-fmt="pct">${pct(1 - r.equity)}</b></div></div>
       <div class="summary"><div style="width:${100 * r.equity}%;background:var(--primary)"></div><div style="width:${100 * (1 - r.equity)}%;background:var(--fold)"></div></div>
       <p class="hint">Vitória ${pct(r.win)} · empate ${pct(r.tie)} · ${r.exact ? 'cálculo exato' : `Monte Carlo com ${r.samples.toLocaleString('pt-BR')} simulações (erro ≈ ±0,3%)`}.</p>`;
   } catch (err) { calcResult = `<div class="error">${err.message}</div>`; }
@@ -2082,9 +2153,9 @@ async function pushfoldView() {
     '<div><label>Prêmios que faltam pagar (um por linha)</label><textarea onchange="setPf(\'prizes\', this.value)">' + esc(pfPrefs.prizes) + '</textarea></div></div>' +
     '<p class="hint">Com ICM as decisões são em dinheiro: quem paga fica mais apertado e o shove fica mais largo, principalmente perto da bolha e na mesa final.</p></div>' : '';
   const callCards = '<div class="act-cards">' + r.callers.map(c => '<button class="act-card ' + (c === caller ? 'on' : '') + '" style="--c:' + (c === caller ? 'var(--allin)' : 'var(--fold)') + '" onclick="setPf(\'caller\', \'' + c.pos + '\')">' +
-    '<b>' + c.pos + '</b><strong>' + pct(c.pct) + '</strong><small>paga</small></button>').join('') + '</div>';
+    '<b>' + c.pos + '</b><strong data-count="' + c.pct + '" data-fmt="pct">' + pct(c.pct) + '</strong><small>paga</small></button>').join('') + '</div>';
   el.innerHTML = '<div class="actionline">' + settings + seats + '</div>' + icmPanel +
-    '<div class="study-body"><div><div class="range-head"><b>' + s.pusher + ': shove ' + pct(r.pushPct) + '</b><span class="pill">todos foldaram até ele</span></div>' + pfGrid(r.push, r.pushEv, r.money) + '</div>' +
+    '<div class="study-body"><div><div class="range-head"><b>' + s.pusher + ': shove <span data-count="' + r.pushPct + '" data-fmt="pct">' + pct(r.pushPct) + '</span></b><span class="pill">todos foldaram até ele</span></div>' + pfGrid(r.push, r.pushEv, r.money) + '</div>' +
     '<div class="study-right"><h4>Quem paga o shove do ' + s.pusher + '</h4>' + callCards +
     '<div class="range-head"><b>' + caller.pos + ': call ' + pct(caller.pct) + '</b></div>' + pfGrid(caller.call, caller.ev, r.money) + '</div></div>' +
     '<p class="hint">Vermelho: shove (ou call) sempre; claro: fold; intermediário: mix. Toque ou passe o mouse numa mão para ver o EV contra o fold' + (r.money ? ' (em dinheiro, pela premiação)' : ' (em bb)') + '. ' +
@@ -2156,7 +2227,7 @@ async function pfTrainView() {
   const evText = (x) => money ? sign(x) + ' (≈ ' + sign(x / q.chipValue) + ' bb)' : sign(x) + ' bb';
   let html = '<div class="trainer"><div class="panel table"><div class="actionline">' + seats + '</div>' +
     '<div class="pill">' + q.s.n + ' jogadores · stacks em bb · ante ' + num(q.s.ante) + ' bb no BB · ' + (money ? 'ICM pela premiação da aba Tabelas' : 'cálculo em fichas') + '</div>' +
-    '<p style="margin:16px 0 6px">' + situation + '</p><div class="cards">' + comboCards(q.combo, true) + '</div>' +
+    '<p style="margin:16px 0 6px">' + situation + '</p><div class="cards">' + comboCards(q.combo, true, q.answer ? '' : 'deal') + '</div>' +
     '<div class="actions" style="justify-content:center;margin-top:14px">' +
     '<button style="--c:var(--allin)" onclick="pfAnswer(true)" ' + (q.answer ? 'disabled' : '') + '><kbd>1</kbd>' + goLabel + '</button>' +
     '<button style="--c:var(--fold)" onclick="pfAnswer(false)" ' + (q.answer ? 'disabled' : '') + '><kbd>2</kbd>Fold</button></div>';
@@ -2326,8 +2397,8 @@ function statsBlock(s) {
   const errs = (s.grades.mistake || 0) + (s.grades.blunder || 0);
   const max = Math.max(1, ...GRADES.map(([k]) => s.grades[k] || 0));
   return '<div class="statgrid"><div class="nums">' +
-    '<div><small>Mãos</small><b>' + s.hands + '</b></div><div><small>Decisões</small><b>' + s.decisions + '</b></div>' +
-    '<div><small>Erros</small><b>' + errs + '</b></div><div><small>Acerto</small><b>' + (s.decisions ? pct(s.good / s.decisions) : '—') + '</b></div></div>' +
+    '<div><small>Mãos</small><b data-count="' + s.hands + '" data-fmt="int">' + s.hands + '</b></div><div><small>Decisões</small><b data-count="' + s.decisions + '" data-fmt="int">' + s.decisions + '</b></div>' +
+    '<div><small>Erros</small><b data-count="' + errs + '" data-fmt="int">' + errs + '</b></div><div><small>Acerto</small><b' + (s.decisions ? ' data-count="' + s.good / s.decisions + '" data-fmt="pct"' : '') + '>' + (s.decisions ? pct(s.good / s.decisions) : '—') + '</b></div></div>' +
     '<div class="gbars">' + GRADES.map(([k, l, cls]) => '<div class="gbar ' + cls + '"><span>' + l + '</span><div class="track"><div style="width:' + (100 * (s.grades[k] || 0) / max) + '%"></div></div><span>' + (s.grades[k] || 0) + '</span></div>').join('') + '</div></div>';
 }
 
@@ -2369,24 +2440,37 @@ function drillsSide() {
 
 // Mesa oval: lugares em volta, board e pote no meio, suas cartas embaixo do board.
 const SEAT_XY = { UTG: [27, 95], HJ: [5, 50], CO: [27, 5], BTN: [73, 5], SB: [95, 50], BB: [73, 95] };
+// Lembra o que já estava na mesa para animar só o que mudou: cartas novas, ações novas e o pote.
+let tableMemo = { hand: null, board: 0, pot: 0, acts: {}, over: false };
 function pokerTable(t) {
   const n = t?.node, tb = spot && TABLES[spot.preset];
   const playerAt = (s) => !tb ? s : s === tb.oopSeat ? 'OOP' : s === tb.ipSeat ? 'IP' : null;
   const seats = tb ? SEATS : ['OOP', 'IP'];
   const xy = tb ? SEAT_XY : { OOP: [50, 95], IP: [50, 5] };
   const toAct = t && !t.over && n?.type === 'action' ? n.player : null;
+  const fresh = t && tableMemo.hand !== t;
+  const memo = fresh ? { board: 0, pot: 0, acts: {}, over: false } : tableMemo;
+  let chips = '';
   const felt = n
-    ? '<div class="cards">' + n.board.map(c => cardEl(c, true)).join('') + '</div><div class="pill">Pote <b>' + num(n.pot) + ' bb</b></div><div class="cards">' + comboCards(t.heroCombo, true) + '</div>'
+    ? '<div class="cards">' + n.board.map((c, i) => cardEl(c, true, i >= memo.board ? 'flip' : '', i - memo.board)).join('') + '</div>' +
+      '<div class="pill">Pote <b class="' + (n.pot !== memo.pot && !fresh ? 'pot-bump' : '') + '"' + (n.pot !== memo.pot ? ' data-count="' + n.pot + '" data-from="' + memo.pot + '" data-fmt="bb"' : '') + '>' + num(n.pot) + ' bb</b></div>' +
+      '<div class="cards">' + comboCards(t.heroCombo, true, fresh ? 'deal' : '', 1) + '</div>'
     : '<div class="pill">' + (spot?.label || 'Escolha os spots e comece') + '</div>';
-  return '<div class="ptable"><div class="felt">' + felt + '</div>' + seats.map(s => {
+  const html = '<div class="ptable"><div class="felt">' + felt + '</div>' + seats.map(s => {
     const p = playerAt(s), live = !!p;
     const stack = tb ? (live ? num(spot.stack, 1) : tb.depth) + ' bb' : '';
     const last = p && t?.last?.[p];
-    const reveal = t?.over && p && p !== t.hero ? '<span class="act">' + comboText(t.villainCombo) + '</span>' : '';
+    const changed = last && last !== memo.acts[p];
+    if (p && t?.moves?.includes(p)) chips += '<i class="chip-fly" style="left:' + xy[s][0] + '%;top:' + xy[s][1] + '%"></i>';
+    const reveal = t?.over && p && p !== t.hero
+      ? '<span class="cards" style="justify-content:center;margin-top:4px">' + comboCards(t.villainCombo, false, memo.over ? '' : 'flip') + '</span>' : '';
     return '<div class="pseat ' + (live ? '' : 'out') + ' ' + (t && p === t.hero ? 'hero' : '') + ' ' + (p && p === toAct ? 'turn' : '') + '" style="left:' + xy[s][0] + '%;top:' + xy[s][1] + '%">' +
-      '<b>' + (t && p === t.hero ? 'Você · ' : '') + s + '</b><span>' + stack + '</span>' + (last ? '<span class="act">' + last + '</span>' : '') + reveal + '</div>';
-  }).join('') + '</div>';
+      '<b>' + (t && p === t.hero ? 'Você · ' : '') + s + '</b><span>' + stack + '</span>' + (last ? '<span class="act' + (changed ? ' new' : '') + '">' + last + '</span>' : '') + reveal + '</div>';
+  }).join('') + chips + '</div>';
+  if (t) { tableMemo = { hand: t, board: n?.board.length || 0, pot: n?.pot || 0, acts: { ...t.last }, over: !!t.over }; t.moves = []; }
+  return html;
 }
+
 
 // ---------- analisar uma mão ----------
 // O jogador digita uma mão real (situação, posição, cartas, board) e repete as ações do flop em diante.
@@ -2573,6 +2657,36 @@ async function reviewUndo() {
   r.needCard = null;
   reviewView();
 }
+
+// ---------- animações: números e listas ----------
+// Elementos com data-count sobem do valor anterior (data-from, padrão 0) até o final em ~0,6 s.
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const COUNT_FMT = { pct: (v) => pct(v), int: (v) => String(Math.round(v)), num: (v) => num(v), bb: (v) => num(v) + ' bb' };
+function countUp(el) {
+  const to = Number(el.dataset.count), from = Number(el.dataset.from || 0), fmt = COUNT_FMT[el.dataset.fmt] || COUNT_FMT.num, final = el.textContent;
+  delete el.dataset.count;
+  if (reduceMotion.matches || !Number.isFinite(to) || to === from) return;
+  const t0 = performance.now(), dur = 650;
+  const step = (now) => {
+    if (!el.isConnected) return;
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = k < 1 ? fmt(from + (to - from) * e) : final;
+    if (k < 1) requestAnimationFrame(step);
+  };
+  el.textContent = fmt(from);
+  requestAnimationFrame(step);
+}
+const STAGGER = '.shortcuts, .hub, .lib-grid, .sheet-links';
+const stagger = (c) => [...c.children].forEach((ch, i) => ch.style.setProperty('--n', Math.min(i, 24)));
+function animateIn(root) {
+  if (root.matches?.('[data-count]')) countUp(root);
+  root.querySelectorAll?.('[data-count]').forEach(countUp);
+  if (root.matches?.(STAGGER)) stagger(root);
+  root.querySelectorAll?.(STAGGER).forEach(stagger);
+}
+new MutationObserver((muts) => { for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) animateIn(n); })
+  .observe(document.body, { childList: true, subtree: true });
+animateIn(document.body);
 
 // ---------- instalar como app ----------
 let installPrompt = null;
