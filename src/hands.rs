@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn draw_detection() {
-        assert_eq!(cat("AhTh", "Kh7h2c").1, vec!["Flush draw"]);
+        assert_eq!(cat("AhTh", "Kh7h2c").1, vec!["Flush draw", "Backdoor straight draw"]); // Q+J make Broadway
         assert_eq!(cat("9s8s", "Ts7c2h").1, vec!["Backdoor flush draw", "OESD"]);
         assert_eq!(cat("9c5d", "8h7s2d").1, vec!["Gutshot"]);
         assert_eq!(cat("AcQd", "9h7s2d").1, vec!["Backdoor straight draw", "Overcards"]);

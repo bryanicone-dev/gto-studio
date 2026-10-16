@@ -564,28 +564,3 @@ mod tests {
         }
     }
 }
-
-
-#[cfg(test)]
-mod memory_probe {
-    use super::*;
-    #[test]
-    #[ignore]
-    fn preset_memory() {
-        let html = include_str!("../static/index.html");
-        let names: Vec<&str> = html.match_indices("name: '").map(|(i, m)| { let s = &html[i + m.len()..]; &s[..s.find('\'').unwrap()] }).collect();
-        for name in names {
-            let start = html.find(&format!("name: '{name}'")).unwrap();
-            let block = &html[start..start + html[start..].find('}').unwrap()];
-            let f = |k: &str, e: char| { let s = &block[block.find(k).unwrap() + k.len()..]; s[..s.find(e).unwrap()].trim().to_string() };
-            let st = || StreetSizes { oop_bet: "50%".into(), oop_raise: "3x".into(), ip_bet: "50%".into(), ip_raise: "3x".into() };
-            let req = SolveRequest { oop_range: f("oop: '", '\''), ip_range: f("ip: '", '\''), board: "As7d2c".into(),
-                pot: f("pot:", ',').parse().unwrap(), stack: f("stack:", ',').parse().unwrap(), flop: st(), turn: st(), river: st(),
-                turn_donk: String::new(), river_donk: String::new(), rake_pct: 0.0, rake_cap: 0.0, add_allin_threshold: 1.5,
-                force_allin_threshold: 0.15, merging_threshold: 0.1, precision: "compressed".into(), max_iterations: 1, target_pct: 1.0 };
-            let g = build_game(&req).unwrap();
-            let (raw, comp) = g.memory_usage();
-            println!("{name:45} raw {:.2} GB  16-bit {:.2} GB", raw as f64 / GB, comp as f64 / GB);
-        }
-    }
-}
