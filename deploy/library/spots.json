@@ -1,6 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "bet": "50%",
+  "flop_bet": "33%, 75%",
   "raise": "3x",
   "target_pct": 1.0,
   "max_iterations": 300,
