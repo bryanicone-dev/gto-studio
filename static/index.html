@@ -1065,7 +1065,7 @@ $('#form').addEventListener('submit', async (e) => {
   try {
     await api('/api/solve', body);
     solveStartedHere = true;
-    solveRequest = body; lockState = null;
+    solveRequest = body; lockState = lockDraft = null;
     spot = TABLES[PRESETS[$('#preset').value]?.name] ? { preset: PRESETS[$('#preset').value].name, stack: body.stack } : null;
     trainer = null;
   } catch (err) { $('#formError').textContent = err.message; }
@@ -1424,7 +1424,7 @@ async function runLock() {
         if (x.type === 'action') base[histKey(h)] = x;
       }
     }
-    const label = spot?.label || 'Solução aberta';
+    const label = (spot?.label || 'Solução aberta').replace(' · nodelock', '');
     await api('/api/solve', { ...solveRequest, locks: [{ history: target, hands }] });
     lockState = { history: target, where: n.path.length ? 'em ' + n.path.map(stepLabel).join(' › ') : 'na primeira decisão', player: n.player, base, spotId: spot?.id };
     spot = { ...spot, label: label + ' · nodelock' };
@@ -1439,6 +1439,7 @@ async function runLock() {
     if (status.error) throw new Error(status.error);
     lockState.cancelled = status.cancelled;
   } catch (err) {
+    lockDraft = d; // loadSpot zera o rascunho
     d.error = err.message;
     if (status?.state !== 'done') lockState = null;
   }
@@ -1531,7 +1532,7 @@ async function loadSpot(s) {
   await callWorker('load', { bytes });
   const preset = PRESETS.find(p => p.name === s.preset);
   solveRequest = preset ? libraryRequest(preset, s.board, s.bet) : null;
-  lockState = null;
+  lockState = lockDraft = null;
   spot = { id: s.id, preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
   Object.assign(local, {
     state: 'done', iteration: s.iterations, max_iterations: s.iterations, exploitability_pct: s.exploitability_pct,
