@@ -509,6 +509,11 @@
   .hh-table tr:not(:first-child):hover { background: var(--empty); }
   .hh-street { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
   .hh-street > b { min-width: 58px; }
+  .hh-table .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; margin-right: 2px; vertical-align: middle; }
+  .hh-leaks { margin-top: 14px; }
+  .hh-leaks > summary { cursor: pointer; }
+  .hh-leaks > summary small { color: var(--muted); margin-left: 10px; }
+  .hh-leaks tr.on { background: var(--primary-soft); }
   @media (max-width: 1000px) { .hh-body { grid-template-columns: 1fr; } .hh-list { max-height: 50vh; } }
   .mine { color: var(--primary); font-weight: 600; }
 
@@ -674,7 +679,7 @@
 <!-- Analisar -->
 <section class="page" data-page="analisar" hidden>
   <h2>Analisar mão</h2>
-  <p class="sub">Importe o histórico de mãos do GGPoker ou do PokerStars, ou digite uma mão, e veja a nota de cada decisão sua do flop em diante.</p>
+  <p class="sub">Importe o histórico de mãos do GGPoker ou do PokerStars, ou digite uma mão, e veja a nota das suas decisões do flop em diante e, em torneio, do push/fold pré-flop.</p>
   <div id="anTabs"></div>
   <div id="review"></div>
 </section>
@@ -2926,10 +2931,14 @@ function finishHand(h) {
     h.eff = Math.min(left(h.hero), left(h.villain)) / h.bb;
   }
   h.net = ((h.collected[h.hero] || 0) - (h.contrib[h.hero] || 0)) / h.bb;
+  // Para o push/fold: stacks em bb na ordem de ação pré-flop (UTG … SB, BB), já sem o próprio ante, e o total de antes.
+  const order = [...(HH_POS[n - 2] || []), 'SB', 'BB'];
+  const stacks = n <= 9 ? order.map(p => { const s = seats.find(x => pos[x.name] === p); return (s.stack - (h.anteBy[s.name] || 0)) / h.bb; }) : [];
   // Só o necessário para mostrar e analisar depois (o texto original não é guardado).
   return {
     id: h.id, site: h.site, tour: h.tour, date: h.date, bb: h.bb, players: n, hero: h.hero, heroPos: h.heroPos, cards: h.cards,
     board: h.board, situation: h.situation, villainPos: h.villainPos, heroRole: h.heroRole, eff: h.eff, potFlop: h.potFlop, net: h.net,
+    stacks, ante: h.ante / h.bb,
     pre: h.pre.map(a => ({ pos: pos[a.who], kind: a.kind, amount: a.amount, allin: a.allin })),
     post: h.post.map(a => ({ who: a.who === h.hero ? 'hero' : a.who === h.villain ? 'vil' : 'other', pos: pos[a.who], kind: a.kind, amount: a.amount, allin: a.allin, street: a.street })),
   };
@@ -2940,10 +2949,11 @@ function finishHand(h) {
 // repetidas na árvore; as suas decisões recebem nota. O flop é analisado em lote; turn e river, por mão.
 let hhHands = store.get('gto-hh', []);
 let hhResults = store.get('gto-hh-res', {});
+let hhPreRes = store.get('gto-hh-pre', {});
 let hhFilter = 'flop', hhSel = null, hhBusy = false, hhProgress = '';
 const HH_TYPE = { nopf: 'Não viu o flop', multi: 'Multiway', allin: 'All-in pré-flop', limp: 'Pote limpado', '4bet': 'Pote 4-bet+', srp: 'Pote simples', '3bet': 'Pote 3-bet' };
 const hhNorm = (p) => ({ 'UTG+1': 'UTG', MP: 'UTG', LJ: 'UTG' })[p] || p;
-const hhSave = () => { store.set('gto-hh', hhHands.slice(-2000)); store.set('gto-hh-res', hhResults); };
+const hhSave = () => { store.set('gto-hh', hhHands.slice(-2000)); store.set('gto-hh-res', hhResults); store.set('gto-hh-pre', hhPreRes); };
 
 // Spot da Biblioteca mais próximo da situação real: mesmo formato, mesmo tipo de pote, mesmo lado OOP/IP de
 // quem abriu; depois posições e stack efetivo.
@@ -3037,6 +3047,18 @@ async function hhAnalyzeAll() {
   const todo = hhHands.filter(h => hhEligible(h) && !hhResults[h.id]);
   let done = 0;
   try {
+    const preTodo = hhHands.filter(hhPreTodo);
+    if (preTodo.length) {
+      try { await pfLoad(); } catch { preTodo.length = 0; }
+      for (const [i, h] of preTodo.entries()) {
+        hhProgress = 'Calculando o push/fold pré-flop… ' + (i + 1) + '/' + preTodo.length;
+        if (curPage === 'analisar' && !sub) $('#hhProgress') && ($('#hhProgress').textContent = hhProgress);
+        await new Promise(r => setTimeout(r, 0));
+        hhPreRes[h.id] = hhPreGrade(h);
+      }
+      hhSave();
+      if (curPage === 'analisar' && !sub) hhView();
+    }
     for (const h of todo) {
       hhProgress = 'Analisando o flop das mãos… ' + (++done) + '/' + todo.length;
       if (curPage === 'analisar' && !sub) $('#hhProgress') && ($('#hhProgress').textContent = hhProgress);
@@ -3096,9 +3118,10 @@ async function hhImport(files) {
     }
   } catch (e) { hhProgress = 'Não consegui ler o arquivo: ' + e.message; hhView(); return; }
   const parsed = texts.flatMap(parseHandHistories);
-  const known = new Set(hhHands.map(h => h.id));
-  const fresh = parsed.filter(h => !known.has(h.id));
-  hhHands = [...hhHands, ...fresh].sort((a, b) => a.date.localeCompare(b.date));
+  // Mãos importadas antes de o histórico guardar os stacks são lidas de novo (para o push/fold).
+  const known = new Set(hhHands.filter(h => h.stacks).map(h => h.id));
+  const fresh = parsed.filter(h => !known.has(h.id)), again = new Set(fresh.map(h => h.id));
+  hhHands = [...hhHands.filter(h => !again.has(h.id)), ...fresh].sort((a, b) => a.date.localeCompare(b.date));
   hhSave();
   hhProgress = parsed.length ? fresh.length + ' mãos novas importadas' + (parsed.length > fresh.length ? ' (' + (parsed.length - fresh.length) + ' já estavam aqui)' : '') + '.'
     : 'Nenhuma mão reconhecida. Use o histórico em inglês do GGPoker ou do PokerStars (.txt ou .zip).';
@@ -3108,7 +3131,7 @@ async function hhImport(files) {
 function hhDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('over'); hhImport([...e.dataTransfer.files]); }
 function hhClear() {
   if (!confirm('Apagar todas as mãos importadas deste aparelho?')) return;
-  hhHands = []; hhResults = {}; hhSel = null; hhSave(); hhView();
+  hhHands = []; hhResults = {}; hhPreRes = {}; hhLeak = null; hhSel = null; hhSave(); hhView();
 }
 
 // ---------- importar histórico: tela ----------
@@ -3122,47 +3145,56 @@ function hhView() {
       '<div class="panel"><h3 style="margin-top:0">Como baixar do GGPoker</h3><ol class="log" style="font-size:13px;line-height:1.7">' +
       '<li>No PokerCraft (app ou site do GGPoker), abra as sessões ou torneios.</li><li>Escolha o período e toque em baixar histórico de mãos (vem um .zip).</li>' +
       '<li>Arraste o .zip aqui. Não precisa descompactar.</li></ol>' +
-      '<p class="hint">O arquivo é lido só neste aparelho; nada é enviado. São analisadas as mãos em que você viu o flop contra um jogador, em pote simples ou 3-bet, que caem num spot da Biblioteca. Revisar mãos depois de jogar é estudo; usar durante a partida é proibido.</p></div></div>';
+      '<p class="hint">O arquivo é lido só neste aparelho; nada é enviado. São analisadas as mãos em que você viu o flop contra um jogador, em pote simples ou 3-bet, que caem num spot da Biblioteca, e, em torneio com até 20 bb efetivos, as decisões de push/fold pré-flop. Revisar mãos depois de jogar é estudo; usar durante a partida é proibido.</p></div></div>';
     return;
   }
-  const res = (h) => hhResults[h.id];
+  const res = (h) => hhResults[h.id], preOf = (h) => hhPreRes[h.id]?.g ? hhPreRes[h.id] : null;
   const sawFlop = hhHands.filter(h => h.situation.type !== 'nopf');
-  const analyzed = hhHands.filter(h => res(h)?.status === 'ok');
-  const decs = analyzed.flatMap(h => res(h).decisions.filter(d => d.g));
+  const analyzed = hhHands.filter(h => res(h)?.status === 'ok' || preOf(h));
+  const decs = analyzed.flatMap(h => [preOf(h), ...(res(h)?.status === 'ok' ? res(h).decisions : [])].filter(d => d?.g));
   const s = { hands: analyzed.length, decisions: decs.length, good: decs.filter(d => d.g === 'best' || d.g === 'correct').length,
     grades: decs.reduce((m, d) => (m[d.g] = (m[d.g] || 0) + 1, m), {}), evLost: decs.reduce((x, d) => x + d.loss, 0) };
-  const filters = { all: ['Todas', () => true], flop: ['Viu o flop', h => h.situation.type !== 'nopf'], ok: ['Analisadas', h => res(h)?.status === 'ok'],
-    err: ['Com erros', h => res(h)?.decisions?.some(d => d.g === 'mistake' || d.g === 'blunder')], out: ['Fora da Biblioteca', h => res(h)?.status === 'noflop'] };
-  const list = hhHands.filter(filters[hhFilter][1]).slice().reverse();
+  const items = hhLeakItems();
+  const leakIds = hhLeak && new Set(items.filter(x => x.dev && x[hhLeak.dim] === hhLeak.key).map(x => x.h.id));
+  const filters = { all: ['Todas', () => true], flop: ['Viu o flop', h => h.situation.type !== 'nopf'], ok: ['Analisadas', h => res(h)?.status === 'ok' || preOf(h)],
+    pre: ['Push/fold', h => preOf(h)],
+    err: ['Com erros', h => [preOf(h), ...(res(h)?.decisions || [])].some(d => d?.g === 'mistake' || d?.g === 'blunder')], out: ['Fora da Biblioteca', h => res(h)?.status === 'noflop'],
+    ...(leakIds ? { leak: ['Leak: ' + esc(hhLeak.key), h => leakIds.has(h.id)] } : {}) };
+  const list = hhHands.filter((filters[hhFilter] || filters.all)[1]).slice().reverse();
   const max = Math.max(1, ...GRADES.map(([k]) => s.grades[k] || 0));
   const bars = '<div class="gbars">' + GRADES.map(([k, l, cls]) => '<div class="gbar ' + cls + '"><span>' + l + '</span><div class="track"><div style="width:' + (100 * (s.grades[k] || 0) / max) + '%"></div></div><span>' + (s.grades[k] || 0) + '</span></div>').join('') + '</div>';
   const cardsSmall = (cs) => '<span class="cards mini">' + cs.map(c => cardEl(c)).join('') + '</span>';
+  const dot = (street, g) => '<i class="dot ' + gradeOf(g)[2] + '" title="' + street + ': ' + gradeOf(g)[1] + '"></i>';
   const statusOf = (h) => {
-    const r = res(h);
-    if (r?.status === 'ok') return r.decisions.filter(d => d.g).map(d => '<i class="dot ' + gradeOf(d.g)[2] + '" title="' + d.street + ': ' + gradeOf(d.g)[1] + '"></i>').join('') || '—';
-    if (r?.status === 'noflop') return '<small>flop fora da Biblioteca</small>';
-    if (hhEligible(h) && !r) return '<small>na fila</small>';
-    return '<small>' + (r?.status === 'unsup' ? 'sem spot parecido' : HH_TYPE[h.situation.type]) + '</small>';
+    const r = res(h), p = hhPreRes[h.id], pre = p?.g ? dot('Pré-flop', p.g) : '';
+    if (r?.status === 'ok') return (pre + r.decisions.filter(d => d.g).map(d => dot(d.street, d.g)).join('')) || '—';
+    if (pre && !hhEligible(h)) return pre;
+    if (r?.status === 'noflop') return pre + '<small>flop fora da Biblioteca</small>';
+    if ((hhEligible(h) && !r) || hhPreTodo(h)) return pre + '<small>na fila</small>';
+    return pre + '<small>' + (r?.status === 'unsup' ? 'sem spot parecido' : p?.out ? 'fora do modelo push/fold' : HH_TYPE[h.situation.type]) + '</small>';
   };
+  const lossOf = (h) => (res(h)?.ev || 0) + (preOf(h)?.loss || 0);
   const rows = list.slice(0, 400).map(h => '<tr class="' + (h.id === hhSel ? 'on' : '') + '" onclick="hhSel=\'' + h.id + '\';hhView()"><td><small>' + h.date.slice(5, 16) + '</small></td>' +
     '<td>' + cardsSmall([h.cards.slice(0, 2), h.cards.slice(2)]) + '</td><td>' + h.heroPos + (h.villainPos ? ' <small>vs ' + h.villainPos + '</small>' : '') + '</td>' +
     '<td>' + (h.board.length ? cardsSmall(h.board) : '<small>—</small>') + '</td>' +
     '<td class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + '</td>' +
-    '<td>' + statusOf(h) + '</td><td>' + (res(h)?.ev > 0.005 ? '−' + num(res(h).ev) : '') + '</td></tr>').join('');
+    '<td>' + statusOf(h) + '</td><td>' + (lossOf(h) > 0.005 ? '−' + num(lossOf(h)) : '') + '</td></tr>').join('');
   el.innerHTML = input + '<div class="panel hh-head"><div class="statgrid"><div class="nums">' +
     '<div><small>Mãos importadas</small><b data-count="' + hhHands.length + '" data-fmt="int">' + hhHands.length + '</b></div>' +
     '<div><small>Viu o flop</small><b>' + sawFlop.length + '</b></div><div><small>Analisadas</small><b>' + analyzed.length + '</b></div>' +
     '<div><small>EV perdido</small><b>' + num(s.evLost, 1) + ' bb</b></div></div>' + bars + '</div>' +
     '<div class="row-inline" style="margin-top:12px;align-items:center"><label class="mini-btn" for="hhFile" style="cursor:pointer">⇪ Importar mais</label>' +
-    (hhHands.some(h => hhEligible(h) && !res(h)) && !hhBusy ? '<button class="mini-btn" onclick="hhAnalyzeAll()">Analisar pendentes</button>' : '') +
+    (hhHands.some(h => (hhEligible(h) && !res(h)) || hhPreTodo(h)) && !hhBusy ? '<button class="mini-btn" onclick="hhAnalyzeAll()">Analisar pendentes</button>' : '') +
     (() => { const n = new Set(hhHands.filter(x => res(x)?.status === 'noflop').map(x => spotKey(res(x).preset, x.board.slice(0, 3).join('')))).size;
       return n && !hhBusy ? '<button class="mini-btn" onclick="hhSolveMissing()" title="Resolve no navegador e guarda neste aparelho">Resolver no aparelho os ' + n + ' flops que faltam</button>' : ''; })() +
     (hhBusy && local.state === 'solving' ? '<button class="mini-btn" onclick="hhStopSolve()">Parar</button>' : '') +
     '<button class="mini-btn" onclick="hhClear()">Limpar tudo</button><span class="hint" id="hhProgress" style="margin:0">' + hhProgress + '</span></div></div>' +
+    hhLeaks(items) +
     '<div class="seg small" style="margin:14px 0;flex-wrap:wrap">' + Object.entries(filters).map(([k, [l, f]]) => '<button class="' + (hhFilter === k ? 'on' : '') + '" onclick="hhFilter=\'' + k + '\';hhView()">' + l + ' (' + hhHands.filter(f).length + ')</button>').join('') + '</div>' +
     '<div class="study-body hh-body"><div class="panel hh-list"><table class="report hh-table"><tr><th>Data</th><th>Mão</th><th>Posição</th><th>Board</th><th>bb</th><th>Notas</th><th>EV−</th></tr>' + rows + '</table>' +
     (list.length > 400 ? '<p class="hint">Mostrando as 400 mais recentes.</p>' : '') + (list.length ? '' : '<p class="hint">Nenhuma mão neste filtro.</p>') + '</div>' +
     '<div class="panel">' + hhDetail(hhHands.find(h => h.id === hhSel)) + '</div></div>';
+  hhPreGrid();
 }
 
 function hhDetail(h) {
@@ -3176,13 +3208,15 @@ function hhDetail(h) {
     return '<div class="hh-street"><b>' + st[0].toUpperCase() + st.slice(1) + '</b>' + '<span class="cards mini">' + cards.map(c => cardEl(c)).join('') + '</span>' +
       '<span>' + (acts.map(a => (a.who === 'hero' ? '<b>Você</b>' : a.pos) + ' ' + hhActLabel(a)).join(' · ') || '—') + '</span></div>';
   }).join('');
+  const p = hhPreRes[h.id], preStep = hhPreStep(h);
+  const result = 'Resultado da mão: <b class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + ' bb</b>';
   let analysis = '';
   if (r?.status === 'ok') {
     const nCards = { Flop: 3, Turn: 4, River: 5 };
-    analysis = '<h4 style="margin-top:16px">' + r.preset + '</h4>' + (r.decisions.length ? handSummary(r.decisions.map(d => ({ ...d, label: d.real, board: h.board.slice(0, nCards[d.street]),
+    const ds = [...(preStep ? [preStep] : []), ...r.decisions.map(d => ({ ...d, label: d.real, board: h.board.slice(0, nCards[d.street]),
       note: d.g ? (d.off ? 'No spot: ' + d.action + ' (tamanho mais parecido).' : '') : 'Sem nota: a sua mão já não está na linha do GTO neste ponto.',
-      link: 'javascript:hhOpenStudy(\'' + h.id + '\', [' + d.at.join(',') + '])' })), { result: 'Resultado da mão: <b class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + ' bb</b>' })
-      : '<p class="hint">Nenhuma decisão sua no flop.</p>') +
+      link: 'javascript:hhOpenStudy(\'' + h.id + '\', [' + d.at.join(',') + '])' }))];
+    analysis = '<h4 style="margin-top:16px">' + r.preset + '</h4>' + (ds.length ? handSummary(ds, { result }) : '<p class="hint">Nenhuma decisão sua no flop.</p>') +
       (!r.full && h.board.length > 3 ? '<div class="start" style="justify-content:flex-start"><button class="btn-primary" ' + (hhBusy ? 'disabled' : '') + ' onclick="hhFull(\'' + h.id + '\')">Analisar turn e river</button></div>' : '');
   } else if (r?.status === 'noflop') {
     const key = spotKey(r.preset, h.board.slice(0, 3).join(''));
@@ -3195,12 +3229,138 @@ function hhDetail(h) {
   } else if (r?.status === 'unsup') analysis = '<p class="hint">Não há spot parecido na Biblioteca para esta situação.</p>';
   else if (r?.status === 'erro') analysis = '<p class="error">' + r.notes.join(' ') + '</p>';
   else analysis = '<p class="hint">Na fila para análise.</p>';
+  if (r?.status !== 'ok' && preStep) analysis = handSummary([preStep], { result }) + (hhEligible(h) ? analysis : '');
+  if (p?.out) analysis = '<p class="hint">Pré-flop: ' + p.out + '.</p>' + analysis;
+  if (preStep) analysis += '<div id="hhPfGrid" data-id="' + h.id + '"></div>';
+  const eff = h.eff || p?.eff;
   return '<div class="card-head"><h3>' + (h.tour ? 'Torneio' : 'Cash') + ' · ' + h.players + ' jogadores</h3><small class="pill">' + h.site + ' · ' + h.date + '</small></div>' +
     '<div class="rv-table"><div><small>Suas cartas</small><div class="cards">' + [h.cards.slice(0, 2), h.cards.slice(2)].map(c => cardEl(c, true)).join('') + '</div></div>' +
     '<div><small>Posição</small><b>' + h.heroPos + '</b></div>' + (h.villainPos ? '<div><small>Contra</small><b>' + h.villainPos + '</b></div>' : '') +
-    (h.eff ? '<div><small>Stack efetivo</small><b>' + num(h.eff, 1) + ' bb</b></div>' : '') + '<div><small>Resultado</small><b class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + ' bb</b></div></div>' +
+    (eff ? '<div><small>Stack efetivo</small><b>' + num(eff, 1) + ' bb</b></div>' : '') + '<div><small>Resultado</small><b class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + ' bb</b></div></div>' +
     '<div class="hh-street"><b>Pré-flop</b><span>' + pre + '</span></div>' + streets +
     (r?.notes?.length ? '<p class="hint">' + r.notes.join(' ') + '</p>' : '') + analysis;
+}
+
+// ---------- importar histórico: push/fold pré-flop ----------
+// Torneio com stack efetivo até 20 bb: todos foldaram até você (shove ou fold) ou alguém deu all-in e os outros
+// foldaram (call ou fold). Mesmo modelo e mesma nota do Push/fold: Nash em fichas com os stacks reais da mão;
+// o total de antes vira o "ante do BB" do modelo.
+const hhPreTodo = (h) => !(h.id in hhPreRes) && !!hhPreSpot(h);
+function hhPreSpot(h) {
+  if (!h.tour || !h.stacks?.length) return null;
+  const order = [...(HH_POS[h.players - 2] || []), 'SB', 'BB'], hero = order.indexOf(h.heroPos);
+  const i = h.pre.findIndex(a => a.pos === h.heroPos);
+  if (hero < 0 || i < 0) return null;
+  const acted = h.pre.slice(0, i).filter(a => a.kind !== 'Fold'), a = h.pre[i];
+  let pusher;
+  if (!acted.length) pusher = hero;
+  else if (acted.length === 1 && acted[0].kind === 'Raise' && acted[0].allin) pusher = order.indexOf(acted[0].pos);
+  else return null;
+  const st = h.stacks, mode = pusher === hero ? 'push' : 'call';
+  const eff = Math.min(st[hero], mode === 'push' ? Math.max(...st.slice(hero + 1)) : st[pusher]);
+  if (!(eff > 0 && eff <= 20)) return null;
+  if (mode === 'push' && a.kind !== 'Fold' && !(a.kind === 'Raise' && a.allin))
+    return { out: (a.kind === 'Raise' ? 'open-raise para ' + num(a.amount, 1) + ' bb sem all-in' : a.kind === 'Call' ? 'limp' : a.kind) + ' com ' + num(eff, 1) + ' bb efetivos, fora do modelo push/fold (só shove ou fold)', eff };
+  const pf = PF_POS.slice(9 - h.players), r1 = (x) => Math.round(x * 10) / 10;
+  const s = { n: h.players, stacks: st.map((x, j) => r1(j === st.length - 1 ? x + h.ante : x)), ante: Math.round(h.ante * 1000) / 1000, prizes: null, pusher: pf[pusher] };
+  // Classe da mão na grade, como no treino de Push/fold (linha/coluna 0 = A; acima da diagonal suited).
+  const [c1, c2] = [h.cards.slice(0, 2), h.cards.slice(2)].map(parseCard);
+  const hi = Math.max(c1 >> 2, c2 >> 2), lo = Math.min(c1 >> 2, c2 >> 2), row = 12 - hi, col = 12 - lo;
+  const k = hi === lo ? row * 13 + row : (c1 & 3) === (c2 & 3) ? row * 13 + col : col * 13 + row;
+  return { s, mode, go: a.kind !== 'Fold', k, eff, heroPf: pf[hero], who: order[pusher] };
+}
+// Mesma nota do treino (pfAnswer): melhor = ação do Nash; correta = mão em mix; senão pelo EV perdido.
+function hhPreGrade(h) {
+  const p = hhPreSpot(h);
+  if (!p || p.out) return p;
+  const r = pfRun(p.s), c = p.mode === 'call' ? r.callers.find(x => x.pos === p.heroPf) : null;
+  const freq = c ? c.call[p.k] : r.push[p.k], ev = c ? c.ev[p.k] : r.pushEv[p.k];
+  const loss = p.go ? Math.max(0, -ev) : Math.max(0, ev);
+  const g = (p.go ? freq >= 0.5 : freq < 0.5) ? 'best' : freq > 0.1 && freq < 0.9 ? 'correct' : loss < 0.1 ? 'inacc' : loss < 0.5 ? 'mistake' : 'blunder';
+  return { ...p, freq, ev, loss, g };
+}
+// Passo "Pré-flop" do resumo da mão (handSummary).
+function hhPreStep(h) {
+  const p = hhPreRes[h.id];
+  if (!p?.g) return null;
+  const go = p.mode === 'push' ? 'Shove' : 'Call';
+  return { street: 'Pré-flop', board: [], pot: 1.5 + p.s.ante, label: (p.go ? go : 'Fold') + ' com ' + PF_HANDS[p.k] + ' (' + num(p.eff, 1) + ' bb)', g: p.g, loss: p.loss,
+    freqs: [1 - p.freq, p.freq], evs: [0, p.ev], actions: [{ kind: 'Fold' }, { kind: p.mode === 'push' ? 'Allin' : 'Call' }], chosen: p.go ? 1 : 0,
+    note: (p.mode === 'push' ? 'Todos foldaram até você' : 'All-in do ' + p.who + ' e os outros foldaram') + '. Nash em fichas: ' + go.toLowerCase() + ' com ' + PF_HANDS[p.k] +
+      ' em ' + pct(p.freq) + ' das vezes; EV do ' + go.toLowerCase() + ' contra o fold: ' + sign(p.ev) + ' bb.' };
+}
+// Grade do Nash com a mão marcada; recalculada ao abrir (fica no cache do Push/fold).
+async function hhPreGrid() {
+  const el = $('#hhPfGrid'), p = el && hhPreRes[el.dataset.id];
+  if (!p?.s) return;
+  if (!pfEq || !pfCache.has(JSON.stringify(p.s))) {
+    el.innerHTML = '<p class="hint">Calculando o range Nash…</p>';
+    try { await pfLoad(); } catch { el.innerHTML = ''; return; }
+    await new Promise(r => setTimeout(r, 20));
+  }
+  const r = pfRun(p.s), c = p.mode === 'call' ? r.callers.find(x => x.pos === p.heroPf) : null;
+  if (!el.isConnected) return;
+  const order = [...(HH_POS[p.s.n - 2] || []), 'SB', 'BB'];
+  el.innerHTML = '<div class="range-head" style="margin-top:14px"><b>' + (c ? 'Call contra o shove do ' + p.who + ': ' + pct(c.pct) : 'Shove do ' + p.who + ': ' + pct(r.pushPct)) + '</b><span class="pill">Nash · fichas</span></div>' +
+    pfGrid(c ? c.call : r.push, c ? c.ev : r.pushEv, false, p.k) +
+    '<p class="hint">Stacks no modelo (bb): ' + order.map((x, j) => x + ' ' + num(p.s.stacks[j], 1)).join(' · ') + '. Antes: ' + num(p.s.ante) + ' bb, no modelo pagos pelo BB. Como na aba Push/fold, só o primeiro a pagar entra no pote.</p>';
+}
+
+// ---------- importar histórico: relatório de leaks ----------
+// Desvio = decisão com nota (pré ou pós-flop) que não foi a melhor jogada nem um mix correto. Os desvios se agrupam
+// por tipo, street, posição, OOP/IP ou situação, do maior EV perdido para o menor; clicar filtra a lista de mãos.
+const HH_GTO_VERB = { Fold: 'folda', Check: 'dá check', Call: 'paga', Bet: 'aposta', Raise: 'dá raise', Allin: 'dá all-in' };
+const HH_LEAK_DIMS = [['type', 'Tipo de desvio'], ['street', 'Street'], ['pos', 'Posição'], ['role', 'OOP/IP'], ['preset', 'Situação']];
+let hhLeakDim = 'type', hhLeak = null, hhLeaksOpen = false, hhLeakRows = [];
+
+// Cada decisão com nota; "want" é o que o GTO queria (base da frequência por tipo de desvio).
+function hhLeakItems() {
+  const out = [], dev = (g) => g !== 'best' && g !== 'correct';
+  for (const h of hhHands) {
+    const p = hhPreRes[h.id], r = hhResults[h.id];
+    if (p?.g) {
+      const go = p.mode === 'push' ? 'Shove' : 'Call';
+      out.push({ h, loss: p.loss, dev: dev(p.g), want: p.mode + (p.freq >= 0.5), type: p.go ? go + ' fora do range Nash' : 'Fold com mão de ' + go.toLowerCase(),
+        street: 'Pré-flop', pos: h.heroPos, role: null, preset: 'Push/fold · ' + (p.mode === 'push' ? 'shove' : 'call de all-in') });
+    }
+    if (r?.status === 'ok') for (const d of r.decisions) if (d.g) {
+      const mine = d.actions[d.chosen].kind, gto = d.actions[d.freqs.indexOf(Math.max(...d.freqs))].kind;
+      out.push({ h, loss: d.loss, dev: dev(d.g), want: gto, type: mine === gto ? ACTION_NAME[mine] + ' com tamanho diferente do GTO' : ACTION_NAME[mine] + ' quando o GTO ' + HH_GTO_VERB[gto],
+        street: d.street, pos: h.heroPos, role: h.heroRole, preset: r.preset });
+    }
+  }
+  return out;
+}
+
+function hhLeaks(items) {
+  if (!items.length) return '';
+  const devs = items.filter(x => x.dev), groups = new Map();
+  for (const x of devs) {
+    const key = x[hhLeakDim];
+    if (key == null) continue;
+    const g = groups.get(key) || { key, want: x.want, n: 0, ev: 0 };
+    g.n++; g.ev += x.loss;
+    groups.set(key, g);
+  }
+  hhLeakRows = [...groups.values()].sort((a, b) => b.ev - a.ev);
+  const total = (g) => items.filter(x => hhLeakDim === 'type' ? x.want === g.want : x[hhLeakDim] === g.key).length;
+  const rows = hhLeakRows.map((g, i) => {
+    const t = total(g), on = hhFilter === 'leak' && hhLeak?.dim === hhLeakDim && hhLeak.key === g.key;
+    return '<tr class="' + (on ? 'on' : '') + '" onclick="hhPickLeak(' + i + ')"><td>' + esc(g.key) + '</td><td>' + g.n + '</td><td>−' + num(g.ev) + ' bb</td><td>−' + num(g.ev / g.n) + ' bb</td>' +
+      '<td>' + pct(g.n / t) + '<small>de ' + t + (t === 1 ? ' decisão' : ' decisões') + '</small></td></tr>';
+  }).join('');
+  return '<details class="panel hh-leaks"' + (hhLeaksOpen ? ' open' : '') + ' ontoggle="hhLeaksOpen=this.open"><summary><b>Relatório de leaks</b><small>' + devs.length + ' desvios em ' + items.length +
+    ' decisões com nota · −' + num(devs.reduce((s, x) => s + x.loss, 0), 1) + ' bb</small></summary>' +
+    '<div class="seg small" style="margin:12px 0;flex-wrap:wrap">' + HH_LEAK_DIMS.map(([k, l]) => '<button class="' + (hhLeakDim === k ? 'on' : '') + '" onclick="hhLeakDim=\'' + k + '\';hhView()">' + l + '</button>').join('') + '</div>' +
+    (rows ? '<table class="report"><tr><th>Padrão</th><th>Desvios</th><th>EV perdido</th><th>Médio</th><th>Frequência</th></tr>' + rows + '</table>' : '<p class="hint">Nenhum desvio por enquanto.</p>') +
+    '<p class="hint">Frequência: ' + (hhLeakDim === 'type' ? 'desvios entre as decisões em que o GTO queria a mesma ação' : 'desvios entre as suas decisões com nota neste grupo') +
+    '. Clique numa linha para ver as mãos.</p></details>';
+}
+function hhPickLeak(i) {
+  const g = hhLeakRows[i];
+  if (!g) return;
+  hhLeak = { dim: hhLeakDim, key: g.key }; hhFilter = 'leak'; hhSel = null;
+  hhView();
 }
 
 
