@@ -117,7 +117,7 @@ fn main() -> Result<(), String> {
                 flop: sizes(flop_bet), turn: sizes(&spec.bet), river: sizes(&spec.bet), turn_donk: String::new(), river_donk: String::new(),
                 rake_pct: 0.0, rake_cap: 0.0, add_allin_threshold: 1.5, force_allin_threshold: 0.15,
                 merging_threshold: 0.1, precision: "compressed".into(),
-                max_iterations: spec.max_iterations, target_pct: spec.target_pct,
+                max_iterations: spec.max_iterations, target_pct: spec.target_pct, locks: vec![],
             };
             let (mut g, compress, memory_gb) = engine::prepare(&req, f64::MAX)?;
             println!("resolvendo {id} ({memory_gb:.2} GB)…");

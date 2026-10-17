@@ -52,6 +52,9 @@ pub fn prepare(request: &str, limit_gb: f64) -> String {
         Err(e) => return error(e),
     };
     game.allocate_memory(compress);
+    if let Err(e) = engine::apply_locks(&mut game, &req.locks) {
+        return error(e);
+    }
     let pot = game.tree_config().starting_pot as f32;
     JOB.with(|j| *j.borrow_mut() = Some(Job {
         iteration: 0, max_iterations: req.max_iterations, pot,

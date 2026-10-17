@@ -6,6 +6,7 @@ use crate::hands;
 use postflop_solver::*;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::collections::HashMap;
 
 pub const CHIPS: f64 = 100.0;
 pub const GB: f64 = 1024.0 * 1024.0 * 1024.0;
@@ -43,6 +44,16 @@ pub struct SolveRequest {
     pub precision: String, // auto | full | compressed
     pub max_iterations: u32,
     pub target_pct: f32,
+    #[serde(default)]
+    pub locks: Vec<NodeLock>,
+}
+
+/// Nodelock: at the decision reached by `history`, each hand class listed in `hands` ("AKs", "77",
+/// or "*" for every class not listed) plays those action frequencies; the other hands stay free.
+#[derive(Deserialize, Clone, Default)]
+pub struct NodeLock {
+    pub history: Vec<usize>,
+    pub hands: HashMap<String, Vec<f32>>,
 }
 
 fn sizes(s: &StreetSizes) -> Result<[BetSizeOptions; 2], String> {
@@ -234,6 +245,38 @@ pub fn prepare(req: &SolveRequest, limit_gb: f64) -> Result<(PostFlopGame, bool,
     let (raw, comp) = game.memory_usage();
     let (compress, memory_gb) = choose_precision(raw as f64 / GB, comp as f64 / GB, &req.precision, limit_gb)?;
     Ok((game, compress, memory_gb))
+}
+
+/// Applies the request's nodelocks. Call after `allocate_memory` and before solving.
+pub fn apply_locks(g: &mut PostFlopGame, locks: &[NodeLock]) -> Result<(), String> {
+    for lock in locks {
+        g.back_to_root();
+        for &h in &lock.history {
+            let ok = if g.is_terminal_node() { false }
+                else if g.is_chance_node() { h < 52 && g.possible_cards() & (1u64 << h) != 0 }
+                else { h < g.available_actions().len() };
+            if !ok { return Err("Histórico inválido para esta árvore.".into()); }
+            g.play(h);
+        }
+        if g.is_terminal_node() || g.is_chance_node() {
+            return Err("Só dá para travar um ponto de decisão.".into());
+        }
+        let n_act = g.available_actions().len();
+        if lock.hands.values().any(|f| f.len() != n_act) {
+            return Err(format!("A trava precisa de uma frequência para cada uma das {n_act} ações."));
+        }
+        let hands = g.private_cards(g.current_player());
+        let n = hands.len();
+        let mut strategy = vec![0.0f32; n_act * n]; // all zero = hand not locked
+        for (k, &(c1, c2)) in hands.iter().enumerate() {
+            if let Some(f) = lock.hands.get(&grid_cell(c1, c2).2).or_else(|| lock.hands.get("*")) {
+                for a in 0..n_act { strategy[a * n + k] = f[a]; }
+            }
+        }
+        g.lock_current_strategy(&strategy);
+    }
+    g.back_to_root();
+    Ok(())
 }
 
 /// JSON for the node reached by `history` (action indices and dealt card ids) from the root.
@@ -438,13 +481,14 @@ mod tests {
             pot: 10.0, stack: 50.0, flop: street("50%"), turn: street("50%"), river: street("50%"),
             turn_donk: "".into(), river_donk: "".into(), rake_pct: 5.0, rake_cap: 3.0,
             add_allin_threshold: 1.5, force_allin_threshold: 0.15, merging_threshold: 0.1,
-            precision: "auto".into(), max_iterations, target_pct: 0.5,
+            precision: "auto".into(), max_iterations, target_pct: 0.5, locks: vec![],
         }
     }
 
     fn solved(req: &SolveRequest) -> PostFlopGame {
         let (mut g, compress, _) = prepare(req, 4.0).unwrap();
         g.allocate_memory(compress);
+        apply_locks(&mut g, &req.locks).unwrap();
         solve(&mut g, req.max_iterations, 0.05, false);
         g
     }
@@ -549,6 +593,48 @@ mod tests {
         assert_eq!(turn["type"], "action");
         assert_eq!(turn["board"].as_array().unwrap().len(), 4);
         assert_eq!(turn["pot"], chance["pot"]);
+    }
+
+    #[test]
+    fn node_lock_changes_the_other_players_response() {
+        // OOP: sets (value) and missed hands (bluffs); IP only has bluff catchers.
+        let mut req = river_request("KK,77,33,QJs,JTs,T9s,A5s,A4s", "AK,KQ,QQ,JJ,TT", 200);
+        let call_vs_bet = |g: &mut PostFlopGame| {
+            let v = node_json(g, &[1]).unwrap(); // IP facing OOP's bet
+            let i = v["actions"].as_array().unwrap().iter().position(|a| a["kind"] == "Call").unwrap();
+            v["summary"][i].as_f64().unwrap()
+        };
+        let base = call_vs_bet(&mut solved(&req));
+
+        // Lock OOP to bet everything: IP must call more against all those bluffs.
+        let all = |f: Vec<f32>| NodeLock { history: vec![], hands: HashMap::from([("*".to_string(), f)]) };
+        req.locks = vec![all(vec![0.0, 1.0])];
+        let mut g = solved(&req);
+        let root = node_json(&mut g, &[]).unwrap();
+        assert_eq!(root["actions"][1]["kind"], "Bet");
+        assert!((root["summary"][1].as_f64().unwrap() - 1.0).abs() < 1e-4, "{}", root["summary"]);
+        let locked = call_vs_bet(&mut g);
+        assert!(locked > base + 0.05, "call {base} -> {locked}");
+
+        // A hand class overrides "*": KK (grid index 14) checks, 77 (index 98) still bets.
+        let mut lock = all(vec![0.0, 1.0]);
+        lock.hands.insert("KK".into(), vec![1.0, 0.0]);
+        req.locks = vec![lock];
+        let v = node_json(&mut solved(&req), &[]).unwrap();
+        assert!((v["grid"][14]["freqs"][0].as_f64().unwrap() - 1.0).abs() < 1e-4, "{}", v["grid"][14]);
+        assert!((v["grid"][98]["freqs"][1].as_f64().unwrap() - 1.0).abs() < 1e-4, "{}", v["grid"][98]);
+    }
+
+    #[test]
+    fn node_lock_rejects_bad_input() {
+        let req = river_request("AA,KK", "QQ", 10);
+        let (mut g, compress, _) = prepare(&req, 4.0).unwrap();
+        g.allocate_memory(compress);
+        let lock = |history: Vec<usize>, f: Vec<f32>| [NodeLock { history, hands: HashMap::from([("*".to_string(), f)]) }];
+        assert!(apply_locks(&mut g, &lock(vec![9], vec![1.0, 0.0])).is_err());
+        assert!(apply_locks(&mut g, &lock(vec![], vec![1.0])).is_err());
+        assert!(apply_locks(&mut g, &lock(vec![0, 0], vec![1.0, 0.0])).is_err()); // check-check ends the hand
+        assert!(apply_locks(&mut g, &lock(vec![], vec![1.0, 0.0])).is_ok());
     }
 
     /// Every preflop preset shipped in the UI must be a range the solver accepts.
