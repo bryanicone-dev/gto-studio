@@ -511,6 +511,32 @@
   .hh-street > b { min-width: 58px; }
   @media (max-width: 1000px) { .hh-body { grid-template-columns: 1fr; } .hh-list { max-height: 50vh; } }
   .mine { color: var(--primary); font-weight: 600; }
+
+  /* Resumo da mão */
+  .hand-sum { margin-top: 16px; text-align: left; border: 1px solid var(--line); border-radius: 12px; padding: 14px; animation: fade-up .35s ease-out; }
+  .sum-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-start; }
+  .sum-head small, .sum-nums small, .sum-hl-card small { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .sum-result { font-size: 13px; margin-top: 4px; color: var(--muted); }
+  .sum-result b { color: var(--ink); }
+  .sum-nums { display: flex; gap: 18px; }
+  .sum-nums b { font-size: 20px; }
+  .sum-hl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 12px 0; }
+  .sum-hl-card { border-radius: 10px; padding: 10px 12px; border: 1px solid var(--line); display: grid; gap: 3px; font-size: 13px; animation: pop-in .35s ease-out backwards; }
+  .sum-hl-card.good { border-color: var(--good); background: color-mix(in srgb, var(--good) 10%, transparent); }
+  .sum-hl-card.bad { border-color: var(--primary); background: var(--primary-soft); animation-delay: .08s; }
+  .sum-steps { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+  .sum-step { border-top: 1px solid var(--line); padding-top: 9px; font-size: 13px; display: grid; gap: 5px; animation: fade-up .3s ease-out backwards; }
+  .sum-step:nth-child(2) { animation-delay: .06s; } .sum-step:nth-child(3) { animation-delay: .12s; } .sum-step:nth-child(4) { animation-delay: .18s; } .sum-step:nth-child(n+5) { animation-delay: .24s; }
+  .sum-step small { color: var(--muted); }
+  .sum-step-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .sum-step-head .grade { margin-left: auto; font-size: 13px; }
+  .street { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: 999px; background: var(--empty); }
+  .sum-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .sum-tag.good { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+  .sum-tag.bad { color: var(--primary); background: var(--primary-soft); }
+  .mixpick { position: relative; padding-bottom: 7px; }
+  .mixpick .summary { margin: 0; height: 12px; }
+  .mixpick i { position: absolute; bottom: 0; width: 0; height: 0; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 7px solid var(--ink); }
 </style>
 </head>
 <body>
@@ -1538,7 +1564,7 @@ const store = {
   get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} onStoreSet(key); },
 };
-const DEFAULT_PREFS = { hero: 'random', source: 'library', format: 'all', preset: 'all', start: 'flop', depth: 'full', mode: 'normal' };
+const DEFAULT_PREFS = { feedback: 'end', hero: 'random', source: 'library', format: 'all', preset: 'all', start: 'flop', depth: 'full', mode: 'normal' };
 const prefs = { ...DEFAULT_PREFS, ...store.get('gto-treino-prefs', {}) };
 if (prefs.depth === 'flop') prefs.depth = 'street';
 if (BACKEND !== 'wasm') prefs.source = 'open';
@@ -1604,7 +1630,7 @@ async function newHand() {
     const villainCombo = weightedPick(theirs.combos.filter(k => !overlaps(k.combo, heroCombo)), k => k.weight).combo;
     trainer = {
       hero, heroCombo, villainCombo, history: [], log: [], node: null, feedback: null, over: false,
-      grades: [], evLost: 0, spot: spot?.label || 'Solução aberta', reached: false, last: {}, moves: [],
+      grades: [], evLost: 0, spot: spot?.label || 'Solução aberta', reached: false, last: {}, moves: [], decisions: [], foldBy: null,
     };
     await play();
     if (trainer.reached) break;
@@ -1647,6 +1673,7 @@ async function play() {
     trainer.log.push(`${n.player} (${mine ? 'você, jogada automática' : 'vilão'}): ${actionLabel(n.actions[a])}`);
     trainer.last = { ...trainer.last, [n.player]: actionLabel(n.actions[a]) };
     if (/Bet|Raise|Call|Allin/.test(n.actions[a].kind)) trainer.moves.push(n.player);
+    if (n.actions[a].kind === 'Fold') trainer.foldBy = n.player;
     trainer.history.push(a);
   }
 }
@@ -1690,6 +1717,9 @@ async function heroAct(a, mix) {
     trainer.grades.push(g);
     trainer.evLost += loss;
     trainer.feedback = { g, loss, chosen: a, mix, dist, rng: rngA == null ? null : trainer.rng, rngA, freqs: k.freqs, evs: k.evs, actions: n.actions, colors: actionColors(n.actions), at: [...trainer.history] };
+    trainer.decisions.push({ street: streetOf(n), board: n.board, pot: n.pot, label: actionLabel(n.actions[a]), g, loss, freqs: k.freqs, evs: k.evs, actions: n.actions, chosen: a, mix,
+      rng: rngA == null ? null : trainer.rng, rngA, note: mix ? 'Distância do mix GTO: ' + pct(dist) + '.' : '', link: studyHash([...trainer.history]) });
+    if (n.actions[a].kind === 'Fold') trainer.foldBy = n.player;
     trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
     trainer.last = { ...trainer.last, [n.player]: actionLabel(n.actions[a]) };
     if (/Bet|Raise|Call|Allin/.test(n.actions[a].kind)) trainer.moves.push(n.player);
@@ -1737,6 +1767,7 @@ function trainerSetup() {
     row('Jogar', seg('depth', [['street', 'Só uma street'], ['full', 'Até o fim']])) +
     row('Modo', seg('mode', [['normal', 'Normal'], ['rng', 'RNG'], ['freq', 'Frequência']])) +
     row('Você joga como', seg('hero', [['random', 'Aleatório'], ['OOP', 'OOP'], ['IP', 'IP']])) +
+    row('Nota das decisões', seg('feedback', [['end', 'No fim da mão'], ['each', 'A cada decisão']])) +
     (prefs.start !== 'flop' ? '<p class="hint">Começando no turn ou no river, as streets anteriores são jogadas pelo GTO e o navegador calcula cada nova street (alguns segundos).</p>' : '') +
     (prefs.mode === 'rng' ? '<p class="hint">RNG: um número de 1 a 100 decide qual parte do mix jogar. Ex.: bet 30% e check 70% → 1–30 é bet, 31–100 é check.</p>' : '') +
     (prefs.mode === 'freq' ? '<p class="hint">Frequência: em vez de uma ação, diga com que frequência faria cada uma. A nota compara o seu mix com o do GTO.</p>' : '') +
@@ -1780,7 +1811,7 @@ function trainerView() {
   const t = trainer, n = t?.node;
 
   // Painéis da direita (abrem pelos ícones, como no Wizard): resultados, esta mão e últimas mãos.
-  const current = t && !t.saved && t.reached ? [{ ev: t.evLost, grades: t.grades }] : [];
+  const current = t && !t.saved && t.reached && (t.over || prefs.feedback === 'each') ? [{ ev: t.evLost, grades: t.grades }] : [];
   const ses = summarize([...handLog.filter(x => x.t >= sessionStart), ...current]);
   const all = summarize([...handLog, ...current]);
   const row = (label, f) => '<span>' + label + '</span><span>' + f(ses) + '</span><span>' + f(all) + '</span>';
@@ -1814,7 +1845,8 @@ function trainerView() {
   // Durante a mão: controles à esquerda, linha de ação no topo, mesa, botões grandes e a nota.
   let below = '';
   if (t.over) {
-    below = '<div class="big-actions"><button style="--c:var(--primary)" onclick="startHand()">Próxima mão<kbd>Enter</kbd></button></div>';
+    below = '<div class="big-actions"><button style="--c:var(--primary)" onclick="startHand()">Próxima mão<kbd>Enter</kbd></button></div>' +
+      handSummary(t.decisions, { result: trainerResult(t) });
   } else if (prefs.mode === 'freq') {
     const even = Math.round(100 / n.actions.length / 5) * 5;
     below = '<div id="mix" class="mix">' + n.actions.map(a => '<label>' + actionLabel(a) +
@@ -1826,7 +1858,8 @@ function trainerView() {
       '<div class="big-actions">' + n.actions.map((a, i) => '<button style="--c:' + colors[i] + '" onclick="heroAct(' + i + ')">' +
       (i < 9 ? '<kbd>' + (i + 1) + '</kbd>' : '') + actionLabel(a) + '</button>').join('') + '</div>';
   }
-  if (t.feedback) {
+  if (!t.over && prefs.feedback === 'end' && t.decisions.length) below += '<p class="hint" style="text-align:center">Decisão registrada. As notas aparecem no resumo, no fim da mão.</p>';
+  if (t.feedback && !t.over && prefs.feedback === 'each') {
     const f = t.feedback, [, label, cls] = gradeOf(f.g);
     const yours = (i) => f.mix ? ' · você: ' + pct(f.mix[i]) : i === f.chosen ? ' ← sua escolha' : '';
     below += '<div class="feedback"><div class="grade ' + cls + '">' + label + (f.loss > 0.005 ? ' · −' + num(f.loss) + ' bb' : '') + '</div>' +
@@ -3145,14 +3178,11 @@ function hhDetail(h) {
   }).join('');
   let analysis = '';
   if (r?.status === 'ok') {
-    analysis = '<h4 style="margin-top:16px">Suas decisões · ' + r.preset + '</h4><ol class="rv-list">' + (r.decisions.length ? r.decisions.map(d => {
-      if (!d.g) return '<li class="rv-item"><b>' + d.street + ': ' + d.real + '</b><small>Sem nota: a sua mão já não está na linha do GTO neste ponto.</small></li>';
-      const [, label, cls] = gradeOf(d.g), colors = actionColors(d.actions);
-      return '<li class="rv-item"><div class="card-head" style="margin:0"><b>' + d.street + ': ' + d.real + '</b><span class="grade ' + cls + '" style="font-size:13px">' + label + (d.loss > 0.005 ? ' · −' + num(d.loss) + ' bb' : '') + '</span></div>' +
-        (d.off ? '<small>No spot: ' + d.action + ' (tamanho mais parecido)</small>' : '') +
-        '<div class="summary" style="margin:6px 0">' + mixBar(d.freqs, colors) + '</div><small>' + d.actions.map((a, i) => (i === d.chosen ? '<b>' : '') + actionLabel(a) + ' ' + pct(d.freqs[i]) + ' (EV ' + num(d.evs[i]) + ')' + (i === d.chosen ? '</b>' : '')).join(' · ') + '</small>' +
-        '<small><a href="javascript:hhOpenStudy(\'' + h.id + '\', [' + d.at.join(',') + '])">Ver este ponto no Estudar</a></small></li>';
-    }).join('') : '<li class="hint">Nenhuma decisão sua no flop.</li>') + '</ol>' +
+    const nCards = { Flop: 3, Turn: 4, River: 5 };
+    analysis = '<h4 style="margin-top:16px">' + r.preset + '</h4>' + (r.decisions.length ? handSummary(r.decisions.map(d => ({ ...d, label: d.real, board: h.board.slice(0, nCards[d.street]),
+      note: d.g ? (d.off ? 'No spot: ' + d.action + ' (tamanho mais parecido).' : '') : 'Sem nota: a sua mão já não está na linha do GTO neste ponto.',
+      link: 'javascript:hhOpenStudy(\'' + h.id + '\', [' + d.at.join(',') + '])' })), { result: 'Resultado da mão: <b class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + ' bb</b>' })
+      : '<p class="hint">Nenhuma decisão sua no flop.</p>') +
       (!r.full && h.board.length > 3 ? '<div class="start" style="justify-content:flex-start"><button class="btn-primary" ' + (hhBusy ? 'disabled' : '') + ' onclick="hhFull(\'' + h.id + '\')">Analisar turn e river</button></div>' : '');
   } else if (r?.status === 'noflop') {
     const key = spotKey(r.preset, h.board.slice(0, 3).join(''));
@@ -3290,6 +3320,69 @@ async function hhSolveMissing(onlyKey) {
   finally { hhBusy = false; hhView(); }
 }
 function hhStopSolve() { hhStop = true; api('/api/cancel', {}); }
+
+
+// ---------- resumo da mão ----------
+// No fim da mão (Treinar) e na análise de mãos: veredito, a melhor e a pior decisão em destaque e cada
+// decisão com o board daquele momento, o mix do GTO com a sua escolha marcada e o EV de cada ação.
+const HAND_NAMES = ['High card', 'Pair', 'Two pair', 'Trips', 'Straight', 'Flush', 'Full house', 'Quads', 'Straight flush'];
+const handName = (cards) => HAND_NAMES[Math.floor(handValue(cards) / (1 << 20))];
+
+function mixPick(freqs, colors, chosen) {
+  const left = freqs.slice(0, chosen).reduce((s, x) => s + x, 0) + freqs[chosen] / 2;
+  return '<div class="mixpick"><div class="summary">' + mixBar(freqs, colors) + '</div><i style="left:' + (100 * left).toFixed(1) + '%"></i></div>';
+}
+
+// ds: [{ street, board, pot?, label, g, loss, freqs, evs, actions, chosen, mix?, rng?, rngA?, note?, link? }]
+function handSummary(ds, { result = '', extra = '' } = {}) {
+  const graded = ds.filter(d => d.g);
+  const lost = graded.reduce((s, d) => s + d.loss, 0);
+  const good = graded.filter(d => d.g === 'best' || d.g === 'correct').length;
+  const has = (g) => graded.some(d => d.g === g);
+  const [verdict, vcls] = !graded.length ? ['Sem decisões com nota', '']
+    : has('blunder') ? ['Erro grave nesta mão', 'g-blunder'] : has('mistake') ? ['Mão com erro', 'g-mistake']
+    : has('inacc') ? ['Pequenas imprecisões', 'g-inacc'] : ['Mão bem jogada', 'g-best'];
+  // Melhor: a decisão certa que mais valia (maior diferença de EV entre a sua ação e a pior opção).
+  const right = graded.filter(d => d.g === 'best' || d.g === 'correct');
+  const best = right.reduce((b, d) => { const v = d.evs[d.chosen] - Math.min(...d.evs); return !b || v > b.v ? { d, v } : b; }, null)?.d;
+  const wrong = graded.filter(d => d.loss > 0.005 || !['best', 'correct'].includes(d.g));
+  const worst = wrong.reduce((w, d) => !w || d.loss > w.loss ? d : w, null);
+  const tag = (d) => d === best && d !== worst ? '<span class="sum-tag good">melhor decisão</span>' : d === worst ? '<span class="sum-tag bad">pior decisão</span>' : '';
+  const boardMini = (cs) => '<span class="cards mini">' + cs.map(c => cardEl(c)).join('') + '</span>';
+  const hl = (d, title, cls) => d ? '<div class="sum-hl-card ' + cls + '"><small>' + title + '</small><b>' + d.street + ': ' + d.label + '</b>' +
+    '<span class="grade ' + gradeOf(d.g)[2] + '">' + gradeOf(d.g)[1] + (d.loss > 0.005 ? ' · −' + num(d.loss) + ' bb' : '') + '</span></div>' : '';
+  const step = (d) => {
+    if (!d.g) return '<li class="sum-step"><div class="sum-step-head"><span class="street">' + d.street + '</span>' + boardMini(d.board) + '<b>' + d.label + '</b></div><small>' + (d.note || 'Sem nota neste ponto.') + '</small></li>';
+    const colors = actionColors(d.actions), [, glabel, gcls] = gradeOf(d.g);
+    const maxEv = Math.max(...d.evs), bestA = d.evs.indexOf(maxEv);
+    return '<li class="sum-step"><div class="sum-step-head"><span class="street">' + d.street + '</span>' + boardMini(d.board) +
+      (d.pot ? '<small>pote ' + num(d.pot) + ' bb</small>' : '') + tag(d) + '<span class="grade ' + gcls + '">' + glabel + (d.loss > 0.005 ? ' · −' + num(d.loss) + ' bb' : '') + '</span></div>' +
+      '<div>Você: <b>' + d.label + '</b>' + (d.mix ? ' (seu mix: ' + d.actions.map((a, i) => actionLabel(a) + ' ' + pct(d.mix[i])).join(', ') + ')' : ' · o GTO faz isso em ' + pct(d.freqs[d.chosen])) + '</div>' +
+      mixPick(d.freqs, colors, d.chosen) +
+      '<small>' + d.actions.map((a, i) => (i === bestA ? '<b>' : '') + actionLabel(a) + ' ' + pct(d.freqs[i]) + ' · EV ' + num(d.evs[i]) + (i === bestA ? '</b>' : '')).join(' &nbsp;|&nbsp; ') + '</small>' +
+      (d.rng != null ? '<small>RNG ' + d.rng + ' pedia ' + actionLabel(d.actions[d.rngA]) + '.</small>' : '') +
+      (d.note ? '<small>' + d.note + '</small>' : '') + (d.link ? '<small><a href="' + d.link + '">Ver este ponto no Estudar</a></small>' : '') + '</li>';
+  };
+  return '<div class="hand-sum"><div class="sum-head"><div><small>Resumo da mão</small><div class="grade ' + vcls + '" style="font-size:20px">' + verdict + '</div>' + (result ? '<div class="sum-result">' + result + '</div>' : '') + '</div>' +
+    '<div class="sum-nums"><div><small>Decisões</small><b>' + graded.length + '</b></div><div><small>Acerto</small><b>' + (graded.length ? pct(good / graded.length) : '—') + '</b></div>' +
+    '<div><small>EV perdido</small><b>' + num(lost) + ' bb</b></div></div></div>' +
+    (best || worst ? '<div class="sum-hl">' + hl(best && best !== worst ? best : null, 'Melhor decisão', 'good') + hl(worst, 'Pior decisão', 'bad') + '</div>' : '') +
+    '<ol class="sum-steps">' + ds.map(step).join('') + '</ol>' + extra + '</div>';
+}
+
+// Como a mão terminou no Treinar: fold, showdown (com o nome das mãos) ou fim da street.
+function trainerResult(t) {
+  const n = t.node;
+  if (t.foldBy) return t.foldBy === t.hero ? 'Você foldou.' : 'O vilão foldou e você levou o pote.';
+  if (n?.type === 'terminal' && n.board.length === 5) {
+    const ids = (s) => s.match(/../g).map(parseCard);
+    const board = n.board.map(parseCard), me = [...ids(t.heroCombo), ...board], vi = [...ids(t.villainCombo), ...board];
+    const a = handValue(me), b = handValue(vi);
+    return 'Showdown: você com <b>' + handName(me) + '</b>, o vilão com <b>' + handName(vi) + '</b> (' + comboText(t.villainCombo) + ') — ' +
+      (a > b ? '<b class="g-best">você venceu</b>.' : a < b ? '<b class="g-blunder">o vilão venceu</b>.' : 'empate.');
+  }
+  return 'O vilão tinha ' + comboText(t.villainCombo) + '.';
+}
 
 // ---------- instalar como app ----------
 let installPrompt = null;
