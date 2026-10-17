@@ -494,6 +494,22 @@
     .pseat .hole.left.up { transform: translate(0, -4px); }
     .pseat .hole .card { width: 26px; height: 36px; font-size: 13px; }
   }
+
+  /* Importar histórico */
+  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 180px; border: 2px dashed var(--line); border-radius: 12px; cursor: pointer; text-align: center; padding: 20px; margin: 0; color: var(--ink); font-size: 14px; transition: border-color .15s, background-color .15s; }
+  .dropzone span { color: var(--muted); font-size: 12px; }
+  .dropzone:hover, .dropzone.over { border-color: var(--primary); background: var(--primary-soft); }
+  .cards.mini { display: inline-flex; gap: 2px; vertical-align: middle; }
+  .cards.mini .card { width: 18px; height: 24px; font-size: 10px; border-radius: 3px; }
+  .hh-body { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  .hh-list { padding: 8px; max-height: 70vh; overflow: auto; }
+  .hh-table td { padding: 6px; white-space: nowrap; }
+  .hh-table tr[onclick] { cursor: pointer; }
+  .hh-table tr.on { background: var(--primary-soft); }
+  .hh-table tr:not(:first-child):hover { background: var(--empty); }
+  .hh-street { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .hh-street > b { min-width: 58px; }
+  @media (max-width: 1000px) { .hh-body { grid-template-columns: 1fr; } .hh-list { max-height: 50vh; } }
 </style>
 </head>
 <body>
@@ -526,7 +542,7 @@
     <a href="#/treinar/drills"><i class="ico-box">☰</i><span><b>Drills</b><small>Séries de mãos prontas e as suas</small></span></a>
     <a href="#/pushfold"><i class="ico-box">⇪</i><span><b>Push/fold</b><small>Stack curto: Nash e ICM</small></span></a>
     <a href="#/calculadoras"><i class="ico-box">∑</i><span><b>Calculadoras</b><small>Equity e ICM</small></span></a>
-    <a href="#/analisar"><i class="ico-box">⌕</i><span><b>Analisar mão</b><small>Nota de cada decisão de uma mão sua</small></span></a>
+    <a href="#/analisar"><i class="ico-box">⌕</i><span><b>Analisar mãos</b><small>Importe o histórico do GGPoker ou PokerStars</small></span></a>
     <a href="#/treinar/historico"><i class="ico-box">↺</i><span><b>Histórico</b><small>Mãos jogadas e resultados</small></span></a>
     <a href="javascript:$('#keys').showModal()"><i class="ico-box">?</i><span><b>Atalhos</b><small>Teclas do Estudar e do Treinar</small></span></a>
   </div></div>
@@ -631,7 +647,8 @@
 <!-- Analisar -->
 <section class="page" data-page="analisar" hidden>
   <h2>Analisar mão</h2>
-  <p class="sub">Digite uma mão que você jogou e veja a nota de cada decisão sua do flop em diante, comparada com o GTO.</p>
+  <p class="sub">Importe o histórico de mãos do GGPoker ou do PokerStars, ou digite uma mão, e veja a nota de cada decisão sua do flop em diante.</p>
+  <div id="anTabs"></div>
   <div id="review"></div>
 </section>
 
@@ -658,7 +675,7 @@
   <a href="#/biblioteca"><i class="ico-box">❒</i><span><b>Biblioteca</b><small>Spots prontos e busca pelo flop</small></span></a>
   <a href="#/biblioteca/relatorios"><i class="ico-box">▤</i><span><b>Relatórios</b><small>Bet e check em cada flop</small></span></a>
   <a href="#/calculadoras"><i class="ico-box">∑</i><span><b>Calculadoras</b><small>Equity e ICM</small></span></a>
-  <a href="#/analisar"><i class="ico-box">⌕</i><span><b>Analisar mão</b><small>Nota de cada decisão de uma mão sua</small></span></a>
+  <a href="#/analisar"><i class="ico-box">⌕</i><span><b>Analisar mãos</b><small>Importe o histórico do GGPoker ou PokerStars</small></span></a>
   <a href="#/treinar/historico"><i class="ico-box">↺</i><span><b>Histórico</b><small>Mãos jogadas e resultados</small></span></a>
 </div><form method="dialog"><button class="btn-primary">Fechar</button></form></dialog>
 
@@ -843,7 +860,10 @@ function route() {
     $('#pfTabs').innerHTML = subTabs('#/pushfold', [['', 'Tabelas'], ['treinar', 'Treinar']]);
     pushfoldView();
   }
-  if (page === 'analisar') reviewView();
+  if (page === 'analisar') {
+    $('#anTabs').innerHTML = subTabs('#/analisar', [['', 'Importar histórico'], ['digitar', 'Digitar mão']]);
+    if (sub === 'digitar') reviewView(); else hhView();
+  }
   if (page === 'calculadoras') {
     $('#calcTabs').innerHTML = subTabs('#/calculadoras', [['', 'Equity'], ['icm', 'ICM']]);
     if (sub === 'icm') icmView(); else equityView();
@@ -1288,7 +1308,7 @@ async function loadSpot(s) {
   const bytes = await (await fetch('library/' + s.file)).arrayBuffer();
   await callWorker('load', { bytes });
   const preset = PRESETS.find(p => p.name === s.preset);
-  spot = { preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
+  spot = { id: s.id, preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
   Object.assign(local, {
     state: 'done', iteration: s.iterations, max_iterations: s.iterations, exploitability_pct: s.exploitability_pct,
     memory_gb: s.bytes / 2 ** 30, compressed: true, cancelled: false, error: '',
@@ -2757,6 +2777,391 @@ function animateIn(root) {
 new MutationObserver((muts) => { for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) animateIn(n); })
   .observe(document.body, { childList: true, subtree: true });
 animateIn(document.body);
+
+// ---------- histórico de mãos (GGPoker / PokerStars) ----------
+// Lê o texto exportado pelos sites e monta, para cada mão, posições, stacks, cartas, board e ações em bb.
+// Tudo roda no aparelho: o arquivo não é enviado para lugar nenhum.
+const HH_POS = { 1: ['BTN'], 2: ['CO', 'BTN'], 3: ['HJ', 'CO', 'BTN'], 4: ['UTG', 'HJ', 'CO', 'BTN'], 5: ['UTG', 'LJ', 'HJ', 'CO', 'BTN'],
+  6: ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN'], 7: ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN'] };
+// "1,234.5", "$0.25", "€3" → número
+const hhAmount = (s) => parseFloat(String(s ?? '').replace(/[^\d.,]/g, '').replace(/,(?=\d{3}(\D|$))/g, '').replace(',', '.')) || 0;
+
+function parseHandHistories(text) {
+  const starts = /^(?:Poker Hand|PokerStars (?:Zoom )?Hand|PokerStars Game) #/;
+  const blocks = [];
+  let cur = [];
+  for (const line of text.replace(/\r/g, '').split('\n')) {
+    if (starts.test(line) && cur.length) { blocks.push(cur); cur = []; }
+    if (cur.length || starts.test(line)) cur.push(line.trimEnd());
+  }
+  if (cur.length) blocks.push(cur);
+  return blocks.map(b => { try { return parseHand(b); } catch { return null; } }).filter(Boolean);
+}
+
+function parseHand(lines) {
+  const head = lines[0];
+  const id = head.match(/#(\w+)/)?.[1];
+  if (!id || !/Hold'?em/i.test(head) || /Omaha|PLO/i.test(head)) return null;
+  const blinds = head.match(/\(\s*[^\d(]*([\d.,]+)\s*\/\s*[^\d(]*([\d.,]+)(?:\s*\(\s*([\d.,]+)\s*\))?/);
+  const bb = hhAmount(blinds?.[2]);
+  if (!(bb > 0)) return null;
+  const h = {
+    id, site: /^PokerStars/.test(head) ? 'PokerStars' : 'GGPoker', tour: /Tournament|Torneio|#TM/i.test(head),
+    date: head.match(/(\d{4}[/-]\d{2}[/-]\d{2}[ T]\d{1,2}:\d{2})/)?.[1]?.replace(/-/g, '/') || '', bb,
+    seats: [], button: null, hero: null, cards: null, board: [], pre: [], post: [], ante: 0, blind: {}, sb: null, bbPlayer: null,
+    contrib: {}, collected: {}, anteBy: {},
+  };
+  let street = 'pre', boardDone = false;
+  const sc = { pre: {}, flop: {}, turn: {}, river: {} };
+  const add = (who, v) => { h.contrib[who] = (h.contrib[who] || 0) + v; };
+  for (const line of lines.slice(1)) {
+    let m;
+    if ((m = line.match(/Seat #(\d+) is the button/))) { h.button = +m[1]; continue; }
+    if (!h.cards && (m = line.match(/^Seat (\d+): (.+?) \(\s*[^\d(]*([\d.,]+) in chips/))) { h.seats.push({ seat: +m[1], name: m[2], stack: hhAmount(m[3]) }); continue; }
+    if ((m = line.match(/^Dealt to (.+?) \[(.+?)\]/))) { h.hero = m[1]; h.cards = m[2].replace(/\s+/g, ''); continue; }
+    if ((m = line.match(/^(.+?): posts (?:the )?(small blind|big blind|ante)\s+[^\d]*([\d.,]+)/))) {
+      const v = hhAmount(m[3]);
+      add(m[1], v);
+      if (m[2] === 'ante') { h.ante += v; h.anteBy[m[1]] = (h.anteBy[m[1]] || 0) + v; }
+      else { sc.pre[m[1]] = (sc.pre[m[1]] || 0) + v; h.blind[m[1]] = (h.blind[m[1]] || 0) + v; }
+      if (m[2] === 'small blind') h.sb = m[1];
+      if (m[2] === 'big blind') h.bbPlayer = m[1];
+      continue;
+    }
+    if ((m = line.match(/^\*\*\* (FLOP|TURN|RIVER) \*\*\* (.*)$/))) {
+      if (!boardDone) { h.board = [...m[2].matchAll(/\[([^\]]+)\]/g)].flatMap(x => x[1].trim().split(/\s+/)); street = m[1].toLowerCase(); }
+      continue;
+    }
+    if (/^\*\*\* (FIRST|SECOND|THIRD)/.test(line)) { boardDone = true; continue; }   // run it twice: fica a 1ª parte
+    if (/^\*\*\* SUMMARY/.test(line)) break;
+    if ((m = line.match(/^Uncalled bet \(\s*[^\d]*([\d.,]+)\) returned to (.+)$/))) { add(m[2], -hhAmount(m[1])); continue; }
+    if ((m = line.match(/^(.+?) collected [^\d]*([\d.,]+)/))) { h.collected[m[1]] = (h.collected[m[1]] || 0) + hhAmount(m[2]); continue; }
+    if ((m = line.match(/^(.+?): (folds|checks|calls|bets|raises)(?:\s+[^\d\s]*([\d.,]+))?(?:\s+to\s+[^\d]*([\d.,]+))?(.*all-in)?/))) {
+      const [, who, verb, a, to, allin] = m;
+      const before = sc[street][who] || 0;
+      const put = verb === 'calls' || verb === 'bets' ? hhAmount(a) : verb === 'raises' ? hhAmount(to) - before : 0;
+      sc[street][who] = before + put;
+      add(who, put);
+      const kind = { folds: 'Fold', checks: 'Check', calls: 'Call', bets: 'Bet', raises: 'Raise' }[verb];
+      (street === 'pre' ? h.pre : h.post).push({ who, kind, street, allin: !!allin, amount: (verb === 'raises' ? hhAmount(to) : put) / bb });
+    }
+  }
+  if (!h.hero || !h.cards || h.cards.length !== 4 || h.seats.length < 2) return null;
+  h.preContrib = sc.pre;
+  return finishHand(h);
+}
+
+// Posições a partir do BB e da ordem das cadeiras; situação pré-flop; quem chegou ao flop; pote e stack efetivo.
+function finishHand(h) {
+  const seats = [...h.seats].sort((a, b) => a.seat - b.seat);
+  const n = seats.length;
+  let bbI = h.bbPlayer ? seats.findIndex(s => s.name === h.bbPlayer) : -1;
+  if (bbI < 0) bbI = (seats.findIndex(s => s.seat === h.button) + 2) % n;
+  const pos = {};
+  if (n === 2) { pos[seats[bbI].name] = 'BB'; pos[seats[(bbI + 1) % n].name] = 'SB'; }
+  else {
+    pos[seats[bbI].name] = 'BB';
+    pos[seats[(bbI - 1 + n) % n].name] = 'SB';
+    const names = HH_POS[n - 2] || HH_POS[7];
+    for (let k = 1; k <= n - 2; k++) pos[seats[(bbI + k) % n].name] = names[Math.min(k - 1, names.length - 1)];
+  }
+  h.pos = pos;
+  h.heroPos = pos[h.hero];
+  h.players = n;
+  const folded = new Set(h.pre.filter(a => a.kind === 'Fold').map(a => a.who));
+  const raises = h.pre.filter(a => a.kind === 'Raise');
+  h.flopPlayers = h.board.length >= 3 ? seats.map(s => s.name).filter(x => !folded.has(x)) : [];
+  h.potFlop = (h.ante + Object.values(h.preContrib).reduce((s, v) => s + v, 0)) / h.bb;
+  const st = {};
+  if (h.board.length < 3 || !h.flopPlayers.includes(h.hero)) st.type = 'nopf';
+  else if (h.flopPlayers.length !== 2) st.type = 'multi';
+  else if (h.pre.some(a => a.allin)) st.type = 'allin';
+  else if (!raises.length || h.pre.slice(0, h.pre.indexOf(raises[0])).some(a => a.kind === 'Call')) st.type = 'limp';
+  else if (raises.length === 1) { st.type = 'srp'; st.opener = pos[raises[0].who]; st.caller = pos[h.flopPlayers.find(x => x !== raises[0].who)]; }
+  else if (raises.length === 2 && h.flopPlayers.includes(raises[0].who) && h.flopPlayers.includes(raises[1].who)) {
+    st.type = '3bet'; st.opener = pos[raises[0].who]; st.threeBettor = pos[raises[1].who];
+  } else st.type = '4bet';
+  h.situation = st;
+  if (h.flopPlayers.length === 2) {
+    h.villain = h.flopPlayers.find(x => x !== h.hero);
+    h.villainPos = pos[h.villain];
+    const order = n === 2 ? ['BB', 'SB'] : ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN'];
+    h.heroRole = order.indexOf(h.heroPos) < order.indexOf(h.villainPos) ? 'OOP' : 'IP';
+    const left = (who) => seats.find(s => s.name === who).stack - (h.preContrib[who] || 0) - (h.anteBy[who] || 0);
+    h.eff = Math.min(left(h.hero), left(h.villain)) / h.bb;
+  }
+  h.net = ((h.collected[h.hero] || 0) - (h.contrib[h.hero] || 0)) / h.bb;
+  // Só o necessário para mostrar e analisar depois (o texto original não é guardado).
+  return {
+    id: h.id, site: h.site, tour: h.tour, date: h.date, bb: h.bb, players: n, hero: h.hero, heroPos: h.heroPos, cards: h.cards,
+    board: h.board, situation: h.situation, villainPos: h.villainPos, heroRole: h.heroRole, eff: h.eff, potFlop: h.potFlop, net: h.net,
+    pre: h.pre.map(a => ({ pos: pos[a.who], kind: a.kind, amount: a.amount, allin: a.allin })),
+    post: h.post.map(a => ({ who: a.who === h.hero ? 'hero' : a.who === h.villain ? 'vil' : 'other', pos: pos[a.who], kind: a.kind, amount: a.amount, allin: a.allin, street: a.street })),
+  };
+}
+
+// ---------- importar histórico: análise ----------
+// Cada mão vira um spot da Biblioteca (situação pré-flop + flop igual por naipes) e as ações reais são
+// repetidas na árvore; as suas decisões recebem nota. O flop é analisado em lote; turn e river, por mão.
+let hhHands = store.get('gto-hh', []);
+let hhResults = store.get('gto-hh-res', {});
+let hhFilter = 'flop', hhSel = null, hhBusy = false, hhProgress = '';
+const HH_TYPE = { nopf: 'Não viu o flop', multi: 'Multiway', allin: 'All-in pré-flop', limp: 'Pote limpado', '4bet': 'Pote 4-bet+', srp: 'Pote simples', '3bet': 'Pote 3-bet' };
+const hhNorm = (p) => ({ 'UTG+1': 'UTG', MP: 'UTG', LJ: 'UTG' })[p] || p;
+const hhSave = () => { store.set('gto-hh', hhHands.slice(-2000)); store.set('gto-hh-res', hhResults); };
+
+// Spot da Biblioteca mais próximo da situação real: mesmo formato, mesmo tipo de pote, mesmo lado OOP/IP de
+// quem abriu; depois posições e stack efetivo.
+function hhPreset(h) {
+  const st = h.situation;
+  if (st.type !== 'srp' && st.type !== '3bet') return null;
+  const opener = st.opener, other = st.type === 'srp' ? st.caller : st.threeBettor;
+  const openerRole = opener === h.heroPos ? h.heroRole : h.heroRole === 'OOP' ? 'IP' : 'OOP';
+  let best = null;
+  for (const p of PRESETS) {
+    const t = TABLES[p.name];
+    if (!t || p.group !== (h.tour ? MTT : CASH) || (t.pre.length === 3) !== (st.type === '3bet')) continue;
+    const [po, pc] = [t.pre[0][0], t.pre[1][0]];
+    if ((t.oopSeat === po ? 'OOP' : 'IP') !== openerRole) continue;
+    const posOk = hhNorm(opener) === po && hhNorm(other) === pc;
+    const ratio = Math.abs(Math.log(Math.max(1, h.eff) / p.stack));
+    const score = (hhNorm(opener) === po ? 0 : 2) + (hhNorm(other) === pc ? 0 : 2) + ratio * 3;
+    if (!best || score < best.score) best = { p, score, posOk: posOk && opener === hhNorm(opener) && other === hhNorm(other), stackOk: ratio < 0.3 };
+  }
+  return best;
+}
+
+// Ação real → ação da árvore: mesmo tipo; nos bets/raises, o tamanho mais parecido em fração do pote.
+function hhMatch(n, a, potBefore) {
+  const acts = n.actions.map((x, i) => ({ x, i }));
+  const aggr = (k) => k === 'Bet' || k === 'Raise' || k === 'Allin';
+  let c = acts.filter(({ x }) => x.kind === a.kind);
+  if (a.allin) c = [...acts.filter(({ x }) => x.kind === 'Allin'), ...c];
+  if (!c.length && aggr(a.kind)) c = acts.filter(({ x }) => aggr(x.kind));
+  if (!c.length && a.kind === 'Check') c = acts.filter(({ x }) => x.kind === 'Call');
+  if (!c.length) return null;
+  if (!aggr(a.kind)) return { i: c[0].i, off: false };
+  const real = a.amount / Math.max(potBefore, 0.01), frac = (x) => (x.amount ?? 0) / Math.max(n.pot, 0.01);
+  c.sort((p, q) => Math.abs(frac(p.x) - real) - Math.abs(frac(q.x) - real));
+  return { i: c[0].i, off: Math.abs(frac(c[0].x) - real) > Math.max(0.15, real * 0.35) };
+}
+const hhActLabel = (a) => (a.kind === 'Raise' ? 'Raise para ' : a.kind === 'Bet' ? 'Bet ' : a.kind === 'Call' ? 'Call ' : a.kind) + (a.kind === 'Bet' || a.kind === 'Raise' || a.kind === 'Call' ? num(a.amount) + ' bb' : '') + (a.allin ? ' (all-in)' : '');
+
+async function hhAnalyze(h, full) {
+  libraryIndex ??= await (await fetch('library/index.json')).json();
+  const m = hhPreset(h);
+  if (!m) return { status: 'unsup' };
+  const flop = h.board.slice(0, 3).join('');
+  const hit = libraryIndex.find(s => s.preset === m.p.name && flopKey(s.board) === flopKey(flop));
+  const notes = [];
+  if (!m.posOk) notes.push('Posições aproximadas: usei o spot ' + m.p.name + '.');
+  if (!m.stackOk) notes.push('Stack efetivo da mão: ' + num(h.eff, 1) + ' bb; o spot usa ' + num(m.p.stack, 1) + ' bb.');
+  if (!hit) return { status: 'noflop', preset: m.p.name, notes };
+  if (spot?.id !== hit.id) await loadSpot(hit);
+  const map = suitPerm(flop, hit.board), tr = (c) => c[0] + map[c[1]];
+  const combo = [h.cards.slice(0, 2), h.cards.slice(2)].map(tr).map(parseCard).sort((a, b) => b - a).map(cardName).join('');
+  const decisions = [], hist = [];
+  let n = await api('/api/node', { history: hist });
+  let pot = h.potFlop, street = 'flop', put = {}, stop = 'end';
+  for (const a of h.post) {
+    if (a.who === 'other') { stop = 'other'; break; }
+    if (a.street !== street) { street = a.street; put = {}; }
+    while (n.type === 'chance') {
+      if (!full) { stop = 'flop'; break; }
+      const c = n.cards.find(x => x.card === tr(h.board[n.board.length]));
+      if (!c?.possible) { stop = 'card'; break; }
+      hist.push(c.id);
+      n = await api('/api/node', { history: hist });
+    }
+    if (stop !== 'end' || n.type !== 'action') break;
+    const role = a.who === 'hero' ? h.heroRole : h.heroRole === 'OOP' ? 'IP' : 'OOP';
+    if (n.player !== role) { notes.push('A ordem das ações da mão não bate com o spot; a análise parou aqui.'); break; }
+    const mt = hhMatch(n, a, pot);
+    if (!mt) { notes.push('A ação "' + hhActLabel(a) + '" não existe neste spot; a análise parou aqui.'); break; }
+    if (a.who === 'hero') {
+      const k = findCombo(n, combo), base = { street: streetOf(n), real: hhActLabel(a), action: actionLabel(n.actions[mt.i]), off: mt.off, at: [...hist] };
+      if (k) decisions.push({ ...base, ...grade(k, mt.i, n.pot), freqs: k.freqs, evs: k.evs, actions: n.actions, chosen: mt.i });
+      else decisions.push({ ...base, g: null });
+    }
+    const add = a.kind === 'Raise' ? a.amount - (put[a.who] || 0) : a.kind === 'Call' || a.kind === 'Bet' ? a.amount : 0;
+    put[a.who] = (put[a.who] || 0) + add;
+    pot += add;
+    hist.push(mt.i);
+    n = await api('/api/node', { history: hist });
+  }
+  if (decisions.some(d => d.off)) notes.push('Algum bet/raise da mão teve tamanho diferente dos do spot; usei o mais parecido.');
+  const graded = decisions.filter(d => d.g);
+  return { status: 'ok', preset: m.p.name, spotId: hit.id, decisions, ev: graded.reduce((s, d) => s + d.loss, 0), full: full || stop !== 'flop', notes };
+}
+
+const hhEligible = (h) => h.situation.type === 'srp' || h.situation.type === '3bet';
+async function hhAnalyzeAll() {
+  if (hhBusy) return;
+  hhBusy = true;
+  // agrupa por spot para carregar cada spot uma vez só
+  const todo = hhHands.filter(h => hhEligible(h) && !hhResults[h.id]);
+  let done = 0;
+  try {
+    for (const h of todo) {
+      hhProgress = 'Analisando o flop das mãos… ' + (++done) + '/' + todo.length;
+      if (curPage === 'analisar' && !sub) $('#hhProgress') && ($('#hhProgress').textContent = hhProgress);
+      try { hhResults[h.id] = await hhAnalyze(h, false); } catch (e) { hhResults[h.id] = { status: 'erro', notes: [e.message] }; }
+      if (done % 10 === 0) hhSave();
+    }
+  } finally { hhBusy = false; hhProgress = ''; hhSave(); }
+  if (curPage === 'analisar' && !sub) hhView();
+}
+
+async function hhFull(id) {
+  const h = hhHands.find(x => x.id === id);
+  if (!h || hhBusy) return;
+  hhBusy = true;
+  hhProgress = 'Analisando turn e river (o navegador calcula cada street, alguns segundos)…';
+  hhView();
+  try { hhResults[id] = await hhAnalyze(h, true); } catch (e) { hhResults[id] = { status: 'erro', notes: [e.message] }; }
+  finally { hhBusy = false; hhProgress = ''; hhSave(); hhView(); }
+}
+
+async function hhOpenStudy(id, at) {
+  const r = hhResults[id];
+  libraryIndex ??= await (await fetch('library/index.json')).json();
+  const s = libraryIndex.find(x => x.id === r.spotId);
+  if (s && spot?.id !== s.id) { toast('Abrindo o spot…'); try { await loadSpot(s); } finally { toast(null); } }
+  location.hash = studyHash(at);
+}
+
+// ---------- importar histórico: arquivos ----------
+// .txt direto ou .zip (como o GGPoker entrega); o zip é aberto no navegador, sem enviar nada.
+async function unzipTexts(buf) {
+  const dv = new DataView(buf), out = [];
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('Arquivo .zip inválido.');
+  let p = dv.getUint32(eocd + 16, true);
+  for (let k = dv.getUint16(eocd + 10, true); k > 0; k--) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), size = dv.getUint32(p + 20, true), off = dv.getUint32(p + 42, true);
+    const nlen = dv.getUint16(p + 28, true), name = new TextDecoder().decode(new Uint8Array(buf, p + 46, nlen));
+    p += 46 + nlen + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
+    if (!/\.txt$/i.test(name) || (method !== 0 && method !== 8)) continue;
+    const data = new Uint8Array(buf, off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true), size);
+    const bytes = method === 0 ? data : new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    out.push(new TextDecoder().decode(bytes));
+  }
+  return out;
+}
+
+async function hhImport(files) {
+  const texts = [];
+  try {
+    for (const f of files) {
+      if (/\.zip$/i.test(f.name)) texts.push(...await unzipTexts(await f.arrayBuffer()));
+      else texts.push(await f.text());
+    }
+  } catch (e) { hhProgress = 'Não consegui ler o arquivo: ' + e.message; hhView(); return; }
+  const parsed = texts.flatMap(parseHandHistories);
+  const known = new Set(hhHands.map(h => h.id));
+  const fresh = parsed.filter(h => !known.has(h.id));
+  hhHands = [...hhHands, ...fresh].sort((a, b) => a.date.localeCompare(b.date));
+  hhSave();
+  hhProgress = parsed.length ? fresh.length + ' mãos novas importadas' + (parsed.length > fresh.length ? ' (' + (parsed.length - fresh.length) + ' já estavam aqui)' : '') + '.'
+    : 'Nenhuma mão reconhecida. Use o histórico em inglês do GGPoker ou do PokerStars (.txt ou .zip).';
+  hhView();
+  hhAnalyzeAll();
+}
+function hhDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('over'); hhImport([...e.dataTransfer.files]); }
+function hhClear() {
+  if (!confirm('Apagar todas as mãos importadas deste aparelho?')) return;
+  hhHands = []; hhResults = {}; hhSel = null; hhSave(); hhView();
+}
+
+// ---------- importar histórico: tela ----------
+function hhView() {
+  const el = $('#review');
+  const input = '<input type="file" id="hhFile" accept=".txt,.zip" multiple hidden onchange="hhImport([...this.files])">';
+  const drop = '<label class="dropzone" for="hhFile" ondragover="event.preventDefault();this.classList.add(\'over\')" ondragleave="this.classList.remove(\'over\')" ondrop="hhDrop(event)">' +
+    '<b>⇪ Arraste aqui o histórico de mãos</b><span>ou clique para escolher · GGPoker ou PokerStars · .txt ou .zip</span></label>';
+  if (!hhHands.length) {
+    el.innerHTML = input + '<div class="study-body"><div class="panel">' + drop + (hhProgress ? '<p class="hint">' + hhProgress + '</p>' : '') + '</div>' +
+      '<div class="panel"><h3 style="margin-top:0">Como baixar do GGPoker</h3><ol class="log" style="font-size:13px;line-height:1.7">' +
+      '<li>No PokerCraft (app ou site do GGPoker), abra as sessões ou torneios.</li><li>Escolha o período e toque em baixar histórico de mãos (vem um .zip).</li>' +
+      '<li>Arraste o .zip aqui. Não precisa descompactar.</li></ol>' +
+      '<p class="hint">O arquivo é lido só neste aparelho; nada é enviado. São analisadas as mãos em que você viu o flop contra um jogador, em pote simples ou 3-bet, que caem num spot da Biblioteca. Revisar mãos depois de jogar é estudo; usar durante a partida é proibido.</p></div></div>';
+    return;
+  }
+  const res = (h) => hhResults[h.id];
+  const sawFlop = hhHands.filter(h => h.situation.type !== 'nopf');
+  const analyzed = hhHands.filter(h => res(h)?.status === 'ok');
+  const decs = analyzed.flatMap(h => res(h).decisions.filter(d => d.g));
+  const s = { hands: analyzed.length, decisions: decs.length, good: decs.filter(d => d.g === 'best' || d.g === 'correct').length,
+    grades: decs.reduce((m, d) => (m[d.g] = (m[d.g] || 0) + 1, m), {}), evLost: decs.reduce((x, d) => x + d.loss, 0) };
+  const filters = { all: ['Todas', () => true], flop: ['Viu o flop', h => h.situation.type !== 'nopf'], ok: ['Analisadas', h => res(h)?.status === 'ok'],
+    err: ['Com erros', h => res(h)?.decisions?.some(d => d.g === 'mistake' || d.g === 'blunder')], out: ['Fora da Biblioteca', h => res(h)?.status === 'noflop'] };
+  const list = hhHands.filter(filters[hhFilter][1]).slice().reverse();
+  const max = Math.max(1, ...GRADES.map(([k]) => s.grades[k] || 0));
+  const bars = '<div class="gbars">' + GRADES.map(([k, l, cls]) => '<div class="gbar ' + cls + '"><span>' + l + '</span><div class="track"><div style="width:' + (100 * (s.grades[k] || 0) / max) + '%"></div></div><span>' + (s.grades[k] || 0) + '</span></div>').join('') + '</div>';
+  const cardsSmall = (cs) => '<span class="cards mini">' + cs.map(c => cardEl(c)).join('') + '</span>';
+  const statusOf = (h) => {
+    const r = res(h);
+    if (r?.status === 'ok') return r.decisions.filter(d => d.g).map(d => '<i class="dot ' + gradeOf(d.g)[2] + '" title="' + d.street + ': ' + gradeOf(d.g)[1] + '"></i>').join('') || '—';
+    if (r?.status === 'noflop') return '<small>flop fora da Biblioteca</small>';
+    if (hhEligible(h) && !r) return '<small>na fila</small>';
+    return '<small>' + (r?.status === 'unsup' ? 'sem spot parecido' : HH_TYPE[h.situation.type]) + '</small>';
+  };
+  const rows = list.slice(0, 400).map(h => '<tr class="' + (h.id === hhSel ? 'on' : '') + '" onclick="hhSel=\'' + h.id + '\';hhView()"><td><small>' + h.date.slice(5, 16) + '</small></td>' +
+    '<td>' + cardsSmall([h.cards.slice(0, 2), h.cards.slice(2)]) + '</td><td>' + h.heroPos + (h.villainPos ? ' <small>vs ' + h.villainPos + '</small>' : '') + '</td>' +
+    '<td>' + (h.board.length ? cardsSmall(h.board) : '<small>—</small>') + '</td>' +
+    '<td class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + '</td>' +
+    '<td>' + statusOf(h) + '</td><td>' + (res(h)?.ev > 0.005 ? '−' + num(res(h).ev) : '') + '</td></tr>').join('');
+  el.innerHTML = input + '<div class="panel hh-head"><div class="statgrid"><div class="nums">' +
+    '<div><small>Mãos importadas</small><b data-count="' + hhHands.length + '" data-fmt="int">' + hhHands.length + '</b></div>' +
+    '<div><small>Viu o flop</small><b>' + sawFlop.length + '</b></div><div><small>Analisadas</small><b>' + analyzed.length + '</b></div>' +
+    '<div><small>EV perdido</small><b>' + num(s.evLost, 1) + ' bb</b></div></div>' + bars + '</div>' +
+    '<div class="row-inline" style="margin-top:12px;align-items:center"><label class="mini-btn" for="hhFile" style="cursor:pointer">⇪ Importar mais</label>' +
+    (hhHands.some(h => hhEligible(h) && !res(h)) && !hhBusy ? '<button class="mini-btn" onclick="hhAnalyzeAll()">Analisar pendentes</button>' : '') +
+    '<button class="mini-btn" onclick="hhClear()">Limpar tudo</button><span class="hint" id="hhProgress" style="margin:0">' + hhProgress + '</span></div></div>' +
+    '<div class="seg small" style="margin:14px 0;flex-wrap:wrap">' + Object.entries(filters).map(([k, [l, f]]) => '<button class="' + (hhFilter === k ? 'on' : '') + '" onclick="hhFilter=\'' + k + '\';hhView()">' + l + ' (' + hhHands.filter(f).length + ')</button>').join('') + '</div>' +
+    '<div class="study-body hh-body"><div class="panel hh-list"><table class="report hh-table"><tr><th>Data</th><th>Mão</th><th>Posição</th><th>Board</th><th>bb</th><th>Notas</th><th>EV−</th></tr>' + rows + '</table>' +
+    (list.length > 400 ? '<p class="hint">Mostrando as 400 mais recentes.</p>' : '') + (list.length ? '' : '<p class="hint">Nenhuma mão neste filtro.</p>') + '</div>' +
+    '<div class="panel">' + hhDetail(hhHands.find(h => h.id === hhSel)) + '</div></div>';
+}
+
+function hhDetail(h) {
+  if (!h) return '<p class="hint" style="margin:0">Escolha uma mão da lista para ver a análise.</p>';
+  const r = hhResults[h.id];
+  const pre = h.pre.filter(a => a.kind !== 'Fold').map(a => a.pos + ' ' + hhActLabel(a)).join(' · ') || 'todos foldaram';
+  const streets = ['flop', 'turn', 'river'].map((st, i) => {
+    const acts = h.post.filter(a => a.street === st);
+    if (h.board.length < 3 + i) return '';
+    const cards = i === 0 ? h.board.slice(0, 3) : [h.board[2 + i]];
+    return '<div class="hh-street"><b>' + st[0].toUpperCase() + st.slice(1) + '</b>' + '<span class="cards mini">' + cards.map(c => cardEl(c)).join('') + '</span>' +
+      '<span>' + (acts.map(a => (a.who === 'hero' ? '<b>Você</b>' : a.pos) + ' ' + hhActLabel(a)).join(' · ') || '—') + '</span></div>';
+  }).join('');
+  let analysis = '';
+  if (r?.status === 'ok') {
+    analysis = '<h4 style="margin-top:16px">Suas decisões · ' + r.preset + '</h4><ol class="rv-list">' + (r.decisions.length ? r.decisions.map(d => {
+      if (!d.g) return '<li class="rv-item"><b>' + d.street + ': ' + d.real + '</b><small>Sem nota: a sua mão já não está na linha do GTO neste ponto.</small></li>';
+      const [, label, cls] = gradeOf(d.g), colors = actionColors(d.actions);
+      return '<li class="rv-item"><div class="card-head" style="margin:0"><b>' + d.street + ': ' + d.real + '</b><span class="grade ' + cls + '" style="font-size:13px">' + label + (d.loss > 0.005 ? ' · −' + num(d.loss) + ' bb' : '') + '</span></div>' +
+        (d.off ? '<small>No spot: ' + d.action + ' (tamanho mais parecido)</small>' : '') +
+        '<div class="summary" style="margin:6px 0">' + mixBar(d.freqs, colors) + '</div><small>' + d.actions.map((a, i) => (i === d.chosen ? '<b>' : '') + actionLabel(a) + ' ' + pct(d.freqs[i]) + ' (EV ' + num(d.evs[i]) + ')' + (i === d.chosen ? '</b>' : '')).join(' · ') + '</small>' +
+        '<small><a href="javascript:hhOpenStudy(\'' + h.id + '\', [' + d.at.join(',') + '])">Ver este ponto no Estudar</a></small></li>';
+    }).join('') : '<li class="hint">Nenhuma decisão sua no flop.</li>') + '</ol>' +
+      (!r.full && h.board.length > 3 ? '<div class="start" style="justify-content:flex-start"><button class="btn-primary" ' + (hhBusy ? 'disabled' : '') + ' onclick="hhFull(\'' + h.id + '\')">Analisar turn e river</button></div>' : '');
+  } else if (r?.status === 'noflop') {
+    analysis = '<p class="hint">O flop ' + h.board.slice(0, 3).join(' ') + ' não está na Biblioteca para ' + r.preset + '. <a href="javascript:solveExact(' + JSON.stringify(r.preset).replace(/"/g, '&quot;') + ', \'' + h.board.slice(0, 3).join('') + '\')">Resolver este flop</a> e depois revisar em "Digitar mão" com a solução aberta.</p>';
+  } else if (!hhEligible(h)) {
+    analysis = '<p class="hint">' + HH_TYPE[h.situation.type] + ': fora do que o GTO Studio analisa (só pós-flop, um contra um, em pote simples ou 3-bet).</p>';
+  } else if (r?.status === 'unsup') analysis = '<p class="hint">Não há spot parecido na Biblioteca para esta situação.</p>';
+  else if (r?.status === 'erro') analysis = '<p class="error">' + r.notes.join(' ') + '</p>';
+  else analysis = '<p class="hint">Na fila para análise.</p>';
+  return '<div class="card-head"><h3>' + (h.tour ? 'Torneio' : 'Cash') + ' · ' + h.players + ' jogadores</h3><small class="pill">' + h.site + ' · ' + h.date + '</small></div>' +
+    '<div class="rv-table"><div><small>Suas cartas</small><div class="cards">' + [h.cards.slice(0, 2), h.cards.slice(2)].map(c => cardEl(c, true)).join('') + '</div></div>' +
+    '<div><small>Posição</small><b>' + h.heroPos + '</b></div>' + (h.villainPos ? '<div><small>Contra</small><b>' + h.villainPos + '</b></div>' : '') +
+    (h.eff ? '<div><small>Stack efetivo</small><b>' + num(h.eff, 1) + ' bb</b></div>' : '') + '<div><small>Resultado</small><b class="' + (h.net >= 0 ? 'g-best' : 'g-blunder') + '">' + (h.net >= 0 ? '+' : '') + num(h.net, 1) + ' bb</b></div></div>' +
+    '<div class="hh-street"><b>Pré-flop</b><span>' + pre + '</span></div>' + streets +
+    (r?.notes?.length ? '<p class="hint">' + r.notes.join(' ') + '</p>' : '') + analysis;
+}
 
 // ---------- instalar como app ----------
 let installPrompt = null;
