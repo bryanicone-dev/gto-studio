@@ -35,3 +35,8 @@ codegen-units = 1
 name = "library"
 path = "src/bin/library.rs"
 required-features = ["native"]
+
+[[bin]]
+name = "compare"
+path = "src/bin/compare.rs"
+required-features = ["native"]

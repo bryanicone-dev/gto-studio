@@ -1,0 +1,36 @@
+# Mede o custo do "flop parecido" com a biblioteca publicada no site (nada é publicado).
+# O relatório sai no resumo do job e no artefato "relatorio".
+name: Comparar flop parecido
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [comparar-flops]
+
+env:
+  SITE: https://bryansennaprog-gto-studio.static.hf.space
+  CARGO_TERM_COLOR: never
+
+jobs:
+  comparar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-native-${{ hashFiles('Cargo.lock') }}
+      - name: Baixar a biblioteca do site
+        run: |
+          mkdir -p lib && curl -fsSL "$SITE/library/index.json" -o lib/index.json
+          node -e 'for (const s of require("./lib/index.json")) console.log(s.file)' | xargs -P 8 -I{} curl -fsSL "$SITE/library/{}" -o "lib/{}"
+          ls lib | wc -l
+      - run: cargo test --release --bin compare
+      - run: cargo run --release --bin compare -- lib > relatorio.md && cat relatorio.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relatorio
+          path: relatorio.md
