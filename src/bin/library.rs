@@ -6,7 +6,8 @@
 //! Spots already present in the output folder are skipped, so the build can be resumed.
 //! With LIBRARY_ONLY_CACHED=1 (pull requests) missing spots are not solved, only listed.
 //! LIBRARY_EXTRA points to a JSON list of extra flops for this preset (requested from the site's hand
-//! analysis); LIBRARY_MAX_NEW caps how many new spots one run solves, so the nightly job stays short.
+//! analysis); LIBRARY_MAX_NEW caps how many of those extra spots one run solves, so the nightly job stays short.
+//! LIBRARY_DEADLINE_MIN stops starting new spots after that many minutes (the rest is solved on the next run).
 
 use gto_studio::engine::{self, SolveRequest, StreetSizes};
 use gto_studio::postflop_solver::{compute_exploitability, finalize, solve_step};
@@ -19,6 +20,9 @@ use std::{env, fs};
 struct Spec {
     bet: String,
     raise: String,
+    /// Bet sizes on the flop only (turn and river keep `bet`, so the browser re-solves stay light).
+    #[serde(default)]
+    flop_bet: Option<String>,
     target_pct: f32,
     max_iterations: u32,
     presets: Vec<String>,
@@ -70,6 +74,10 @@ fn main() -> Result<(), String> {
         .and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
     let max_new: usize = env::var("LIBRARY_MAX_NEW").ok().and_then(|v| v.parse().ok()).unwrap_or(usize::MAX);
     let mut solved_now = 0;
+    // Prazo do job no CI: depois dele não começa spot novo; o que ficou pronto entra no cache e a próxima
+    // execução continua de onde parou.
+    let deadline = env::var("LIBRARY_DEADLINE_MIN").ok().and_then(|v| v.parse::<u64>().ok()).map(|m| std::time::Duration::from_secs(m * 60));
+    let run_started = Instant::now();
     fs::create_dir_all(&out).map_err(|e| e.to_string())?;
     let index_path = format!("{out}/index.json");
     let mut index: Vec<Value> = fs::read_to_string(&index_path).ok()
@@ -94,21 +102,26 @@ fn main() -> Result<(), String> {
                 println!("já existe: {id}");
                 continue;
             }
-            if only_cached || solved_now >= max_new {
+            if deadline.is_some_and(|d| run_started.elapsed() > d) {
+                println!("prazo do job esgotado, fica para a próxima execução: {id}");
+                continue;
+            }
+            if only_cached || (is_extra && solved_now >= max_new) {
                 println!("sem cache, fica para a publicação: {id}");
                 continue;
             }
-            let sizes = || StreetSizes { oop_bet: spec.bet.clone(), oop_raise: spec.raise.clone(), ip_bet: spec.bet.clone(), ip_raise: spec.raise.clone() };
+            let sizes = |bet: &str| StreetSizes { oop_bet: bet.into(), oop_raise: spec.raise.clone(), ip_bet: bet.into(), ip_raise: spec.raise.clone() };
+            let flop_bet = spec.flop_bet.as_deref().unwrap_or(&spec.bet);
             let req = SolveRequest {
                 oop_range: oop.clone(), ip_range: ip.clone(), board: board.clone(), pot, stack,
-                flop: sizes(), turn: sizes(), river: sizes(), turn_donk: String::new(), river_donk: String::new(),
+                flop: sizes(flop_bet), turn: sizes(&spec.bet), river: sizes(&spec.bet), turn_donk: String::new(), river_donk: String::new(),
                 rake_pct: 0.0, rake_cap: 0.0, add_allin_threshold: 1.5, force_allin_threshold: 0.15,
                 merging_threshold: 0.1, precision: "compressed".into(),
                 max_iterations: spec.max_iterations, target_pct: spec.target_pct, locks: vec![],
             };
             let (mut g, compress, memory_gb) = engine::prepare(&req, f64::MAX)?;
             println!("resolvendo {id} ({memory_gb:.2} GB)…");
-            solved_now += 1;
+            if is_extra { solved_now += 1; }
             let started = Instant::now();
             g.allocate_memory(compress);
             let target = pot as f32 * 100.0 * spec.target_pct / 100.0;
@@ -129,7 +142,7 @@ fn main() -> Result<(), String> {
             index.retain(|s| s["id"] != id.as_str());
             index.push(json!({
                 "id": id, "preset": name, "board": board, "file": file, "bytes": bytes.len(),
-                "iterations": iterations, "exploitability_pct": expl, "bet": spec.bet, "raise": spec.raise,
+                "iterations": iterations, "exploitability_pct": expl, "bet": flop_bet, "raise": spec.raise,
                 "solve_seconds": started.elapsed().as_secs(), "report": report(&bytes)?, "extra": is_extra,
             }));
             fs::write(&index_path, serde_json::to_string_pretty(&index).unwrap()).map_err(|e| e.to_string())?;

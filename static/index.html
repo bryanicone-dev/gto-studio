@@ -1530,7 +1530,7 @@ async function loadSpot(s) {
   if (!bytes) throw new Error('Spot pessoal não encontrado neste aparelho.');
   await callWorker('load', { bytes });
   const preset = PRESETS.find(p => p.name === s.preset);
-  solveRequest = preset ? libraryRequest(preset, s.board) : null;
+  solveRequest = preset ? libraryRequest(preset, s.board, s.bet) : null;
   lockState = null;
   spot = { id: s.id, preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
   Object.assign(local, {
@@ -3442,9 +3442,10 @@ function ensureLibrary() {
 }
 
 // Pedido de solve com os parâmetros dos spots da Biblioteca (os mesmos do CI): solve no aparelho e nodelock.
-function libraryRequest(p, board) {
-  const sizes = { oop_bet: '50%', oop_raise: '3x', ip_bet: '50%', ip_raise: '3x' };
-  return { oop_range: p.oop, ip_range: p.ip, board, pot: p.pot, stack: p.stack, flop: sizes, turn: sizes, river: sizes,
+// flopBet: tamanhos do flop do spot (os mais antigos usam 50%); turn e river ficam em 50%.
+function libraryRequest(p, board, flopBet = '33%, 75%') {
+  const sizes = (bet) => ({ oop_bet: bet, oop_raise: '3x', ip_bet: bet, ip_raise: '3x' });
+  return { oop_range: p.oop, ip_range: p.ip, board, pot: p.pot, stack: p.stack, flop: sizes(flopBet), turn: sizes('50%'), river: sizes('50%'),
     turn_donk: '', river_donk: '', rake_pct: 0, rake_cap: 0, add_allin_threshold: 1.5, force_allin_threshold: 0.15, merging_threshold: 0.1,
     precision: 'compressed', max_iterations: 300, target_pct: 1 };
 }
@@ -3463,7 +3464,7 @@ async function solveOnDevice(presetName, board, onProgress) {
   if (r.error) throw new Error(r.error);
   await idbPut(id, r.bytes);
   const entry = { id, preset: presetName, board, bytes: r.bytes.byteLength, iterations: local.iteration, exploitability_pct: local.exploitability_pct,
-    bet: '50%', raise: '3x', personal: true, created: Date.now() };
+    bet: '33%, 75%', raise: '3x', personal: true, created: Date.now() };
   store.set('gto-pessoal', [...store.get('gto-pessoal', []).filter(s => s.id !== id), entry]);
   await ensureLibrary();
   libraryIndex = [...libraryIndex.filter(s => s.id !== id), entry];
