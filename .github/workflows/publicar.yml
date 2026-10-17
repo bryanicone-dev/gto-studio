@@ -13,6 +13,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Toda noite (03:00 em Brasília) resolve os flops pedidos pela análise de mãos e publica.
+  schedule:
+    - cron: '0 6 * * *'
 
 concurrency:
   group: publicar-${{ github.ref }}
@@ -20,6 +23,9 @@ concurrency:
 
 env:
   HF_SPACE: bryansennaprog/gto-studio
+  # Projeto Supabase do site (chave publishable, pública): lista de flops pedidos pela análise de mãos.
+  SUPABASE_URL: https://maqfbjjfurikflhodbzo.supabase.co
+  SUPABASE_KEY: sb_publishable_UyLcLs_tfnGyzLAnruKPbw_hscvYYuH
   CARGO_TERM_COLOR: never
 
 jobs:
@@ -74,9 +80,15 @@ jobs:
           path: spots
           key: spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.slug }}-${{ github.run_id }}
           restore-keys: spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.slug }}-
+      - name: Flops pedidos pelo site
+        env:
+          PRESET: ${{ matrix.preset.name }}
+        run: node deploy/library/extra.mjs "$PRESET" > extra.json && cat extra.json
       - name: Resolver ${{ matrix.preset.name }}
         env:
           PRESET: ${{ matrix.preset.name }}
+          LIBRARY_EXTRA: extra.json
+          LIBRARY_MAX_NEW: '6'
           LIBRARY_ONLY_CACHED: ${{ github.event_name == 'pull_request' && '1' || '0' }}
         run: cargo run --release --bin library -- deploy/library/spots.json spots "$PRESET"
       - uses: actions/upload-artifact@v4

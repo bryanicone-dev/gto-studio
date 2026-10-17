@@ -5,6 +5,8 @@
 //! With a preset name only that preset is solved (CI runs one preset per machine).
 //! Spots already present in the output folder are skipped, so the build can be resumed.
 //! With LIBRARY_ONLY_CACHED=1 (pull requests) missing spots are not solved, only listed.
+//! LIBRARY_EXTRA points to a JSON list of extra flops for this preset (requested from the site's hand
+//! analysis); LIBRARY_MAX_NEW caps how many new spots one run solves, so the nightly job stays short.
 
 use gto_studio::engine::{self, SolveRequest, StreetSizes};
 use gto_studio::postflop_solver::{compute_exploitability, finalize, solve_step};
@@ -64,6 +66,10 @@ fn main() -> Result<(), String> {
         .map_err(|e| format!("spots.json inválido: {e}"))?;
     let html = include_str!("../../static/index.html");
     let only_cached = env::var("LIBRARY_ONLY_CACHED").is_ok_and(|v| v == "1");
+    let extra: Vec<String> = env::var("LIBRARY_EXTRA").ok().and_then(|p| fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
+    let max_new: usize = env::var("LIBRARY_MAX_NEW").ok().and_then(|v| v.parse().ok()).unwrap_or(usize::MAX);
+    let mut solved_now = 0;
     fs::create_dir_all(&out).map_err(|e| e.to_string())?;
     let index_path = format!("{out}/index.json");
     let mut index: Vec<Value> = fs::read_to_string(&index_path).ok()
@@ -74,7 +80,9 @@ fn main() -> Result<(), String> {
     }
     for name in spec.presets.iter().filter(|n| only.as_ref().is_none_or(|p| p == *n)) {
         let (pot, stack, oop, ip) = preset(html, name).ok_or(format!("preset não encontrado: {name}"))?;
-        for board in &spec.boards {
+        let boards = spec.boards.iter().map(|b| (b, false))
+            .chain(extra.iter().filter(|b| !spec.boards.contains(b)).map(|b| (b, true)));
+        for (board, is_extra) in boards {
             let id = slug(&format!("{name} {board}"));
             let file = format!("{id}.bin");
             let existing = index.iter().position(|s| s["id"] == id.as_str());
@@ -86,7 +94,7 @@ fn main() -> Result<(), String> {
                 println!("já existe: {id}");
                 continue;
             }
-            if only_cached {
+            if only_cached || solved_now >= max_new {
                 println!("sem cache, fica para a publicação: {id}");
                 continue;
             }
@@ -100,6 +108,7 @@ fn main() -> Result<(), String> {
             };
             let (mut g, compress, memory_gb) = engine::prepare(&req, f64::MAX)?;
             println!("resolvendo {id} ({memory_gb:.2} GB)…");
+            solved_now += 1;
             let started = Instant::now();
             g.allocate_memory(compress);
             let target = pot as f32 * 100.0 * spec.target_pct / 100.0;
@@ -121,7 +130,7 @@ fn main() -> Result<(), String> {
             index.push(json!({
                 "id": id, "preset": name, "board": board, "file": file, "bytes": bytes.len(),
                 "iterations": iterations, "exploitability_pct": expl, "bet": spec.bet, "raise": spec.raise,
-                "solve_seconds": started.elapsed().as_secs(), "report": report(&bytes)?,
+                "solve_seconds": started.elapsed().as_secs(), "report": report(&bytes)?, "extra": is_extra,
             }));
             fs::write(&index_path, serde_json::to_string_pretty(&index).unwrap()).map_err(|e| e.to_string())?;
             println!("  salvo: {file} ({:.1} MB, {}s)", bytes.len() as f64 / 1e6, started.elapsed().as_secs());
