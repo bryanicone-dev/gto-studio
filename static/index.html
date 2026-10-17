@@ -519,6 +519,32 @@
     .pseat .hole .card { width: 26px; height: 36px; font-size: 13px; }
   }
 
+  /* Tema manual (botão na barra superior): o escuro escolhido repete as variáveis do escuro automático */
+  :root[data-theme="dark"] {
+    --bg: #121317; --panel: #1b1c22; --ink: #ececef; --muted: #8d909b; --line: #2b2d36;
+    --empty: #24262e; --primary: #e5484d; --primary-soft: #3a1a1f;
+  }
+  .theme-btn { margin-left: 8px; border-radius: 999px; padding: 3px 9px; font-size: 13px; color: var(--muted); }
+
+  /* Histórico: filtro, evolução em 30 dias e sessões; replayer e painel de dicas */
+  .hist-filter { margin-bottom: 12px; }
+  .evo-wrap { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: start; }
+  .evo + .evo { margin-top: 14px; }
+  .evo-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .evo-head b { color: var(--ink); }
+  .evo-plot { position: relative; }
+  .evo-plot small { position: absolute; top: -2px; left: 0; font-size: 10px; color: var(--muted); }
+  .evo-plot svg { display: block; width: 100%; height: 80px; }
+  .evo-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rp-nav { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 4px 0 8px; }
+  .rp-nav button { min-width: 64px; padding: 10px 16px; font-size: 18px; font-weight: 700; }
+  .rp-nav button:disabled { opacity: .4; cursor: default; }
+  .rp-nav span { display: grid; text-align: center; font-weight: 600; }
+  .rp-nav small { color: var(--muted); font-weight: 400; font-size: 11px; }
+  @media (hover: none) { .rp-nav small { display: none; } }
+  .tips span:nth-child(even) { text-align: right; }
+  @media (max-width: 800px) { .evo-wrap { grid-template-columns: minmax(0, 1fr); } }
+
   /* Importar histórico */
   .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 180px; border: 2px dashed var(--line); border-radius: 12px; cursor: pointer; text-align: center; padding: 20px; margin: 0; color: var(--ink); font-size: 14px; transition: border-color .15s, background-color .15s; }
   .dropzone span { color: var(--muted); font-size: 12px; }
@@ -578,6 +604,7 @@
   </nav>
   <a class="status" id="statusPill" href="#/resolver">Solver livre</a>
   <button class="keys-btn" onclick="$('#keys').showModal()" title="Atalhos de teclado">?</button>
+  <button class="theme-btn" id="themeBtn" onclick="cycleTheme()" title="Tema" aria-label="Tema">◐</button>
   <button class="install-btn" id="installBtn" hidden onclick="installApp()">Instalar app</button>
 </header>
 
@@ -901,6 +928,7 @@ function route() {
     else if (sub === 'drills') drillsView();
     else if (sub === 'construtor') builderView();
     else if (sub === 'historico') historyView();
+    else if (sub === 'rever') replayView();
     else trainHub();
   }
   if (page === 'biblioteca') {
@@ -1879,7 +1907,10 @@ function saveHand() {
   const t = trainer;
   t.saved = true;
   if (!t.reached) return;
-  handLog = [...handLog, { t: Date.now(), spot: t.spot, hero: t.hero, combo: t.heroCombo, villain: t.villainCombo, grades: t.grades, ev: t.evLost }].slice(-500);
+  // replay: o necessário para rever a mão (spot, ações e cartas, decisões com números arredondados).
+  const r4 = (x) => Math.round(x * 1e4) / 1e4;
+  const replay = { id: spot?.id || 'open', h: [...t.history], d: t.decisions.map(d => ({ ...d, pot: r4(d.pot), loss: r4(d.loss), freqs: d.freqs.map(r4), evs: d.evs.map(r4), mix: d.mix?.map(r4) })) };
+  handLog = [...handLog, { t: Date.now(), spot: t.spot, hero: t.hero, combo: t.heroCombo, villain: t.villainCombo, grades: t.grades, ev: t.evLost, replay }].slice(-500);
   store.set('gto-treino-historico', handLog);
 }
 
@@ -1915,7 +1946,7 @@ async function heroAct(a, mix) {
     trainer.evLost += loss;
     trainer.feedback = { g, loss, chosen: a, mix, dist, rng: rngA == null ? null : trainer.rng, rngA, freqs: k.freqs, evs: k.evs, actions: n.actions, colors: actionColors(n.actions), at: [...trainer.history] };
     trainer.decisions.push({ street: streetOf(n), board: n.board, pot: n.pot, label: actionLabel(n.actions[a]), g, loss, freqs: k.freqs, evs: k.evs, actions: n.actions, chosen: a, mix,
-      rng: rngA == null ? null : trainer.rng, rngA, note: mix ? 'Distância do mix GTO: ' + pct(dist) + '.' : '', link: studyHash([...trainer.history]) });
+      rng: rngA == null ? null : trainer.rng, rngA, note: mix ? 'Distância do mix GTO: ' + pct(dist) + '.' : '', link: studyHash([...trainer.history]), at: trainer.history.length });
     if (n.actions[a].kind === 'Fold') trainer.foldBy = n.player;
     trainer.log.push(`${n.player} (você): ${actionLabel(n.actions[a])}`);
     trainer.last = { ...trainer.last, [n.player]: actionLabel(n.actions[a]) };
@@ -2021,6 +2052,7 @@ function trainerView() {
     hand: ['☰', 'Esta mão', t ? '<ol class="log">' + t.log.map(l => '<li>' + l + '</li>').join('') + '</ol>' : '<p class="hint">Comece uma mão para ver as ações aqui.</p>'],
     hist: ['↺', 'Últimas mãos', (handLog.length ? '<ol class="hist">' + handLog.slice(-10).reverse().map(histItem).join('') + '</ol>' : '<p class="hint">As mãos jogadas ficam salvas neste aparelho.</p>') +
       '<p class="hint"><a href="#/treinar/historico">Histórico completo</a></p>'],
+    tips: ['💡', 'Dicas', tipsPanel(t)],
   };
   const right = '<div class="side-wrap">' + (sidePanel ? '<div class="side-panel panel"><div class="card-head"><h4 style="margin:0">' + panels[sidePanel][1] + '</h4><a href="javascript:setSidePanel(null)" title="Fechar">×</a></div>' + panels[sidePanel][2] + '</div>' : '') +
     '<nav class="rail panel">' + Object.entries(panels).map(([k, [ico, title]]) => '<button class="' + (sidePanel === k ? 'on' : '') + '" title="' + title + '" onclick="setSidePanel(\'' + k + '\')">' + ico + '</button>').join('') + '</nav></div>';
@@ -2729,7 +2761,7 @@ function statsBlock(s) {
 
 const histItem = (x) => '<li title="' + new Date(x.t).toLocaleString('pt-BR') + '"><b>' + comboText(x.combo) + '</b><span>' + x.hero + '</span>' +
   '<span>' + x.grades.map(g => '<i class="dot ' + gradeOf(g)[2] + '" title="' + gradeOf(g)[1] + '"></i>').join('') + '</span>' +
-  '<span class="ev">' + (x.ev > 0.005 ? '−' + num(x.ev) + ' bb' : 'sem perda') + '</span><small>' + x.spot + '</small></li>';
+  '<span class="ev">' + (x.ev > 0.005 ? '−' + num(x.ev) + ' bb' : 'sem perda') + '</span>' + (x.replay ? '<a class="mini-btn" href="#/treinar/rever/' + x.t + '">Rever</a>' : '') + '<small>' + x.spot + '</small></li>';
 
 const ICON_LINKS = {
   jogar: ['#/treinar/jogar', '◎', 'Jogar mãos', 'Mãos contra o GTO, com nota em cada decisão'],
@@ -2747,12 +2779,191 @@ function trainHub() {
     '<div class="panel"><div class="card-head"><h3>Estatísticas dos treinos</h3><a href="#/treinar/historico" title="Ver histórico">›</a></div>' + statsBlock(summarize(handLog)) + '</div>';
 }
 
+let histFilter = 'all';
+const histKind = (x) => x.spot.startsWith('Push/fold') ? 'pf' : 'train';
 function historyView() {
-  const rows = handLog.slice(-100).reverse();
-  $('#trainer').innerHTML = crumb('Histórico') + '<div class="panel">' + statsBlock(summarize(handLog)) + '</div>' +
+  const hands = handLog.filter(x => histFilter === 'all' || histKind(x) === histFilter);
+  const rows = hands.slice(-100).reverse();
+  const seg = '<div class="seg hist-filter">' + [['all', 'Todos'], ['train', 'Treino'], ['pf', 'Push/fold']].map(([k, l]) =>
+    '<button class="' + (histFilter === k ? 'on' : '') + '" onclick="histFilter=\'' + k + '\';historyView()">' + l + '</button>').join('') + '</div>';
+  $('#trainer').innerHTML = crumb('Histórico') + seg + '<div class="panel">' + statsBlock(summarize(hands)) + '</div>' +
+    (hands.length ? '<div class="evo-wrap">' + evolutionPanel(hands) + sessionsPanel(hands) + '</div>' : '') +
     '<div class="panel" style="margin-top:16px"><div class="card-head"><h3>Últimas mãos</h3>' + (handLog.length ? '<a href="javascript:clearHistory()" style="font-size:13px">limpar</a>' : '') + '</div>' +
     (rows.length ? '<ol class="hist">' + rows.map(histItem).join('') + '</ol>' : '<p class="hint">Nenhuma mão ainda. Comece em <a href="#/treinar/jogar">Jogar mãos</a>.</p>') + '</div>';
 }
+
+// Evolução: acerto e EV perdido por mão em cada um dos últimos 30 dias, um gráfico para cada medida (escalas diferentes).
+function evolutionPanel(hands) {
+  const today = new Date(), days = [];
+  for (let i = 29; i >= 0; i--) days.push(new Date(today.getFullYear(), today.getMonth(), today.getDate() - i));
+  const byDay = new Map(days.map(d => [d.toDateString(), []]));
+  for (const x of hands) byDay.get(new Date(x.t).toDateString())?.push(x);
+  const stats = days.map(d => ({ d, s: summarize(byDay.get(d.toDateString())) }));
+  const recent = summarize([...byDay.values()].flat());
+  const chart = (title, avg, val, fmt, color, max) => {
+    const W = 300, H = 80, bw = W / 30;
+    const marks = stats.map(({ d, s }, i) => {
+      const v = val(s), tip = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ': ' + (v == null ? 'sem mãos' : fmt(v) + ' · ' + s.hands + ' mão' + (s.hands > 1 ? 's' : ''));
+      const h = v == null ? 0 : Math.max(1.5, H * v / max);
+      return '<g><title>' + tip + '</title><rect x="' + (i * bw) + '" y="0" width="' + bw + '" height="' + H + '" fill="transparent"/>' +
+        (v == null ? '' : '<rect x="' + (i * bw + bw * .18) + '" y="' + (H - h) + '" width="' + (bw * .64) + '" height="' + h + '" fill="' + color + '"/>') + '</g>';
+    }).join('');
+    return '<div class="evo"><div class="evo-head"><span>' + title + '</span><b>' + avg + '</b></div><div class="evo-plot"><small>' + fmt(max) + '</small>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="' + title + ' nos últimos 30 dias">' + marks +
+      '<line x1="0" y1="' + H + '" x2="' + W + '" y2="' + H + '" stroke="var(--line)" vector-effect="non-scaling-stroke"/></svg></div>' +
+      '<div class="evo-axis"><span>' + days[0].toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + '</span><span>hoje</span></div></div>';
+  };
+  const evMax = Math.max(0.5, ...stats.map(({ s }) => s.hands ? s.evLost / s.hands : 0));
+  return '<div class="panel"><div class="card-head"><h3>Evolução · 30 dias</h3></div>' + (recent.hands
+    ? chart('Acerto por dia', recent.decisions ? pct(recent.good / recent.decisions) : '—', s => s.decisions ? s.good / s.decisions : null, pct, 'var(--good)', 1) +
+      chart('EV perdido por mão', num(recent.evLost / recent.hands) + ' bb', s => s.hands ? s.evLost / s.hands : null, v => num(v) + ' bb', 'var(--primary)', evMax)
+    : '<p class="hint">Nenhuma mão nos últimos 30 dias.</p>') + '</div>';
+}
+
+// Sessões: mãos seguidas, com no máximo 30 minutos entre uma e outra.
+function sessionsPanel(hands) {
+  const list = [];
+  for (const x of [...hands].sort((a, b) => a.t - b.t)) {
+    const s = list[list.length - 1];
+    if (s && x.t - s.end <= 30 * 60e3) { s.hands.push(x); s.end = x.t; } else list.push({ start: x.t, end: x.t, hands: [x] });
+  }
+  const time = (t) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const rows = list.reverse().slice(0, 20).map(({ start, end, hands: hs }) => {
+    const s = summarize(hs);
+    return '<li><b>' + new Date(start).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' · ' + time(start) + (end - start > 60e3 ? '–' + time(end) : '') + '</b>' +
+      '<span>' + s.hands + ' mão' + (s.hands > 1 ? 's' : '') + '</span><span>acerto ' + (s.decisions ? pct(s.good / s.decisions) : '—') + '</span>' +
+      '<span class="ev">' + (s.evLost > 0.005 ? '−' + num(s.evLost) + ' bb' : 'sem perda') + '</span></li>';
+  });
+  return '<div class="panel"><div class="card-head"><h3>Sessões</h3><small class="hint" style="margin:0">' + list.length + ' no total</small></div><ol class="hist">' + rows.join('') + '</ol></div>';
+}
+
+// ---------- rever mãos treinadas ----------
+// Carrega o spot da mão e refaz as ações uma a uma; a nota de cada decisão aparece no passo dela e o resumo no fim.
+let replaying = null; // { x: mão do histórico, steps: índices do histórico mostrados, pos, nodes, t: mesa }
+async function replayView() {
+  const el = $('#trainer'), id = Number(location.hash.split('/')[3]);
+  const x = handLog.find(h => h.t === id);
+  const fail = (msg) => { replaying = null; el.innerHTML = crumb('Rever mão') + '<div class="panel empty"><p>' + msg + '</p><p><a href="#/treinar/historico">Voltar ao histórico</a></p></div>'; };
+  if (!x?.replay) return fail('Esta mão não tem os dados para rever. Só as mãos jogadas a partir desta versão guardam as ações.');
+  if (replaying?.x !== x) {
+    replaying = null;
+    el.innerHTML = crumb('Rever mão') + '<div class="panel empty"><p>Carregando o spot…</p></div>';
+    try {
+      if (x.replay.id === 'open') {
+        if (status?.state !== 'done' || (spot?.label || 'Solução aberta') !== x.spot) return fail('Esta mão foi jogada numa solução aberta que não está mais carregada. Abra o mesmo spot e tente de novo.');
+      } else {
+        if (BACKEND !== 'wasm') return fail('Rever mãos da Biblioteca funciona na versão online do GTO Studio.');
+        const s = (await ensureLibrary()).find(s => s.id === x.replay.id);
+        if (!s) return fail('O spot desta mão (' + x.spot + ') não existe mais na Biblioteca.');
+        if (spot?.id !== s.id) {
+          if (local.state === 'solving') return fail('Há um solve em andamento. Espere terminar para rever a mão.');
+          if (trainer && !trainer.saved && trainer.grades.length) saveHand();
+          trainer = null;
+          await loadSpot(s);
+        }
+      }
+      const h = x.replay.h, end = await api('/api/node', { history: h });
+      if (end.type === 'resolve_needed' || !end.path) throw new Error('Não deu para refazer as ações desta mão.');
+      // Passos: cada ponto antes de uma ação (as cartas entram junto com a ação seguinte) e o fim da mão.
+      const steps = h.map((_, i) => i).filter(i => !end.path[i].card).concat(h.length);
+      const nodes = { [h.length]: end };
+      nodes[steps[0]] ??= await api('/api/node', { history: h.slice(0, steps[0]) });
+      replaying = { x, steps, pos: 0, nodes, t: { hero: x.hero, heroCombo: x.combo, villainCombo: x.villain, spot: x.spot, last: {}, moves: [] } };
+    } catch (err) { return fail(err.message); }
+  }
+  replayShow();
+}
+
+async function replayStep(delta) {
+  const r = replaying;
+  if (!r || r.busy) return;
+  const pos = Math.max(0, Math.min(r.steps.length - 1, r.pos + delta));
+  if (pos === r.pos) return;
+  r.busy = true;
+  try {
+    const i = r.steps[pos];
+    r.nodes[i] ??= await api('/api/node', { history: r.x.replay.h.slice(0, i) });
+    const prev = delta > 0 ? r.nodes[r.x.replay.h.length].path.slice(0, i).reverse().find(s => !s.card) : null;
+    r.t.moves = prev && /Bet|Raise|Call|Allin/.test(prev.action.kind) ? [prev.player] : [];
+    r.pos = pos;
+  } catch (err) { toast(err.message); setTimeout(() => toast(null), 3000); }
+  finally { r.busy = false; }
+  if (curPage === 'treinar' && sub === 'rever' && replaying === r) replayShow();
+}
+
+function replayShow() {
+  const r = replaying, i = r.steps[r.pos], last = r.pos === r.steps.length - 1;
+  const n = r.nodes[i], t = r.t, path = r.nodes[r.x.replay.h.length].path.slice(0, i);
+  t.node = n;
+  t.over = last;
+  t.last = {};
+  for (const s of path) if (s.card) t.last = {}; else t.last[s.player] = actionLabel(s.action);
+  const fin = path[path.length - 1];
+  t.foldBy = last && fin?.action?.kind === 'Fold' ? fin.player : null;
+  const d = r.x.replay.d.find(d => d.at === i);
+  let note = '';
+  if (d) {
+    const [, glabel, gcls] = gradeOf(d.g);
+    note = '<div class="feedback"><div><small class="hint">Sua decisão</small> <b>' + d.label + '</b> · <span class="grade ' + gcls + '">' + glabel + (d.loss > 0.005 ? ' · −' + num(d.loss) + ' bb' : '') + '</span></div>' +
+      mixPick(d.freqs, actionColors(d.actions), d.chosen) +
+      '<small>' + d.actions.map((a, k) => actionLabel(a) + ' ' + pct(d.freqs[k]) + ' · EV ' + num(d.evs[k])).join(' &nbsp;|&nbsp; ') + '</small>' +
+      (d.rng != null ? '<div><small>RNG ' + d.rng + ' pedia ' + actionLabel(d.actions[d.rngA]) + '.</small></div>' : '') + (d.note ? '<div><small>' + d.note + '</small></div>' : '') + '</div>';
+  }
+  const nav = '<div class="rp-nav"><button onclick="replayStep(-1)"' + (r.pos ? '' : ' disabled') + ' aria-label="Voltar uma ação">←</button>' +
+    '<span>Passo ' + (r.pos + 1) + ' de ' + r.steps.length + '<small>teclas ← →</small></span>' +
+    '<button onclick="replayStep(1)"' + (last ? ' disabled' : '') + ' aria-label="Avançar uma ação">→</button></div>';
+  $('#trainer').innerHTML = crumb('Rever mão') + '<div class="play-center">' + actionLine(n, { nav: false }) + '<div class="panel table">' + pokerTable(t) + nav + note +
+    (last ? handSummary(r.x.replay.d, { result: trainerResult(t) }) : '') + '</div><p class="hint"><a href="#/treinar/historico">← Voltar ao histórico</a></p></div>';
+}
+document.addEventListener('keydown', (e) => {
+  if (curPage !== 'treinar' || sub !== 'rever' || !replaying || e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); replayStep(e.key === 'ArrowLeft' ? -1 : 1); }
+});
+
+// ---------- painel de dicas (Jogar mãos) ----------
+// Força da mão, equity contra o range do vilão, outs e pot odds; nada de frequência ou EV do GTO.
+function tipsPanel(t) {
+  const n = t?.node, k = n && !t.over && n.type === 'action' && n.player === t.hero && findCombo(n, t.heroCombo);
+  if (!k) return '<p class="hint">' + (t ? 'As dicas aparecem quando for a sua vez de agir.' : 'Durante a mão, aqui aparecem a força da sua mão, a equity, os outs e as pot odds.') + '</p>';
+  const has = (x) => k.draws.includes(x), fd = has('Flush draw'), sd = has('OESD') ? 8 : has('Gutshot') ? 4 : 0;
+  // Aproximação: flush draw 9, OESD 8, gutshot 4 (menos as cartas repetidas entre os dois), overcards 6.
+  const outs = (fd ? 9 : 0) + sd - (fd && sd ? sd / 4 : 0) + (has('Overcards') ? 6 : 0);
+  const unseen = 52 - 2 - n.board.length;
+  const villain = t.hero === 'OOP' ? 'IP' : 'OOP', amt = { OOP: 0, IP: 0 };
+  for (const s of n.path) {
+    if (s.card) { amt.OOP = amt.IP = 0; continue; }
+    if (s.action.amount != null) amt[s.player] = s.action.amount;
+    else if (s.action.kind === 'Call') amt[s.player] = amt[s.player === 'OOP' ? 'IP' : 'OOP'];
+  }
+  const toCall = n.actions.some(a => a.kind === 'Call') ? amt[villain] - amt[t.hero] : 0;
+  return '<div class="stats tips">' +
+    '<span>Sua mão</span><span><b>' + k.made + '</b>' + (k.draws.length ? '<br>' + k.draws.join(' · ') : '') + '</span>' +
+    '<span>Equity contra o range do vilão</span><span><b>' + pct(k.equity) + '</b></span>' +
+    (outs ? '<span>Outs (aprox.)</span><span><b>~' + outs + '</b><br>≈ ' + pct(outs / unseen) + ' na próxima carta</span>' : '') +
+    (toCall > 0 ? '<span>Pot odds</span><span>Pagar <b>' + num(toCall) + ' bb</b> num pote de ' + num(n.pot) + ' bb: precisa de <b>' + pct(toCall / (n.pot + toCall)) + '</b> de equity</span>' : '') +
+    '</div><p class="hint">Sem frequências nem EV do GTO: decida e veja a nota depois.</p>';
+}
+
+// ---------- tema manual ----------
+// Sistema → Claro → Escuro, salvo neste aparelho; "Sistema" segue o prefers-color-scheme.
+const THEMES = [['', '◐', 'Sistema'], ['light', '☀', 'Claro'], ['dark', '☾', 'Escuro']];
+const darkScheme = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme() {
+  const v = store.get('gto-tema', ''), i = Math.max(0, THEMES.findIndex(x => x[0] === v));
+  if (THEMES[i][0]) document.documentElement.dataset.theme = THEMES[i][0]; else delete document.documentElement.dataset.theme;
+  const btn = $('#themeBtn');
+  btn.textContent = THEMES[i][1];
+  btn.title = 'Tema: ' + THEMES[i][2] + ' (clique para ' + THEMES[(i + 1) % 3][2] + ')';
+  btn.setAttribute('aria-label', btn.title);
+  $('meta[name="theme-color"]').content = (THEMES[i][0] || (darkScheme.matches ? 'dark' : 'light')) === 'dark' ? '#1b1c22' : '#d42a3c';
+}
+function cycleTheme() {
+  const i = Math.max(0, THEMES.findIndex(x => x[0] === store.get('gto-tema', '')));
+  store.set('gto-tema', THEMES[(i + 1) % 3][0]);
+  applyTheme();
+}
+darkScheme.addEventListener('change', applyTheme);
+applyTheme();
 
 function drillsSide() {
   const mine = store.get('gto-drills', []);
