@@ -29,5 +29,31 @@
     "BB 3-bet vs BTN call (pote 3-bet)",
     "BTN 3-bet vs CO call (pote 3-bet)"
   ],
-  "boards": ["As7d2c", "AhKd5c", "AdQs9s", "Ac5d3h", "Kh9s4d", "KsQd7h", "Kd8d3c", "KcTh9s", "KhKc8d", "KsTs5s", "QsJs4h", "QhTd8c", "Qc6c2d", "JdTc4s", "Js8h6h", "JhJd5c", "Jc9c7c", "Th7c3d", "Ts6s2d", "9h8h7c", "9d9s4h", "8c5d3s", "7s7d2c", "7h6d4c", "6h4h2h"]
+  "boards": ["As7d2c", "AhKd5c", "AdQs9s", "Ac5d3h", "Kh9s4d", "KsQd7h", "Kd8d3c", "KcTh9s", "KhKc8d", "KsTs5s", "QsJs4h", "QhTd8c", "Qc6c2d", "JdTc4s", "Js8h6h", "JhJd5c", "Jc9c7c", "Th7c3d", "Ts6s2d", "9h8h7c", "9d9s4h", "8c5d3s", "7s7d2c", "7h6d4c", "6h4h2h"],
+  "wide": {
+    "presets": {
+      "BTN open vs BB call (pote simples)": 6,
+      "CO open vs BB call (pote simples)": 6,
+      "UTG open vs BB call (pote simples)": 6,
+      "SB open vs BB call (pote simples)": 6,
+      "BB 3-bet vs BTN call (pote 3-bet)": 1,
+      "BTN 3-bet vs CO call (pote 3-bet)": 1
+    },
+    "boards": [
+      "AsQs2s", "As5s4s", "Ks8s5s", "Qs9s4s", "Js8s5s", "Ts5s4s", "8s4s2s", "AsKs7h", "AsQs5h", "AsJs2h", "As9s6h", "As7s5h",
+      "As4s2h", "KsJsTh", "KsTs7h", "Ks9s2h", "Ks6s4h", "QsJs8h", "QsTs3h", "Qs8s4h", "Qs5s3h", "JsTs3h", "Js8s4h", "Js5s4h",
+      "Ts9s3h", "Ts7s2h", "9s8s4h", "9s5s4h", "8s6s5h", "7s6s3h", "6s4s2h", "As9s9h", "KsTsTh", "QsTsTh", "Js9s9h", "Ts8s8h",
+      "9s5s5h", "7s6s6h", "5s3s3h", "AsKh8s", "AsQh8s", "AsJh7s", "AsTh5s", "As9h2s", "As7h3s", "As4h2s", "KsQh4s", "KsJh3s",
+      "Ks9h8s", "Ks8h4s", "Ks6h3s", "QsJh8s", "QsTh6s", "Qs9h4s", "Qs7h5s", "Qs5h2s", "JsTh3s", "Js8h6s", "Js6h5s", "Ts9h8s",
+      "Ts8h4s", "Ts6h4s", "9s8h6s", "9s6h5s", "8s7h6s", "8s5h3s", "7s5h3s", "6s3h2s", "AsAh9s", "KsKhTs", "QsQhTs", "JsJh9s",
+      "TsTh8s", "9s9h5s", "7s7h6s", "5s5h3s", "AsKh7h", "AsQh6h", "AsJh4h", "AsTh2h", "As8h4h", "As6h3h", "KsQh8h", "KsJh7h",
+      "KsTh4h", "Ks8h7h", "Ks6h5h", "QsJhTh", "QsTh7h", "Qs9h4h", "Qs7h4h", "Qs4h2h", "Js9h8h", "Js8h2h", "Js5h4h", "Ts9h3h",
+      "Ts7h4h", "Ts4h2h", "9s7h4h", "9s4h2h", "8s6h2h", "7s5h4h", "6s4h2h", "AsKhTd", "AsKh3d", "AsQh7d", "AsJhTd", "AsJh4d",
+      "AsTh6d", "As9h7d", "As8h7d", "As7h6d", "As6h3d", "As3h2d", "KsQh5d", "KsJh8d", "KsJh2d", "KsTh3d", "Ks9h3d", "Ks8h3d",
+      "Ks7h2d", "Ks5h3d", "QsJh9d", "QsJh3d", "QsTh4d", "Qs9h5d", "Qs8h5d", "Qs7h4d", "Qs6h2d", "Qs3h2d", "JsTh3d", "Js9h4d",
+      "Js8h4d", "Js7h3d", "Js5h4d", "Ts9h8d", "Ts9h2d", "Ts8h2d", "Ts6h4d", "Ts4h3d", "9s8h4d", "9s7h3d", "9s5h4d", "8s7h6d",
+      "8s6h4d", "8s4h2d", "7s5h3d", "6s5h3d", "5s4h2d", "AsAh7d", "As6h6d", "KsKh4d", "Ks2h2d", "Qs9h9d", "JsJh4d", "TsTh8d",
+      "Ts3h3d", "9s4h4d", "8s3h3d", "6s6h4d", "4s4h3d"
+    ]
+  }
 }
