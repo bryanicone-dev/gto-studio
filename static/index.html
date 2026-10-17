@@ -153,6 +153,30 @@
   .chart text { fill: var(--muted); font-size: 11px; }
   .keys { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
   .keys i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 6px; }
+  .study-body.wide { grid-template-columns: 1fr; }
+  .htable-wrap { overflow-x: auto; }
+  table.htable { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .htable th, .htable td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .htable th:first-child, .htable td:first-child { text-align: left; }
+  .htable th button { border: none; background: none; padding: 0; font: inherit; color: var(--muted); font-weight: 500; cursor: pointer; }
+  .htable th.on button { color: var(--primary); }
+  .htable tbody tr { cursor: pointer; }
+  .htable tbody tr:hover { background: var(--empty); }
+  .htable tr.sel { background: var(--primary-soft); }
+  .htable td.fq { border-left: 3px solid var(--c); background: linear-gradient(to right, color-mix(in srgb, var(--c) 30%, transparent) var(--f), transparent var(--f)); }
+  .report tr.cur { background: var(--primary-soft); }
+  .report tr.cur td:first-child { box-shadow: inset 3px 0 var(--primary); }
+  .lock-sl { display: grid; grid-template-columns: minmax(80px, auto) 1fr 44px; gap: 8px; align-items: center; font-size: 13px; margin: 4px 0; border-left: 4px solid var(--c); padding-left: 8px; }
+  .lock-sl input { accent-color: var(--c); padding: 0; }
+  .lock-sl b { text-align: right; }
+  .brush { flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
+  .brush .mini-btn { border-left: 4px solid var(--c, var(--line)); }
+  .lock-note { border: 1px solid var(--primary); background: var(--primary-soft); border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; }
+  .lock-cmp { margin-bottom: 12px; }
+  .lock-cmp h4 { margin: 0 0 6px; }
+  .lock-cmp i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+  .delta.up { color: var(--good); }
+  .delta.down { color: var(--primary); }
 
   /* Mesa (posições) */
   .seats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; }
@@ -1041,6 +1065,7 @@ $('#form').addEventListener('submit', async (e) => {
   try {
     await api('/api/solve', body);
     solveStartedHere = true;
+    solveRequest = body; lockState = null;
     spot = TABLES[PRESETS[$('#preset').value]?.name] ? { preset: PRESETS[$('#preset').value].name, stack: body.stack } : null;
     trainer = null;
   } catch (err) { $('#formError').textContent = err.message; }
@@ -1091,7 +1116,7 @@ async function poll() {
 // ---------- estudar ----------
 let node = null;
 let selected = null;  // índice na grade
-let tab = 'strategy'; // strategy | ranges
+let tab = 'strategy'; // strategy | table | ranges | report
 let filters = {};     // categoria → 'in' | 'out'
 let shape = 'all';    // all | pair | suited | offsuit
 let openingDefault = false;
@@ -1139,7 +1164,10 @@ async function load() {
 
 function go(index) { selected = null; location.hash = studyHash([...history, index]); }
 function jump(n) { selected = null; location.hash = studyHash(history.slice(0, n)); }
-function pick(i) { selected = i; sideTab = 'hand'; render(); }
+function pick(i) {
+  if (sideTab === 'lock' && lockDraft?.mode === 'paint' && solveRequest) return paintLock(i);
+  selected = i; sideTab = 'hand'; render();
+}
 function setTab(t) { tab = t; render(); }
 // Clique: incluir → excluir → limpar.
 function setFilter(name) { sideTab = 'filters'; const m = filters[name]; if (!m) filters[name] = 'in'; else if (m === 'in') filters[name] = 'out'; else delete filters[name]; render(); }
@@ -1163,12 +1191,13 @@ function render() {
       })).join('') + '</div>';
     right = '<div class="overview"><span class="pill">Pote <b>' + num(node.pot) + ' bb</b></span></div><p class="hint">O navegador calcula a nova street quando você escolhe a carta.</p>';
   } else {
-    const tabs = '<div class="tabs"><button class="' + (tab === 'strategy' ? 'on' : '') + '" onclick="setTab(\'strategy\')">Estratégia</button>' +
-      '<button class="' + (tab === 'ranges' ? 'on' : '') + '" onclick="setTab(\'ranges\')">Ranges e equity</button></div>';
-    [left, right] = tab === 'ranges' ? rangesParts() : strategyParts();
+    const tabBtn = (k, l) => '<button class="' + (tab === k ? 'on' : '') + '" onclick="setTab(\'' + k + '\')">' + l + '</button>';
+    const tabs = '<div class="tabs">' + tabBtn('strategy', 'Estratégia') + tabBtn('table', 'Tabela') + tabBtn('ranges', 'Ranges e equity') + tabBtn('report', 'Relatório') + '</div>';
+    [left, right] = tab === 'ranges' ? rangesParts() : tab === 'table' ? tableParts() : tab === 'report' ? [reportParts(), ''] : strategyParts();
     left = tabs + left;
   }
-  $('#main').innerHTML = actionLine(node, { tools, nav: true }) + '<div class="study-body"><div>' + left + '</div><div class="study-right">' + right + '</div></div>';
+  const wide = node.type === 'action' && tab === 'report';
+  $('#main').innerHTML = actionLine(node, { tools, nav: true }) + '<div class="study-body' + (wide ? ' wide' : '') + '"><div>' + left + '</div><div class="study-right">' + right + '</div></div>';
   $('#main').classList.toggle('anim', studyFresh);
   renderedNode = node; renderedTab = tab;
 }
@@ -1176,22 +1205,26 @@ function render() {
 function strategyParts() {
   const colors = actionColors(node.actions);
   const inFilter = (cell) => shapeOk(cell.hand) && (!filterOn() || cell.combos.some(comboOk));
+  // Nodelock por mão: as mãos pintadas aparecem com a ação escolhida.
+  const painted = sideTab === 'lock' && lockDraft?.mode === 'paint' && lockDraft.key === histKey(node.history) ? lockDraft.paint : {};
   const grid = '<div class="grid">' + node.grid.map((c, i) => {
     const h = Math.min(1, c.weight / maxCombos(c.hand));
     const off = c.weight > 0 && !inFilter(c);
+    const freqs = i in painted ? node.actions.map((_, a) => a === painted[i] ? 1 : 0) : c.freqs;
     return '<div class="cell ' + (c.weight > 0 ? '' : 'dead') + ' ' + (off ? 'off' : '') + ' ' + (selected === i ? 'sel' : '') + '" onclick="pick(' + i + ')" title="' + c.hand + '">' +
-      '<div class="fill" style="height:' + (100 * h) + '%;--d:' + ((i / 13 | 0) + i % 13) + '">' + (c.weight > 0 ? mixBar(c.freqs, colors) : '') + '</div><span class="lbl">' + c.hand + '</span></div>';
+      '<div class="fill" style="height:' + (100 * h) + '%;--d:' + ((i / 13 | 0) + i % 13) + '">' + (c.weight > 0 ? mixBar(freqs, colors) : '') + '</div><span class="lbl">' + c.hand + '</span></div>';
   }).join('') + '</div><div class="legend"><span>Cores: mix de ações da mão</span><span>Altura: quanto da mão ainda está no range</span><span>EV em bb</span></div>';
   const nFilters = Object.keys(filters).length + (shape !== 'all' ? 1 : 0);
-  const right = '<div class="overview"><span class="pill">Pote <b>' + num(node.pot) + ' bb</b></span>' +
+  const right = lockNoteHtml() + '<div class="overview"><span class="pill">Pote <b>' + num(node.pot) + ' bb</b></span>' +
     '<span class="pill">Vez do <b>' + node.player + '</b> (' + PLAYER_DESC[node.player] + ')</span><span class="pill"><b>' + num(node.total_combos, 1) + '</b> combos</span></div>' +
     '<div class="act-cards">' + node.actions.map((a, i) => '<button class="act-card" style="--c:' + colors[i] + '" onclick="go(' + i + ')">' +
       (i < 9 ? '<kbd>' + (i + 1) + '</kbd>' : '') + '<b>' + actionLabel(a) + '</b><strong' + (studyFresh ? ' data-count="' + node.summary[i] + '" data-fmt="pct"' : '') + '>' + pct(node.summary[i]) + '</strong>' +
       '<small>' + num(node.total_combos * node.summary[i], 1) + ' combos<br>EV ' + num(node.summary_evs[i]) + '</small></button>').join('') + '</div>' +
-    '<div class="summary">' + mixBar(node.summary, colors) + '</div>' +
+    '<div class="summary">' + mixBar(node.summary, colors) + '</div>' + lockCompareHtml(colors) +
     '<div class="tabs"><button class="' + (sideTab === 'hand' ? 'on' : '') + '" onclick="sideTab=\'hand\';render()">Mão</button>' +
-    '<button class="' + (sideTab === 'filters' ? 'on' : '') + '" onclick="sideTab=\'filters\';render()">Filtros' + (nFilters ? ' (' + nFilters + ')' : '') + '</button></div>' +
-    (sideTab === 'filters' ? categoriesHtml(colors) : '<div class="detail">' + detailHtml(colors) + '</div>');
+    '<button class="' + (sideTab === 'filters' ? 'on' : '') + '" onclick="sideTab=\'filters\';render()">Filtros' + (nFilters ? ' (' + nFilters + ')' : '') + '</button>' +
+    '<button class="' + (sideTab === 'lock' ? 'on' : '') + '" onclick="sideTab=\'lock\';render()">Nodelock</button></div>' +
+    (sideTab === 'filters' ? categoriesHtml(colors) : sideTab === 'lock' ? lockHtml(colors) : '<div class="detail">' + detailHtml(colors) + '</div>');
   return [grid, right];
 }
 
@@ -1239,9 +1272,13 @@ function filterTitle() {
 
 // Média dos combos que passam nos filtros (para o painel quando nenhuma mão está selecionada).
 function filteredSummary() {
+  return aggregate(node.grid.filter(c => shapeOk(c.hand)).flatMap(c => c.combos.filter(comboOk)));
+}
+
+// Média de combos ponderada pela presença no range.
+function aggregate(combos) {
   const n = node.actions.length, s = { weight: 0, ev: 0, equity: 0, freqs: Array(n).fill(0), evs: Array(n).fill(0) };
-  for (const cell of node.grid) if (shapeOk(cell.hand)) for (const k of cell.combos) {
-    if (!comboOk(k)) continue;
+  for (const k of combos) {
     s.weight += k.weight; s.ev += k.weight * k.ev; s.equity += k.weight * k.equity;
     k.freqs.forEach((f, a) => { s.freqs[a] += k.weight * f; s.evs[a] += k.weight * k.evs[a]; });
   }
@@ -1285,6 +1322,163 @@ function rangesParts() {
     '<div class="keys">' + node.ranges.map((r, i) => '<span><i style="background:' + (i ? 'var(--primary)' : 'var(--fold)') + '"></i>' + r.player + ' · ' + pct(r.equity) + '</span>').join('') + '</div>' +
     '<p class="hint">Eixo X: percentil do range (mãos ordenadas da mais forte para a mais fraca). Eixo Y: equity contra o range do oponente.</p></div>';
   return [left, right];
+}
+
+// Aba Tabela: uma linha por mão do range (com filtros, só os combos que passam), ordenável pelo cabeçalho.
+let tableSort = { key: 'hand', dir: 1 };
+function sortTable(key) { tableSort = tableSort.key === key ? { key, dir: -tableSort.dir } : { key, dir: key === 'hand' ? 1 : -1 }; render(); }
+function tableParts() {
+  const colors = actionColors(node.actions), names = node.actions.map(actionLabel);
+  const rows = node.grid.map((c, i) => {
+    if (c.weight <= 0 || !shapeOk(c.hand)) return null;
+    const r = filterOn() ? aggregate(c.combos.filter(comboOk)) : c;
+    return r.weight > 0 ? { ...r, i, hand: c.hand } : null;
+  }).filter(Boolean);
+  const k = tableSort.key, a = Number(k.slice(1));
+  const get = k[0] === 'f' ? (r) => r.freqs[a] : k[0] === 'v' ? (r) => r.evs[a]
+    : { hand: (r) => r.i, combos: (r) => r.weight, ev: (r) => r.ev, eq: (r) => r.equity, eqr: (r) => r.equity > 0 ? r.ev / r.equity : -Infinity }[k];
+  rows.sort((x, y) => tableSort.dir * (get(x) - get(y)));
+  const th = (key, label, title) => '<th class="' + (k === key ? 'on' : '') + '"' + (k === key ? ' aria-sort="' + (tableSort.dir > 0 ? 'ascending' : 'descending') + '"' : '') + '><button onclick="sortTable(\'' + key + '\')"' + (title ? ' title="' + title + '"' : '') + '>' +
+    label + (k === key ? (tableSort.dir > 0 ? ' ▲' : ' ▼') : '') + '</button></th>';
+  const table = '<div class="htable-wrap"><table class="htable"><thead><tr>' + th('hand', 'Mão') + th('combos', 'Combos') +
+    names.map((n, i) => th('f' + i, n)).join('') + names.map((n, i) => th('v' + i, 'EV ' + n)).join('') +
+    th('ev', 'EV') + th('eq', 'Equity') + th('eqr', 'EQR', 'Quanto da equity a mão realiza: EV ÷ (equity × pote)') + '</tr></thead><tbody>' +
+    rows.map(r => '<tr class="' + (selected === r.i ? 'sel' : '') + '" onclick="pick(' + r.i + ')"><td><b>' + r.hand + '</b></td><td>' + num(r.weight) + '</td>' +
+      r.freqs.map((f, i) => '<td class="fq" style="--c:' + colors[i] + ';--f:' + (100 * f).toFixed(1) + '%">' + pct(f) + '</td>').join('') +
+      r.evs.map(e => '<td>' + num(e) + '</td>').join('') + '<td>' + num(r.ev) + '</td><td>' + pct(r.equity) + '</td><td>' + eqr(r.ev, r.equity) + '</td></tr>').join('') +
+    '</tbody></table></div>' + (rows.length ? '' : '<p class="hint">Nenhuma mão passa nos filtros.</p>') +
+    '<div class="legend"><span>' + rows.length + ' mãos' + (filterOn() || shape !== 'all' ? ' (filtradas: ' + filterTitle() + ')' : '') + '</span><span>EV em bb</span><span>Clique no cabeçalho para ordenar e numa linha para ver a mão</span></div>';
+  return [table, strategyParts()[1]];
+}
+
+// Aba Relatório: os flops da Biblioteca da mesma situação do spot aberto, com o flop aberto em destaque.
+function reportParts() {
+  if (BACKEND !== 'wasm') return '<div class="empty"><p>O relatório usa os flops da Biblioteca, que faz parte da versão online do GTO Studio.</p></div>';
+  if (!libraryIndex) {
+    ensureLibrary().then(() => { if (curPage === 'estudar' && tab === 'report') render(); }, () => {});
+    return '<div class="empty"><p>Carregando a Biblioteca…</p></div>';
+  }
+  const spots = spot?.preset ? libraryIndex.filter(s => s.preset === spot.preset) : [];
+  if (!spots.length) return '<div class="empty"><p>O relatório compara os flops da Biblioteca de uma mesma situação. Abra um spot da Biblioteca (ou resolva uma situação da Biblioteca no Resolver) para ver o relatório dela.</p><a class="btn-primary" href="#/biblioteca">Abrir a Biblioteca</a></div>';
+  const flop = flopKey(node.board.slice(0, 3).join(''));
+  return '<div class="overview"><span class="pill">Situação <b>' + spot.preset + '</b></span></div>' +
+    reportTable(spots, (s) => s.id === spot.id || flopKey(s.board) === flop, 'openReportSpot');
+}
+function openReportSpot(id) { tab = 'strategy'; openSpot(id); }
+
+// ---------- nodelock ----------
+// Trava a estratégia do jogador da vez neste ponto e resolve de novo: o resto da árvore se ajusta a ela.
+// Para comparar, guarda antes os nós da solução sem trava: este ponto, os anteriores e a resposta a cada ação.
+let solveRequest = null; // pedido de solve da solução aberta (Resolver ou spot da Biblioteca)
+let lockState = null;    // { history, where, player, base: { 'h.i.s': nó sem trava }, spotId, cancelled }
+let lockDraft = null;    // { key, mode: 'global' | 'paint', global: [%], paint: { índice da grade: ação }, brush, error }
+const histKey = (h) => h.join('.');
+
+function lockHtml(colors) {
+  if (!solveRequest) return '<p class="hint">O nodelock funciona nas soluções do Resolver e nos spots da Biblioteca abertos nesta sessão.</p>';
+  const key = histKey(node.history);
+  if (lockDraft?.key !== key) lockDraft = { key, mode: 'global', global: node.summary.map(f => Math.round(100 * f)), paint: {}, brush: 0 };
+  const d = lockDraft, names = node.actions.map(actionLabel), other = node.player === 'OOP' ? 'IP' : 'OOP';
+  const nPainted = Object.keys(d.paint).length;
+  const mode = (m, l) => '<button class="' + (d.mode === m ? 'on' : '') + '" onclick="lockDraft.mode=\'' + m + '\';render()">' + l + '</button>';
+  const body = d.mode === 'global'
+    ? names.map((n, a) => '<label class="lock-sl" style="--c:' + colors[a] + '"><span>' + n + '</span><input type="range" min="0" max="100" value="' + d.global[a] + '" oninput="lockSlide(' + a + ', this.value)" aria-label="Frequência de ' + n + '"><b id="lockV' + a + '">' + d.global[a] + '%</b></label>').join('') +
+      '<p class="hint">Todas as mãos do ' + node.player + ' jogam este mix (a soma é normalizada para 100%).</p>'
+    : '<div class="row-inline brush">' + names.map((n, a) => '<button class="mini-btn ' + (d.brush === a ? 'on' : '') + '" style="--c:' + colors[a] + '" onclick="lockDraft.brush=' + a + ';render()">' + n + '</button>').join('') +
+      '<button class="mini-btn ' + (d.brush < 0 ? 'on' : '') + '" onclick="lockDraft.brush=-1;render()">Livre</button></div>' +
+      '<p class="hint">Escolha a ação e clique nas mãos da grade (ou da tabela) para travá-las nela. As mãos não pintadas continuam livres. ' +
+      nPainted + ' mão(s) travada(s)' + (nPainted ? ' · <a href="javascript:lockDraft.paint={};render()">limpar</a>' : '') + '.</p>';
+  return '<h4>Travar a estratégia do ' + node.player + '</h4>' +
+    '<p class="hint" style="margin:0 0 8px">O solver resolve de novo com o ' + node.player + ' jogando como você definir aqui; o ' + other + ' (e o próprio ' + node.player + ' nos outros pontos) se ajusta. Depois compare com a solução sem trava.</p>' +
+    '<div class="seg shape">' + mode('global', 'Global') + mode('paint', 'Por mão') + '</div>' + body +
+    (d.error ? '<div class="error">' + d.error + '</div>' : '') +
+    '<button class="btn-primary" style="margin-top:8px" onclick="runLock()">Travar e re-resolver</button>' +
+    '<p class="hint">' + (spot?.id ? 'Os spots da Biblioteca guardam só o flop: o navegador resolve o spot inteiro de novo com a trava, o que leva alguns minutos.' : 'O solver resolve a árvore inteira de novo com a trava (mais ou menos o tempo do solve original).') + '</p>';
+}
+function lockSlide(a, v) { lockDraft.global[a] = Number(v); $('#lockV' + a).textContent = v + '%'; }
+function paintLock(i) {
+  if (node.grid[i].weight <= 0) return;
+  if (lockDraft.brush < 0) delete lockDraft.paint[i]; else lockDraft.paint[i] = lockDraft.brush;
+  render();
+}
+
+async function runLock() {
+  const d = lockDraft, n = node, target = n.history;
+  const hands = d.mode === 'global' ? { '*': d.global.map(x => x / 100) }
+    : Object.fromEntries(Object.entries(d.paint).map(([i, a]) => [n.grid[i].hand, n.actions.map((_, j) => j === a ? 1 : 0)]));
+  d.error = '';
+  if (d.mode === 'global' ? !d.global.some(x => x > 0) : !Object.keys(hands).length) {
+    d.error = d.mode === 'global' ? 'Dê alguma frequência a pelo menos uma ação.' : 'Pinte pelo menos uma mão.';
+    return render();
+  }
+  $('#main').innerHTML = '<div class="empty"><p id="lockProgress">Guardando a solução sem trava para comparar…</p>' +
+    '<div class="bar" style="max-width:420px;margin:0 auto 16px"><div id="lockBar"></div></div><button onclick="api(\'/api/cancel\', {})">Parar</button></div>';
+  try {
+    // Spot da Biblioteca com trava anterior: reabre o arquivo sem trava. Resolver: mantém a comparação com a solução original.
+    if (lockState?.spotId) await loadSpot(libraryIndex.find(s => s.id === lockState.spotId));
+    let base = lockState?.base;
+    if (!base) {
+      base = {};
+      for (const h of [...target.map((_, i) => target.slice(0, i)), target, ...n.actions.map((_, a) => [...target, a])]) {
+        const x = await api('/api/node', { history: h });
+        if (x.type === 'action') base[histKey(h)] = x;
+      }
+    }
+    const label = spot?.label || 'Solução aberta';
+    await api('/api/solve', { ...solveRequest, locks: [{ history: target, hands }] });
+    lockState = { history: target, where: n.path.length ? 'em ' + n.path.map(stepLabel).join(' › ') : 'na primeira decisão', player: n.player, base, spotId: spot?.id };
+    spot = { ...spot, label: label + ' · nodelock' };
+    for (;;) {
+      status = await api('/api/status');
+      if (status.state !== 'solving') break;
+      const p = $('#lockProgress'), b = $('#lockBar');
+      if (p) p.textContent = 'Re-resolvendo com a trava… iteração ' + status.iteration + ' de ' + status.max_iterations;
+      if (b) b.style.width = 100 * status.iteration / status.max_iterations + '%';
+      await new Promise(r => setTimeout(r, 700));
+    }
+    if (status.error) throw new Error(status.error);
+    lockState.cancelled = status.cancelled;
+  } catch (err) {
+    d.error = err.message;
+    if (status?.state !== 'done') lockState = null;
+  }
+  if (curPage !== 'estudar') return;
+  if (location.hash === studyHash(target)) load(); else location.hash = studyHash(target);
+}
+
+async function clearLock() {
+  const st = lockState;
+  if (st.spotId) return openSpot(st.spotId); // reabre o spot salvo (loadSpot zera a trava)
+  lockState = null;
+  spot = { ...spot, label: spot.label.replace(' · nodelock', '') };
+  try {
+    await api('/api/solve', solveRequest);
+    solveStartedHere = true;
+    location.hash = '#/resolver';
+  } catch (err) { toast(err.message); setTimeout(() => toast(null), 4000); }
+  poll();
+}
+
+function lockNoteHtml() {
+  if (!lockState) return '';
+  const here = histKey(node.history) === histKey(lockState.history);
+  return '<div class="lock-note"><b>Nodelock ativo</b>: ' + lockState.player + ' travado ' + lockState.where + (lockState.cancelled ? ' (interrompido antes de convergir)' : '') + '. ' +
+    (here ? '' : '<a href="' + studyHash(lockState.history) + '">Ir para o ponto travado</a> · ') + '<a href="javascript:clearLock()">Remover trava</a></div>';
+}
+
+// Este ponto antes e depois da trava: o range todo ou a mão selecionada.
+function lockCompareHtml(colors) {
+  const b = lockState?.base[histKey(node.history)];
+  if (!b || b.actions.length !== node.actions.length) return '';
+  const hand = selected != null && node.grid[selected].weight > 0 && b.grid[selected].weight > 0;
+  const whole = (x) => ({ freqs: x.summary, ev: x.grid.reduce((s, c) => s + c.weight * c.ev, 0) / (x.total_combos || 1) });
+  const was = hand ? b.grid[selected] : whole(b), now = hand ? node.grid[selected] : whole(node);
+  const ev = (x) => x.ev;
+  const delta = (x, unit, scale) => '<span class="delta ' + (x > 0.0005 ? 'up' : x < -0.0005 ? 'down' : '') + '">' + (x > 0 ? '+' : '') + num(scale * x, 1) + unit + '</span>';
+  return '<div class="lock-cmp"><h4>Sem trava → com trava · ' + (hand ? node.grid[selected].hand : 'range todo') + '</h4>' +
+    '<table class="combos"><tr><th>Ação</th><th>Sem trava</th><th>Com trava</th><th>Diferença</th></tr>' +
+    node.actions.map((a, i) => '<tr><td><i style="background:' + colors[i] + '"></i>' + actionLabel(a) + '</td><td>' + pct(was.freqs[i]) + '</td><td>' + pct(now.freqs[i]) + '</td><td>' + delta(now.freqs[i] - was.freqs[i], ' pp', 100) + '</td></tr>').join('') +
+    '<tr><td>EV do ' + node.player + '</td><td>' + num(ev(was)) + '</td><td>' + num(ev(now)) + '</td><td>' + delta(ev(now) - ev(was), ' bb', 1) + '</td></tr></table></div>';
 }
 
 function equityChart(ranges) {
@@ -1336,6 +1530,8 @@ async function loadSpot(s) {
   if (!bytes) throw new Error('Spot pessoal não encontrado neste aparelho.');
   await callWorker('load', { bytes });
   const preset = PRESETS.find(p => p.name === s.preset);
+  solveRequest = preset ? libraryRequest(preset, s.board) : null;
+  lockState = null;
   spot = { id: s.id, preset: preset ? s.preset : null, stack: preset?.stack, label: `${s.preset} · ${s.board.match(/../g).map(c => c[0] + SUIT[c[1]]).join('')}` };
   Object.assign(local, {
     state: 'done', iteration: s.iterations, max_iterations: s.iterations, exploitability_pct: s.exploitability_pct,
@@ -2091,20 +2287,24 @@ async function reportsView() {
   catch { el.innerHTML = '<div class="empty"><p>Não foi possível carregar a biblioteca.</p></div>'; return; }
   const presets = [...new Set(libraryIndex.map(s => s.preset))];
   reportPreset ??= presets[0];
-  const spots = libraryIndex.filter(s => s.preset === reportPreset);
-  if (!spots.every(s => s.report)) { el.innerHTML = '<div class="empty"><p>Os relatórios ainda estão sendo gerados. Volte depois da próxima atualização do site.</p></div>'; return; }
+  el.innerHTML = `<div class="seg" style="flex-wrap:wrap;margin-bottom:14px"><select style="width:auto;max-width:100%" onchange="reportPreset=this.value;reportsView()">${presets
+      .map(p => `<option ${p === reportPreset ? 'selected' : ''}>${p}</option>`).join('')}</select></div>` + reportTable(libraryIndex.filter(s => s.preset === reportPreset));
+}
+
+// Tabela de relatório (Biblioteca › Relatórios e aba Relatório do Estudar). Spots sem relatório (resolvidos no aparelho) ficam de fora.
+function reportTable(spots, isCurrent = () => false, open = 'openSpot') {
+  spots = spots.filter(s => s.report);
+  if (!spots.length) return '<div class="empty"><p>Os relatórios ainda estão sendo gerados. Volte depois da próxima atualização do site.</p></div>';
   const betShare = (side) => side.freqs.reduce((s, f, i) => s + (side.actions[i].kind === 'Check' ? 0 : f), 0);
   const bar = (side) => `<div class="summary">${mixBar(side.freqs, actionColors(side.actions))}</div>`;
   const avg = (f) => spots.reduce((s, x) => s + f(x), 0) / spots.length;
-  el.innerHTML = `<div class="seg" style="flex-wrap:wrap;margin-bottom:14px"><select style="width:auto;max-width:100%" onchange="reportPreset=this.value;reportsView()">${presets
-      .map(p => `<option ${p === reportPreset ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
-    <div class="panel"><table class="report"><tr><th>Board</th><th>Equity OOP</th><th>OOP primeira ação</th><th>IP depois do check</th></tr>
-    ${spots.map(s => `<tr onclick="openSpot('${s.id}')" title="Abrir no Estudar"><td><div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div><small>${texture(s.board)}</small></td>
+  return `<div class="panel"><table class="report"><tr><th>Board</th><th>Equity OOP</th><th>OOP primeira ação</th><th>IP depois do check</th></tr>
+    ${spots.map(s => `<tr class="${isCurrent(s) ? 'cur' : ''}" onclick="${open}('${s.id}')" title="Abrir no Estudar"><td><div class="cards">${s.board.match(/../g).map(c => cardEl(c)).join('')}</div><small>${texture(s.board)}</small></td>
       <td>${pct(s.report.oop_equity)}</td>
       <td>${bar(s.report.oop)}<small>Bet ${pct(betShare(s.report.oop))} · Check ${pct(1 - betShare(s.report.oop))}</small></td>
       <td>${bar(s.report.ip)}<small>Bet ${pct(betShare(s.report.ip))} · Check ${pct(1 - betShare(s.report.ip))}</small></td></tr>`).join('')}
     <tr class="avg"><td><b>Média</b></td><td>${pct(avg(s => s.report.oop_equity))}</td><td>Bet ${pct(avg(s => betShare(s.report.oop)))}</td><td>Bet ${pct(avg(s => betShare(s.report.ip)))}</td></tr></table>
-    <p class="hint">Barras: mix de ações de todo o range (check em verde, bet em laranja). Clique numa linha para abrir o spot no Estudar.</p></div>`;
+    <p class="hint">Barras: mix de ações de todo o range (check em verde, bet em laranja). Clique numa linha para abrir o spot no Estudar.${spots.some(isCurrent) ? ' Em destaque: o flop aberto.' : ''}</p></div>`;
 }
 
 // ---------- início ----------
@@ -3241,15 +3441,20 @@ function ensureLibrary() {
   return libraryPromise;
 }
 
+// Pedido de solve com os parâmetros dos spots da Biblioteca (os mesmos do CI): solve no aparelho e nodelock.
+function libraryRequest(p, board) {
+  const sizes = { oop_bet: '50%', oop_raise: '3x', ip_bet: '50%', ip_raise: '3x' };
+  return { oop_range: p.oop, ip_range: p.ip, board, pot: p.pot, stack: p.stack, flop: sizes, turn: sizes, river: sizes,
+    turn_donk: '', river_donk: '', rake_pct: 0, rake_cap: 0, add_allin_threshold: 1.5, force_allin_threshold: 0.15, merging_threshold: 0.1,
+    precision: 'compressed', max_iterations: 300, target_pct: 1 };
+}
+
 // Resolve um flop de uma situação da Biblioteca no navegador e guarda como spot pessoal.
 async function solveOnDevice(presetName, board, onProgress) {
   const p = PRESETS.find(x => x.name === presetName);
   if (!p) throw new Error('Situação desconhecida: ' + presetName);
   if (local.state === 'solving') throw new Error('Já existe um solve em andamento.');
-  const sizes = { oop_bet: '50%', oop_raise: '3x', ip_bet: '50%', ip_raise: '3x' };
-  await api('/api/solve', { oop_range: p.oop, ip_range: p.ip, board, pot: p.pot, stack: p.stack, flop: sizes, turn: sizes, river: sizes,
-    turn_donk: '', river_donk: '', rake_pct: 0, rake_cap: 0, add_allin_threshold: 1.5, force_allin_threshold: 0.15, merging_threshold: 0.1,
-    precision: 'compressed', max_iterations: 300, target_pct: 1 });
+  await api('/api/solve', libraryRequest(p, board));
   while (local.state === 'solving') { onProgress?.(local); await new Promise(r => setTimeout(r, 500)); }
   if (local.error) throw new Error(local.error);
   if (local.cancelled) throw new Error('Interrompido.');
