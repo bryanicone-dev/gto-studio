@@ -153,6 +153,10 @@ fn start_solve(body: &str, game: &GameSlot, status: &StatusSlot, cancel: &Arc<At
     let (game, status, cancel) = (game.clone(), status.clone(), cancel.clone());
     thread::spawn(move || {
         g.allocate_memory(compress);
+        if let Err(e) = engine::apply_locks(&mut g, &req.locks) {
+            *status.lock().unwrap() = Status { state: "idle", error: e, ..Default::default() };
+            return;
+        }
         let pot = g.tree_config().starting_pot as f32;
         let target = pot * req.target_pct / 100.0;
         for i in 0..req.max_iterations {
