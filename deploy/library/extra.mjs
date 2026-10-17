@@ -20,7 +20,7 @@ try {
   const r = await fetch(url + '/rest/v1/rpc/list_spot_requests', { method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' }, body: '{}' });
   if (r.ok) rows = await r.json();
 } catch {}
-const seen = new Set(spec.boards.map(flopKey));
+const seen = new Set([...spec.boards, ...(preset in (spec.wide?.presets || {}) ? spec.wide.boards : [])].map(flopKey));
 const out = [];
 for (const { preset: p, board } of rows) {
   if (p !== preset || !/^([2-9TJQKA][cdhs]){3}$/.test(board) || new Set(board.match(/../g)).size !== 3) continue;

@@ -1,7 +1,8 @@
 # Faz tudo na nuvem a cada push na main (ou manualmente em Actions > Publicar site > Run workflow).
 # Em pull requests roda tudo e guarda o site como artefato "site", mas não publica:
 #   1. roda os testes;
-#   2. resolve os spots da biblioteca, um preset por máquina, em paralelo (com cache: só
+#   2. resolve os spots da biblioteca, um preset por máquina, em paralelo (as situações de "wide" em
+#      spots.json se dividem em várias máquinas; com cache: só
 #      recalcula o que ainda não existe; para refazer tudo, aumente "version" em spots.json).
 #      Em pull requests só usa o cache da main: spots novos são calculados uma vez, na publicação;
 #   3. gera a tabela de equity pré-flop do Push/fold (com cache), compila o site (WebAssembly) e publica no Hugging Face Space.
@@ -54,7 +55,12 @@ jobs:
           node -e '
             const s = require("./deploy/library/spots.json");
             const slug = (n) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-            console.log("presets=" + JSON.stringify(s.presets.map((name) => ({ name, slug: slug(name) }))));
+            // Uma entrada por máquina: as situações de "wide" se dividem em n partes (key = cache de cada parte).
+            const parts = s.presets.flatMap((name) => {
+              const n = (s.wide && s.wide.presets[name]) || 1;
+              return [...Array(n)].map((_, k) => ({ name, slug: slug(name), shard: k + "/" + n, key: slug(name) + (n > 1 ? "-p" + k : "") }));
+            });
+            console.log("presets=" + JSON.stringify(parts));
             console.log("version=" + (s.version || 1));
           ' >> "$GITHUB_OUTPUT"
 
@@ -78,8 +84,11 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: spots
-          key: spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.slug }}-${{ github.run_id }}
-          restore-keys: spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.slug }}-
+          key: spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.key }}-${{ github.run_id }}
+          # A primeira vez que uma situação é dividida, cada parte começa do cache da situação inteira.
+          restore-keys: |
+            spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.key }}-
+            spots-v${{ needs.plano.outputs.version }}-${{ matrix.preset.slug }}-
       - name: Flops pedidos pelo site
         env:
           PRESET: ${{ matrix.preset.name }}
@@ -88,13 +97,14 @@ jobs:
         env:
           PRESET: ${{ matrix.preset.name }}
           LIBRARY_EXTRA: extra.json
+          LIBRARY_SHARD: ${{ matrix.preset.shard }}
           LIBRARY_MAX_NEW: '6'
           LIBRARY_DEADLINE_MIN: '300'
           LIBRARY_ONLY_CACHED: ${{ github.event_name == 'pull_request' && '1' || '0' }}
         run: cargo run --release --bin library -- deploy/library/spots.json spots "$PRESET"
       - uses: actions/upload-artifact@v4
         with:
-          name: spots-${{ matrix.preset.slug }}
+          name: spots-${{ matrix.preset.key }}
           path: spots
           retention-days: 3
 

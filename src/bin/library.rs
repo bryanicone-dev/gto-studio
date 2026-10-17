@@ -8,6 +8,7 @@
 //! LIBRARY_EXTRA points to a JSON list of extra flops for this preset (requested from the site's hand
 //! analysis); LIBRARY_MAX_NEW caps how many of those extra spots one run solves, so the nightly job stays short.
 //! LIBRARY_DEADLINE_MIN stops starting new spots after that many minutes (the rest is solved on the next run).
+//! LIBRARY_SHARD=k/n splits a preset's flops across n machines; this one solves part k (0-based).
 
 use gto_studio::engine::{self, SolveRequest, StreetSizes};
 use gto_studio::postflop_solver::{compute_exploitability, finalize, solve_step};
@@ -26,6 +27,15 @@ struct Spec {
     target_pct: f32,
     max_iterations: u32,
     presets: Vec<String>,
+    boards: Vec<String>,
+    /// Extra flops for some presets (preset -> number of CI machines that split them).
+    #[serde(default)]
+    wide: Option<Wide>,
+}
+
+#[derive(Deserialize)]
+struct Wide {
+    presets: std::collections::HashMap<String, usize>,
     boards: Vec<String>,
 }
 
@@ -74,6 +84,10 @@ fn main() -> Result<(), String> {
         .and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
     let max_new: usize = env::var("LIBRARY_MAX_NEW").ok().and_then(|v| v.parse().ok()).unwrap_or(usize::MAX);
     let mut solved_now = 0;
+    let (shard, shards) = env::var("LIBRARY_SHARD").ok().and_then(|v| {
+        let (k, n) = v.split_once('/')?;
+        Some((k.parse::<usize>().ok()?, n.parse::<usize>().ok()?))
+    }).filter(|&(k, n)| k < n).unwrap_or((0, 1));
     // Prazo do job no CI: depois dele não começa spot novo; o que ficou pronto entra no cache e a próxima
     // execução continua de onde parou.
     let deadline = env::var("LIBRARY_DEADLINE_MIN").ok().and_then(|v| v.parse::<u64>().ok()).map(|m| std::time::Duration::from_secs(m * 60));
@@ -88,9 +102,12 @@ fn main() -> Result<(), String> {
     }
     for name in spec.presets.iter().filter(|n| only.as_ref().is_none_or(|p| p == *n)) {
         let (pot, stack, oop, ip) = preset(html, name).ok_or(format!("preset não encontrado: {name}"))?;
-        let boards = spec.boards.iter().map(|b| (b, false))
-            .chain(extra.iter().filter(|b| !spec.boards.contains(b)).map(|b| (b, true)));
-        for (board, is_extra) in boards {
+        let wide = spec.wide.as_ref().filter(|w| w.presets.contains_key(name)).map_or(&[][..], |w| &w.boards[..]);
+        let fixed: Vec<&String> = spec.boards.iter().chain(wide).collect();
+        // Machine k of n solves every n-th fixed flop; the requested flops stay with machine 0.
+        let fixed_here = fixed.iter().enumerate().filter(|(i, _)| i % shards == shard).map(|(_, b)| (*b, false));
+        let extra_here = extra.iter().filter(|b| shard == 0 && !fixed.contains(b)).map(|b| (b, true));
+        for (board, is_extra) in fixed_here.chain(extra_here) {
             let id = slug(&format!("{name} {board}"));
             let file = format!("{id}.bin");
             let existing = index.iter().position(|s| s["id"] == id.as_str());
