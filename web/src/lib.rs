@@ -99,6 +99,20 @@ pub fn finish() {
     });
 }
 
+/// Saves the finished tree in the library format (flop only) and reopens it from those bytes, so turn and
+/// river are re-solved on demand exactly like library spots. Used by the personal library on the device.
+#[wasm_bindgen]
+pub fn save(memo: &str) -> Result<Vec<u8>, JsError> {
+    JOB.with(|j| {
+        let mut j = j.borrow_mut();
+        let job = j.as_mut().filter(|job| job.finished).ok_or_else(|| JsError::new("Nenhuma solução pronta para salvar."))?;
+        let bytes = engine::save_flop(&mut job.game, memo).map_err(|e| JsError::new(&e))?;
+        let (game, _) = engine::load(&bytes).map_err(|e| JsError::new(&e))?;
+        *j = Some(finished_job(game));
+        Ok(bytes)
+    })
+}
+
 /// Opens a library spot (bytes of a file saved by the `library` tool). Returns `{memo}` or `{error}`.
 #[wasm_bindgen]
 pub fn load(bytes: &[u8]) -> String {

@@ -1,7 +1,7 @@
 // Web Worker of the browser build: runs the WebAssembly solver off the UI thread.
-// Messages in: {id, cmd: 'solve' | 'cancel' | 'node' | 'load' | 'resolve', body}. Replies: {id, result}.
+// Messages in: {id, cmd: 'solve' | 'cancel' | 'node' | 'load' | 'resolve' | 'save', body}. Replies: {id, result}.
 // While solving it also posts {type: 'progress', ...status} after every batch.
-import init, { prepare, step, finish, node, load, resolve } from './pkg/gto_studio_web.js';
+import init, { prepare, step, finish, node, load, resolve, save } from './pkg/gto_studio_web.js';
 
 const ready = init();
 let cancelled = false;
@@ -13,6 +13,12 @@ self.onmessage = async ({ data: { id, cmd, body } }) => {
   if (cmd === 'cancel') { cancelled = true; return reply(id, {}); }
   if (cmd === 'node') return reply(id, JSON.parse(node(JSON.stringify(body.history))));
   if (cmd === 'load') return reply(id, JSON.parse(load(new Uint8Array(body.bytes))));
+  if (cmd === 'save') {
+    try {
+      const bytes = save(body.memo);
+      return postMessage({ id, result: { bytes: bytes.buffer } }, [bytes.buffer]);
+    } catch (e) { return reply(id, { error: String(e?.message || e) }); }
+  }
   if (cmd === 'resolve') {
     const { prefix, card, limit_gb, max_iterations, target_pct } = body;
     return reply(id, JSON.parse(resolve(JSON.stringify(prefix), card, limit_gb, max_iterations, target_pct)));
