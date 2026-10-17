@@ -3246,8 +3246,8 @@ async function solveOnDevice(presetName, board, onProgress) {
   const p = PRESETS.find(x => x.name === presetName);
   if (!p) throw new Error('Situação desconhecida: ' + presetName);
   if (local.state === 'solving') throw new Error('Já existe um solve em andamento.');
-  const sizes = { oop_bet: '50%', oop_raise: '3x', ip_bet: '50%', ip_raise: '3x' };
-  await api('/api/solve', { oop_range: p.oop, ip_range: p.ip, board, pot: p.pot, stack: p.stack, flop: sizes, turn: sizes, river: sizes,
+  const sizes = (bet) => ({ oop_bet: bet, oop_raise: '3x', ip_bet: bet, ip_raise: '3x' });
+  await api('/api/solve', { oop_range: p.oop, ip_range: p.ip, board, pot: p.pot, stack: p.stack, flop: sizes('33%, 75%'), turn: sizes('50%'), river: sizes('50%'),
     turn_donk: '', river_donk: '', rake_pct: 0, rake_cap: 0, add_allin_threshold: 1.5, force_allin_threshold: 0.15, merging_threshold: 0.1,
     precision: 'compressed', max_iterations: 300, target_pct: 1 });
   while (local.state === 'solving') { onProgress?.(local); await new Promise(r => setTimeout(r, 500)); }
@@ -3258,7 +3258,7 @@ async function solveOnDevice(presetName, board, onProgress) {
   if (r.error) throw new Error(r.error);
   await idbPut(id, r.bytes);
   const entry = { id, preset: presetName, board, bytes: r.bytes.byteLength, iterations: local.iteration, exploitability_pct: local.exploitability_pct,
-    bet: '50%', raise: '3x', personal: true, created: Date.now() };
+    bet: '33%, 75%', raise: '3x', personal: true, created: Date.now() };
   store.set('gto-pessoal', [...store.get('gto-pessoal', []).filter(s => s.id !== id), entry]);
   await ensureLibrary();
   libraryIndex = [...libraryIndex.filter(s => s.id !== id), entry];

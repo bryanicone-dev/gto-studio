@@ -61,7 +61,7 @@ jobs:
   biblioteca:
     needs: plano
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 355
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +89,7 @@ jobs:
           PRESET: ${{ matrix.preset.name }}
           LIBRARY_EXTRA: extra.json
           LIBRARY_MAX_NEW: '6'
+          LIBRARY_DEADLINE_MIN: '300'
           LIBRARY_ONLY_CACHED: ${{ github.event_name == 'pull_request' && '1' || '0' }}
         run: cargo run --release --bin library -- deploy/library/spots.json spots "$PRESET"
       - uses: actions/upload-artifact@v4
@@ -99,6 +100,8 @@ jobs:
 
   site:
     needs: [testes, biblioteca]
+    # Publica mesmo se uma situação da biblioteca falhar (usa o que ficou pronto); só não publica sem testes.
+    if: ${{ !cancelled() && needs.testes.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
